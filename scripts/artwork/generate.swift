@@ -1,7 +1,7 @@
 // Draws DevPulse's artwork: the app icon "Lookout" (AppIcon.png, icon-web.png) and the menu bar glyph "Sonar" (MenuBarIcon.pdf and PNGs).
 // Run: swift scripts/artwork/generate.swift <output-dir>   (not part of the build; nothing is copied anywhere)
 // Then copy AppIcon.png to Resources/, MenuBarIcon.pdf into Resources/Assets.xcassets/MenuBarIcon.imageset/ and icon-web.png to docs/assets/icon.png.
-import AppKit
+import Foundation
 import CoreGraphics
 import ImageIO
 import UniformTypeIdentifiers
@@ -23,7 +23,6 @@ func canvas(_ width: Int, _ height: Int) -> CGContext {
     return c
 }
 func rect(_ x: CGFloat, _ y: CGFloat, _ w: CGFloat, _ h: CGFloat) -> CGRect { CGRect(x:x,y:y,width:w,height:h) }
-func rounded(_ r: CGRect, _ radius: CGFloat) -> CGPath { CGPath(roundedRect:r,cornerWidth:radius,cornerHeight:radius,transform:nil) }
 func fill(_ c: CGContext, _ p: CGPath, _ col: CGColor) { c.addPath(p); c.setFillColor(col); c.fillPath() }
 func stroke(_ c: CGContext, _ p: CGPath, _ col: CGColor, _ width: CGFloat) {
     c.addPath(p); c.setStrokeColor(col); c.setLineWidth(width); c.setLineCap(.round); c.setLineJoin(.round); c.strokePath()
@@ -52,74 +51,7 @@ func drawImage(_ c:CGContext,_ im:CGImage,_ r:CGRect) {
     c.saveGState();c.translateBy(x:r.minX,y:r.maxY);c.scaleBy(x:1,y:-1);c.interpolationQuality = .high;c.draw(im,in:rect(0,0,r.width,r.height));c.restoreGState()
 }
 
-// A / Resonance: two sculpted, asymmetric pulse lobes surrounding a quiet live seed.
-func resonance() -> CGImage {
-    let c=canvas(1024,1024)
-    linear(c,[color(0x3659CF),color(0x1643A6),color(0x092A6A)],CGPoint(x:80,y:0),CGPoint(x:950,y:1024))
-    glow(c,CGPoint(x:220,y:90),760,0x8DAEFF,0.48)
-    glow(c,CGPoint(x:900,y:910),740,0x13B5CF,0.38)
-    let l=CGMutablePath()
-    l.move(to:CGPoint(x:515,y:228))
-    l.addCurve(to:CGPoint(x:245,y:498),control1:CGPoint(x:369,y:205),control2:CGPoint(x:239,y:329))
-    l.addCurve(to:CGPoint(x:439,y:766),control1:CGPoint(x:244,y:641),control2:CGPoint(x:344,y:744))
-    l.addCurve(to:CGPoint(x:477,y:689),control1:CGPoint(x:489,y:777),control2:CGPoint(x:508,y:718))
-    l.addCurve(to:CGPoint(x:365,y:501),control1:CGPoint(x:402,y:622),control2:CGPoint(x:364,y:578))
-    l.addCurve(to:CGPoint(x:537,y:307),control1:CGPoint(x:365,y:405),control2:CGPoint(x:438,y:338))
-    l.addCurve(to:CGPoint(x:515,y:228),control1:CGPoint(x:580,y:293),control2:CGPoint(x:560,y:237));l.closeSubpath()
-    c.saveGState();c.translateBy(x:512,y:512);c.rotate(by:-0.32);c.translateBy(x:-512,y:-512)
-    shadow(c,l,0.30,34,30)
-    linear(c,[color(0xFFFFFF),color(0xDBF9FF),color(0x63CAE9)],CGPoint(x:300,y:220),CGPoint(x:465,y:770),l)
-    stroke(c,l,color(0xFFFFFF,0.32),2)
-    var rotation=CGAffineTransform(translationX:1024,y:1024).rotated(by:.pi)
-    let r=l.copy(using:&rotation)!
-    shadow(c,r,0.25,35,26)
-    linear(c,[color(0xAEFFF0),color(0x50E6DA),color(0x12A7C8)],CGPoint(x:620,y:280),CGPoint(x:700,y:800),r)
-    stroke(c,r,color(0xD8FFF8,0.45),2)
-    glow(c,CGPoint(x:512,y:500),142,0x66F9FF,0.22)
-    let seed=ellipse(rect(451,451,122,122));shadow(c,seed,0.24,20,15)
-    linear(c,[color(0xFFFFFF),color(0xD6FFF4),color(0x7CE9DF)],CGPoint(x:480,y:450),CGPoint(x:550,y:575),seed)
-    c.restoreGState();return c.makeImage()!
-}
-
-// B / Workdeck: three independent work streams collected into one focused dashboard.
-func workdeck() -> CGImage {
-    let c=canvas(1024,1024)
-    linear(c,[color(0xF3EFFF),color(0xD9CDF4),color(0xB5A4E5)],CGPoint(x:0,y:0),CGPoint(x:1024,y:1024))
-    glow(c,CGPoint(x:90,y:100),850,0xFFFFFF,0.75)
-    glow(c,CGPoint(x:960,y:800),650,0x7F78DF,0.25)
-    func card(_ x:CGFloat,_ y:CGFloat,_ angle:CGFloat,_ colors:[UInt32],_ content:Bool=false) {
-        c.saveGState();c.translateBy(x:x+275,y:y+210);c.rotate(by:angle);c.translateBy(x:-275,y:-210)
-        let p=rounded(rect(0,0,550,420),60)
-        shadow(c,p,0.20,33,28)
-        linear(c,colors.map{color($0)},CGPoint(x:0,y:0),CGPoint(x:540,y:430),p)
-        stroke(c,p,color(0xFFFFFF,0.54),2)
-        if content {
-            // Four simple raised cells; no text or pseudo-text.
-            let left=rounded(rect(48,49,186,322),30)
-            linear(c,[color(0x8F83DD),color(0x6654B5)],CGPoint(x:48,y:49),CGPoint(x:235,y:370),left)
-            let right1=rounded(rect(258,49,244,148),30)
-            linear(c,[color(0xF0ECFF),color(0xE3DCF6)],CGPoint(x:258,y:49),CGPoint(x:502,y:197),right1)
-            let right2=rounded(rect(258,221,244,150),30)
-            linear(c,[color(0xE9E4F9),color(0xDDD4F0)],CGPoint(x:258,y:221),CGPoint(x:502,y:371),right2)
-            // Active session seed and two broad progress blocks.
-            let seed=ellipse(rect(108,104,65,65));shadow(c,seed,0.12,12,7)
-            linear(c,[color(0xE0FFF2),color(0x8BE5C9)],CGPoint(x:115,y:104),CGPoint(x:165,y:169),seed)
-            fill(c,rounded(rect(91,218,29,104),14),color(0xCFC7FA))
-            fill(c,rounded(rect(153,186,29,136),14),color(0xFFFFFF,0.94))
-            fill(c,ellipse(rect(288,94,40,40)),color(0x8B78C8))
-            fill(c,rounded(rect(347,101,110,26),13),color(0xA494D3))
-            fill(c,ellipse(rect(288,276,40,40)),color(0x64B8A2))
-            fill(c,rounded(rect(347,283,81,26),13),color(0xA494D3))
-        }
-        c.restoreGState()
-    }
-    card(244,201,-0.15,[0x9B91D6,0x7264B4])
-    card(239,286,0.095,[0xC3BAEB,0xA297D3])
-    card(205,392,-0.045,[0xFFFFFF,0xF4F0FC],true)
-    return c.makeImage()!
-}
-
-// C / Lookout: an always-on sonar lens with a single actionable signal.
+// Lookout (the app icon): an always-on sonar lens with a single actionable signal.
 func lookout() -> CGImage {
     let c=canvas(1024,1024)
     linear(c,[color(0xBDE9E6),color(0x68BFC4),color(0x2E8C9F)],CGPoint(x:0,y:0),CGPoint(x:1000,y:1024))
@@ -147,40 +79,6 @@ func lookout() -> CGImage {
     return c.makeImage()!
 }
 
-// Template glyphs: designed at 36 px, rendered at 8x then sampled down.
-func glyph(_ index:Int) -> CGImage {
-    let c=canvas(288,288);c.scaleBy(x:8,y:8);let black=color(0x000000)
-    switch index {
-    case 1:
-        let p=CGMutablePath();p.move(to:CGPoint(x:16,y:5));p.addCurve(to:CGPoint(x:11,y:29),control1:CGPoint(x:3,y:7),control2:CGPoint(x:3,y:23))
-        stroke(c,p,black,4.4)
-        let q=CGMutablePath();q.move(to:CGPoint(x:25,y:7));q.addCurve(to:CGPoint(x:20,y:31),control1:CGPoint(x:33,y:13),control2:CGPoint(x:33,y:28))
-        stroke(c,q,black,4.4);fill(c,ellipse(rect(14.7,14.7,6.6,6.6)),black)
-    case 2:
-        stroke(c,rounded(rect(5,13,25,17),3.4),black,3.5)
-        stroke(c,line(8,8,28,8),black,3.5);stroke(c,line(11,3,25,3),black,3.5)
-        fill(c,rounded(rect(10,18,5,7),1.4),black);fill(c,rounded(rect(19,18,6,3),1.4),black)
-    case 3:
-        stroke(c,ellipse(rect(5,5,26,26)),black,3.3)
-        stroke(c,line(18,18,26,10),black,3.3)
-        fill(c,ellipse(rect(14,14,8,8)),black)
-    default:
-        fill(c,rounded(rect(5,5,10,10),3),black)
-        fill(c,rounded(rect(5,21,10,10),3),black)
-        fill(c,rounded(rect(21,21,10,10),3),black)
-        fill(c,ellipse(rect(21,5,10,10)),black)
-    }
-    let out=canvas(36,36);drawImage(out,c.makeImage()!,rect(0,0,36,36));return out.makeImage()!
-}
-func tintGlyph(_ c:CGContext,_ im:CGImage,_ r:CGRect,_ col:CGColor) {
-    c.saveGState();c.translateBy(x:r.minX,y:r.maxY);c.scaleBy(x:1,y:-1);c.clip(to:rect(0,0,r.width,r.height),mask:im);c.setFillColor(col);c.fill(rect(0,0,r.width,r.height));c.restoreGState()
-}
-func text(_ c:CGContext,_ string:String,_ x:CGFloat,_ y:CGFloat,_ size:CGFloat,_ weight:NSFont.Weight = .regular,_ col:UInt32=0x202631) {
-    c.saveGState();NSGraphicsContext.saveGraphicsState();NSGraphicsContext.current=NSGraphicsContext(cgContext:c,flipped:true)
-    let attr:[NSAttributedString.Key:Any]=[.font:NSFont.systemFont(ofSize:size,weight:weight),.foregroundColor:NSColor(cgColor:color(col))!]
-    (string as NSString).draw(at:CGPoint(x:x,y:y),withAttributes:attr)
-    NSGraphicsContext.restoreGraphicsState();c.restoreGState()
-}
 // Continuous corner mask: macOS-style superellipse, for presentation only.
 func squircle(_ r:CGRect)->CGPath {
     let p=CGMutablePath();let n:CGFloat=5
@@ -190,10 +88,6 @@ func squircle(_ r:CGRect)->CGPath {
         let y=r.midY+r.height/2 * (si<0 ? -1:1)*pow(abs(si),2/n)
         if i==0 {p.move(to:CGPoint(x:x,y:y))} else {p.addLine(to:CGPoint(x:x,y:y))}
     };p.closeSubpath();return p
-}
-func maskedIcon(_ c:CGContext,_ im:CGImage,_ r:CGRect) {
-    let p=squircle(r);shadow(c,p,0.10,r.width*0.035,r.width*0.02)
-    c.saveGState();c.addPath(p);c.clip();drawImage(c,im,r);c.restoreGState()
 }
 
 // --- v0.2 driver: opaque app master + Sonar glyph (PNG sizes and vector PDF) ---
@@ -207,7 +101,7 @@ func opaque(_ im: CGImage) -> CGImage {
 }
 save(opaque(lookout()), "AppIcon.png")
 
-// Sonar (glyph 3) drawn in its 36-unit design space.
+// Sonar (the menu bar glyph), drawn in its 36-unit design space.
 func sonar(_ c: CGContext) {
     let black = color(0x000000)
     stroke(c, ellipse(rect(5,5,26,26)), black, 3.3)
