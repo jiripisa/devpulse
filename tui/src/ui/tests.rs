@@ -257,14 +257,17 @@ fn help_overlay_lists_every_key() {
     let mut st = fixture_state();
     press(&mut st, '?');
     let out = render(&st, 120, 32);
-    for key in ["j / k", "1–4", "Tab", "Enter", "J", "/", "r", ",", "?", "q"] {
+    for key in ["j / k", "1–4", "Tab", "Enter", "J", "/", "r", ",", "?", "q", "⌘-click"] {
         assert!(out.contains(key), "missing {key}");
     }
     assert!(out.contains("open the linked Jira ticket"));
     assert!(out.contains("open Settings in the app"));
-    // It also fits at the minimum size.
+    assert!(out.contains("⌘-click              open a link (⇧⌘ if clicks go to DevPulse)"), "{out}");
+    // It also fits at the minimum size, every row and both borders included.
     let small = render(&st, 60, 15);
     assert!(small.contains("Keys"));
+    assert!(small.contains("⌘-click"), "{small}");
+    assert!(small.contains("esc close"), "{small}");
 }
 
 #[test]

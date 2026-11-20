@@ -7,7 +7,7 @@ use ratatui::layout::Rect;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, BorderType, Clear, Padding, Paragraph};
 
-const KEYS: [(&str, &str); 10] = [
+const KEYS: [(&str, &str); 11] = [
     ("↑ ↓  j / k", "move"),
     ("1–4  Tab  Shift-Tab", "switch panel"),
     ("Enter", "open: browser for a PR or ticket, Ghostty for a session"),
@@ -18,6 +18,7 @@ const KEYS: [(&str, &str); 10] = [
     ("?", "this help"),
     ("q  Ctrl-C", "quit"),
     ("mouse", "click selects, wheel moves"),
+    ("⌘-click", "open a link (⇧⌘ if clicks go to DevPulse)"),
 ];
 
 const KEY_WIDTH: usize = 21;
