@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- In the `devpulse` terminal UI, a plain click (or ⌘-click) on an underlined link in the detail
+  opens it in the browser; ⇧⌘-click is no longer needed.
+
 ## 0.9.0 — 2026-11-20
 
 - `,` in the `devpulse` terminal UI opens Settings in front of the terminal; before, the window

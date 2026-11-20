@@ -1,5 +1,6 @@
 //! DevPulse terminal client: protocol types, socket client and UI state.
 
+pub mod browser;
 pub mod client;
 pub mod protocol;
 pub mod state;

@@ -1,8 +1,9 @@
 //! The right-hand pane: everything about the item selected in the focused panel.
 
-use super::link;
+use super::link::{self, Links};
 use super::panels::title as panel_title;
 use super::text::{ELLIPSIS, fit, pad, styled, truncate_left, width, wrap};
+use crate::browser;
 use crate::protocol::{AuthorKind, ClaudeSession, Comment, PullRequest, RelatedTicket, Snapshot, Ticket};
 use crate::state::{AppState, Panel};
 use crate::theme;
@@ -44,7 +45,8 @@ impl Row {
     }
 }
 
-pub fn render(frame: &mut Frame, area: Rect, state: &AppState, now: SystemTime) {
+/// Draws the pane and returns where its clickable links are.
+pub fn render(frame: &mut Frame, area: Rect, state: &AppState, now: SystemTime) -> Links {
     let block = Block::bordered()
         .border_type(BorderType::Rounded)
         .title_top(Line::from(vec![Span::raw("─"), styled(" Detail ", theme::bold())]))
@@ -67,12 +69,20 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState, now: SystemTime) 
     let (lines, links): (Vec<_>, Vec<_>) = rows.into_iter().map(|r| (r.line, r.link)).unzip();
     frame.render_widget(Paragraph::new(lines).block(block), area);
     // The links go on the rendered cells, so the text and its width stay as laid out above.
+    let mut clickable = Links::default();
     for (y, link) in (inner.top()..inner.bottom()).zip(links) {
         let Some((cols, url)) = link else { continue };
         let x = inner.x.saturating_add(u16::try_from(cols.start).unwrap_or(u16::MAX));
         let width = u16::try_from(cols.len()).unwrap_or(u16::MAX);
-        link::apply(frame.buffer_mut(), Rect { x, y, width, height: 1 }.intersection(inner), &url);
+        let row = Rect { x, y, width, height: 1 }.intersection(inner);
+        link::apply(frame.buffer_mut(), row, &url);
+        // A click opens only web links; they are underlined, so they look clickable.
+        if browser::is_web(&url) {
+            frame.buffer_mut().set_style(row, Style::new().add_modifier(Modifier::UNDERLINED));
+            clickable.push(row, &url);
+        }
     }
+    clickable
 }
 
 struct Detail {

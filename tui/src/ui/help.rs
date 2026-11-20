@@ -18,7 +18,7 @@ const KEYS: [(&str, &str); 11] = [
     ("?", "this help"),
     ("q  Ctrl-C", "quit"),
     ("mouse", "click selects, wheel moves"),
-    ("⌘-click", "open a link (⇧⌘ if clicks go to DevPulse)"),
+    ("click / ⌘-click", "open an underlined link in the browser"),
 ];
 
 const KEY_WIDTH: usize = 21;

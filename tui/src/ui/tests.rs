@@ -2,8 +2,8 @@ use super::*;
 use crate::theme;
 use crate::client::Event;
 use crate::protocol::{ServerMessage, Snapshot};
-use crate::state::{AppState, Panel};
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use crate::state::{Action, AppState, Panel};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use ratatui::buffer::{Buffer, CellDiffOption, CellWidth};
@@ -30,10 +30,36 @@ fn press(st: &mut AppState, c: char) {
     st.key(KeyEvent::new(KeyCode::Char(c), KeyModifiers::NONE));
 }
 
-fn buffer(st: &AppState, w: u16, h: u16) -> Buffer {
+/// The screen at `w`×`h` and the links on it, as the event loop keeps them.
+fn drawn(st: &AppState, w: u16, h: u16) -> (Buffer, Links) {
     let mut terminal = Terminal::new(TestBackend::new(w, h)).unwrap();
-    terminal.draw(|f| draw(f, st, now())).unwrap();
-    terminal.backend().buffer().clone()
+    let mut links = Links::default();
+    terminal.draw(|f| links = draw(f, st, now())).unwrap();
+    (terminal.backend().buffer().clone(), links)
+}
+
+fn buffer(st: &AppState, w: u16, h: u16) -> Buffer {
+    drawn(st, w, h).0
+}
+
+/// The first cell of the visible text `needle` in `area`.
+fn cell_of(buf: &Buffer, area: Rect, needle: &str) -> (u16, u16) {
+    (area.top()..area.bottom())
+        .find_map(|y| {
+            let row: String = (area.left()..area.right()).map(|x| link::visible(buf[(x, y)].symbol())).collect();
+            row.find(needle).map(|i| (area.x + row[..i].chars().count() as u16, y))
+        })
+        .unwrap_or_else(|| panic!("no {needle:?} in {:#?}", lines(buf)))
+}
+
+/// A mouse event of `kind` at (`x`, `y`) with `modifiers`, handled as the event loop does.
+fn mouse(st: &mut AppState, buf: &Buffer, links: &Links, kind: MouseEventKind, modifiers: KeyModifiers, (x, y): (u16, u16)) -> Option<Action> {
+    click(buf.area, st, links, MouseEvent { kind, column: x, row: y, modifiers })
+}
+
+/// A plain left click at (`x`, `y`).
+fn left(st: &mut AppState, buf: &Buffer, links: &Links, at: (u16, u16)) -> Option<Action> {
+    mouse(st, buf, links, MouseEventKind::Down(MouseButton::Left), KeyModifiers::NONE, at)
 }
 
 /// The text a terminal shows: hyperlink sequences take no room and are left out.
@@ -257,16 +283,17 @@ fn help_overlay_lists_every_key() {
     let mut st = fixture_state();
     press(&mut st, '?');
     let out = render(&st, 120, 32);
-    for key in ["j / k", "1–4", "Tab", "Enter", "J", "/", "r", ",", "?", "q", "⌘-click"] {
+    for key in ["j / k", "1–4", "Tab", "Enter", "J", "/", "r", ",", "?", "q", "click / ⌘-click"] {
         assert!(out.contains(key), "missing {key}");
     }
     assert!(out.contains("open the linked Jira ticket"));
     assert!(out.contains("open Settings in the app"));
-    assert!(out.contains("⌘-click              open a link (⇧⌘ if clicks go to DevPulse)"), "{out}");
+    assert!(out.contains("click / ⌘-click      open an underlined link in the browser"), "{out}");
+    assert!(!out.contains("⇧⌘"), "{out}");
     // It also fits at the minimum size, every row and both borders included.
     let small = render(&st, 60, 15);
     assert!(small.contains("Keys"));
-    assert!(small.contains("⌘-click"), "{small}");
+    assert!(small.contains("click / ⌘-click"), "{small}");
     assert!(small.contains("esc close"), "{small}");
 }
 
@@ -673,7 +700,10 @@ fn the_terminal_receives_osc8_around_the_text() {
     let written = Shared::default();
     let options = TerminalOptions { viewport: Viewport::Fixed(Rect::new(0, 0, 120, 32)) };
     let mut terminal = Terminal::with_options(CrosstermBackend::new(written.clone()), options).unwrap();
-    terminal.draw(|f| draw(f, &st, now())).unwrap();
+    terminal.draw(|f| {
+        draw(f, &st, now());
+    })
+    .unwrap();
     let out = String::from_utf8(written.0.borrow().clone()).unwrap();
     let jira = "https://example.atlassian.net/browse/STORE-2474";
     let start = out.find(&format!(";{jira}\x1b\\S")).expect("no OSC 8 for the Jira key");
@@ -696,4 +726,164 @@ fn narrow_detail_still_cuts_related_rows_with_an_ellipsis() {
         assert!(rows[at + 1].trim_end().ends_with('…'), "{:?}", rows[at + 1]);
         assert!(rows[at + 2].trim_end().ends_with('…'), "{:?}", rows[at + 2]);
     }
+}
+
+#[test]
+fn a_click_on_a_link_opens_its_url() {
+    let jira = "https://example.atlassian.net/browse/";
+    // The key that heads a ticket's detail, anywhere on it, and a Related row from its relation
+    // to its summary. Neither moves the focus or the selection.
+    let mut st = fixture_state();
+    press(&mut st, '3');
+    let (buf, links) = drawn(&st, 120, 32);
+    let d = areas(buf.area, &st).unwrap().detail;
+    let before = (st.focus, st.selected);
+    let (x, y) = cell_of(&buf, d, "STORE-2290");
+    for dx in [0, 9] {
+        assert_eq!(left(&mut st, &buf, &links, (x + dx, y)), Some(Action::OpenUrl(format!("{jira}STORE-2290"))));
+    }
+    for text in ["is blocked by  PAY-310", "Payment gateway"] {
+        let at = cell_of(&buf, d, text);
+        assert_eq!(left(&mut st, &buf, &links, at), Some(Action::OpenUrl(format!("{jira}PAY-310"))), "{text}");
+    }
+    assert_eq!((st.focus, st.selected), before);
+    // The pull request's branch, up to its last character.
+    let mut st = fixture_state();
+    let (buf, links) = drawn(&st, 120, 32);
+    let d = areas(buf.area, &st).unwrap().detail;
+    let branch = "feature/STORE-2474-replace-invoice";
+    let (x, y) = cell_of(&buf, d, branch);
+    let url = "https://github.com/acmecorp/store/tree/feature/STORE-2474-replace-invoice";
+    let last = x + branch.len() as u16 - 1;
+    for at in [(x, y), (last, y)] {
+        assert_eq!(left(&mut st, &buf, &links, at), Some(Action::OpenUrl(url.into())), "{at:?}");
+    }
+    assert_eq!(left(&mut st, &buf, &links, (last + 1, y)), None);
+}
+
+#[test]
+fn a_click_with_a_modifier_opens_the_link_too() {
+    // Ghostty sends ⌘-click as a plain click (SGR has no bit for ⌘), and sometimes with the
+    // alt (meta) or ctrl bit set: every one of them opens the link.
+    let mut st = fixture_state();
+    let (buf, links) = drawn(&st, 120, 32);
+    let a = areas(buf.area, &st).unwrap();
+    let key = cell_of(&buf, a.detail, "STORE-2474 · To Do");
+    let url = "https://example.atlassian.net/browse/STORE-2474";
+    let press_left = MouseEventKind::Down(MouseButton::Left);
+    for mods in [
+        KeyModifiers::NONE,
+        KeyModifiers::SUPER,
+        KeyModifiers::META,
+        KeyModifiers::ALT,
+        KeyModifiers::CONTROL,
+        KeyModifiers::ALT | KeyModifiers::CONTROL,
+        KeyModifiers::SHIFT,
+    ] {
+        assert_eq!(mouse(&mut st, &buf, &links, press_left, mods, key), Some(Action::OpenUrl(url.into())), "{mods:?}");
+    }
+    // A modified click on a panel row still selects it.
+    let claude = a.panels[3];
+    assert_eq!(mouse(&mut st, &buf, &links, press_left, KeyModifiers::CONTROL, (claude.x + 4, claude.y + 2)), None);
+    assert_eq!((st.focus, st.selected[3]), (Panel::Claude, 1));
+    // Only a left press clicks: a release, the right button or the wheel over a link do nothing.
+    let mut st = fixture_state();
+    for kind in [
+        MouseEventKind::Up(MouseButton::Left),
+        MouseEventKind::Down(MouseButton::Right),
+        MouseEventKind::Down(MouseButton::Middle),
+        MouseEventKind::ScrollDown,
+    ] {
+        assert_eq!(mouse(&mut st, &buf, &links, kind, KeyModifiers::NONE, key), None, "{kind:?}");
+        assert_eq!(mouse(&mut st, &buf, &links, kind, KeyModifiers::NONE, (claude.x + 4, claude.y + 2)), None);
+    }
+    assert_eq!((st.focus, st.selected[3]), (Panel::MyPrs, 0));
+}
+
+#[test]
+fn a_click_beside_a_link_keeps_selecting() {
+    let mut st = fixture_state();
+    let (buf, links) = drawn(&st, 120, 32);
+    let a = areas(buf.area, &st).unwrap();
+    // A label before a link, plain values and the hints open nothing and change nothing.
+    for text in ["Branch", "Jira      ", "1 approved", "open in browser"] {
+        let at = cell_of(&buf, a.detail, text);
+        assert_eq!(left(&mut st, &buf, &links, at), None, "{text}");
+    }
+    assert_eq!((st.focus, st.selected), (Panel::MyPrs, [0; 4]));
+    // A row of a panel is focused and selected as before, the header and footer do nothing.
+    let claude = a.panels[3];
+    assert_eq!(left(&mut st, &buf, &links, (claude.x + 4, claude.y + 2)), None);
+    assert_eq!((st.focus, st.selected[3]), (Panel::Claude, 1));
+    assert_eq!(left(&mut st, &buf, &links, (3, 0)), None);
+    assert_eq!(left(&mut st, &buf, &links, (3, 31)), None);
+    assert_eq!((st.focus, st.selected[3]), (Panel::Claude, 1));
+    // With the help open a click on a link only closes the help.
+    let mut st = fixture_state();
+    let (buf, links) = drawn(&st, 120, 32);
+    let key = cell_of(&buf, areas(buf.area, &st).unwrap().detail, "STORE-2474 · To Do");
+    press(&mut st, '?');
+    assert_eq!(left(&mut st, &buf, &links, key), None);
+    assert!(!st.show_help);
+}
+
+#[test]
+fn only_web_links_are_clickable_and_underlined() {
+    let mut st = state_with(|s| s.tickets[0].url = "file:///System/Applications/Calculator.app".into());
+    press(&mut st, '3');
+    let (buf, links) = drawn(&st, 120, 32);
+    let d = areas(buf.area, &st).unwrap().detail;
+    let (x, y) = cell_of(&buf, d, "STORE-2290");
+    assert_eq!(left(&mut st, &buf, &links, (x, y)), None);
+    assert!(links.iter().all(|(_, url)| url.starts_with("https://")), "{links:?}");
+    assert!(!buf[(x, y)].modifier.contains(Modifier::UNDERLINED));
+    // The web links of the same detail are underlined, and only their text.
+    let (x, y) = cell_of(&buf, d, "is blocked by  PAY-310");
+    assert!(buf[(x, y)].modifier.contains(Modifier::UNDERLINED));
+    assert!(!buf[(x - 1, y)].modifier.contains(Modifier::UNDERLINED));
+    let st = fixture_state();
+    let buf = buffer(&st, 120, 32);
+    let d = areas(buf.area, &st).unwrap().detail;
+    let (x, y) = cell_of(&buf, d, "STORE-2474 · To Do");
+    for (dx, underlined) in [(0, true), (9, true), (10, false), (13, false)] {
+        assert_eq!(buf[(x + dx, y)].modifier.contains(Modifier::UNDERLINED), underlined, "x+{dx}");
+    }
+    let (x, y) = cell_of(&buf, d, "Jira");
+    assert!(!buf[(x, y)].modifier.contains(Modifier::UNDERLINED));
+    // Outside the detail pane nothing is underlined.
+    let a = areas(buf.area, &st).unwrap();
+    for r in [a.header, a.panels[0], a.panels[2], a.footer] {
+        for p in r.positions() {
+            assert!(!buf[p].modifier.contains(Modifier::UNDERLINED), "{p:?}");
+        }
+    }
+}
+
+#[test]
+fn link_regions_are_rebuilt_on_every_draw() {
+    let mut st = fixture_state();
+    let (buf, links) = drawn(&st, 120, 32);
+    let d = areas(buf.area, &st).unwrap().detail;
+    let old = "https://github.com/acmecorp/store/tree/feature/STORE-2474-replace-invoice";
+    let branch = cell_of(&buf, d, "feature/STORE-2474");
+    assert_eq!(links.at(branch.0, branch.1), Some(old));
+    // Each region lies where the terminal gets the same link through OSC 8.
+    assert!(links.iter().count() >= 6, "{links:?}");
+    for (rect, url) in links.iter() {
+        assert!(d.contains(rect.as_position()) && rect.height == 1, "{rect:?}");
+        for p in rect.positions() {
+            assert_eq!(link::target(buf[p].symbol()), Some(url), "{p:?}");
+        }
+    }
+    // The next pull request: none of the first one's links is left.
+    press(&mut st, 'j');
+    let (buf, links) = drawn(&st, 120, 32);
+    assert!(links.iter().all(|(_, url)| !url.contains("1234") && url != old), "{links:?}");
+    let branch = cell_of(&buf, d, "chore/build-script");
+    assert_eq!(links.at(branch.0, branch.1), Some("https://github.com/jiripisa/devpulse/tree/chore/build-script"));
+    // Another panel, the help or a screen too small: no stale links either.
+    press(&mut st, '4');
+    let (_, links) = drawn(&st, 120, 32);
+    assert!(links.iter().all(|(_, url)| url.contains("/browse/")), "{links:?}");
+    assert_eq!(drawn(&st, 50, 10).1, Links::default());
 }

@@ -5,6 +5,7 @@ use crossterm::execute;
 use crossterm::terminal::{
     EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode,
 };
+use devpulse::browser;
 use devpulse::client::{self, Connection, Event};
 use devpulse::protocol::ClientMessage;
 use devpulse::state::{Action, AppState, NOTICE};
@@ -32,6 +33,7 @@ const TICK: Duration = Duration::from_secs(60);
 /// Pause between reconnect attempts after the app went away.
 const RETRY: Duration = Duration::from_secs(1);
 const NOT_SENT: &str = "not connected — action not sent";
+const NOT_OPENED: &str = "could not open link";
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -128,9 +130,10 @@ fn event_loop(
     let mut dirty = true;
     let mut next_tick = Instant::now() + TICK;
     let mut area = Rect::default();
+    let mut links = ui::Links::default();
     loop {
         if dirty {
-            area = terminal.draw(|f| ui::draw(f, state, SystemTime::now()))?.area;
+            area = terminal.draw(|f| links = ui::draw(f, state, SystemTime::now()))?.area;
             dirty = false;
             next_tick = Instant::now() + TICK;
         }
@@ -144,9 +147,13 @@ fn event_loop(
         };
         // Handle everything already queued before drawing once (e.g. a burst of resizes).
         for msg in first.into_iter().chain(std::iter::from_fn(|| rx.try_recv().ok())) {
-            match handle(msg, state, link, area) {
+            match handle(msg, state, link, area, &links) {
                 Flow::Quit => return Ok(()),
-                Flow::Redraw => dirty = true,
+                // The screen changes with the next draw, so the links drawn last no longer hold.
+                Flow::Redraw => {
+                    dirty = true;
+                    links = ui::Links::default();
+                }
                 Flow::Idle => {}
             }
         }
@@ -174,6 +181,7 @@ fn handle(
     state: &mut AppState,
     link: &mut Link,
     area: Rect,
+    links: &ui::Links,
 ) -> Flow {
     match msg {
         Msg::InputClosed => Flow::Quit,
@@ -204,10 +212,10 @@ fn handle(
         }
         Msg::Input(Input::Mouse(mouse)) => match mouse.kind {
             MouseEventKind::Down(MouseButton::Left) => {
-                if state.show_help {
-                    state.show_help = false;
-                } else if let Some((panel, row)) = ui::hit_test(area, state, mouse.column, mouse.row) {
-                    state.click(panel, row);
+                if let Some(Action::OpenUrl(url)) = ui::click(area, state, links, mouse)
+                    && browser::open(&url, browser::system).is_err()
+                {
+                    state.show_notice(NOT_OPENED, Instant::now() + NOTICE);
                 }
                 Flow::Redraw
             }
