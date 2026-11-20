@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 public protocol GitHubFetching: Sendable {
     func fetch(includeTeamRequests: Bool) async throws -> GitHubResult
@@ -49,6 +50,7 @@ public final class SnapshotStore {
     private let claude: any ClaudeSessionProviding
     private let jiraCredentials: () -> JiraCredentials?
     private let now: @Sendable () -> Date
+    private static let log = Logger(subsystem: "io.jp4.devpulse", category: "jira")
 
     public init(
         github: any GitHubFetching,
@@ -129,8 +131,11 @@ public final class SnapshotStore {
             switch linkedResult {
             case .success(let tickets)?: next.linkedTickets = tickets
             // A failed fetch (a site without the bulk fetch, say) leaves nothing linked and the
-            // Jira state alone: the PR detail then shows just the key.
-            case .failure?: next.linkedTickets = []
+            // Jira state alone: the PR detail then shows just the key. Only the log tells why;
+            // it gets the short error text, never the keys or the token.
+            case .failure(let error)?:
+                Self.log.error("Linked tickets not fetched: \(SourceErrorMessage.text(for: error), privacy: .public)")
+                next.linkedTickets = []
             // Not fetched: Jira off, not set up, or its own fetch failed or was cancelled.
             case nil: if !isEnabled(.jira) || credentials == nil { next.linkedTickets = [] }
             }

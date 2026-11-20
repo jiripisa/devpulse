@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 import Synchronization
 import Testing
 @testable import DevPulseCore
@@ -384,6 +385,25 @@ private final class FakeClock: Sendable {
         #expect(rig.store.snapshot.tickets.map(\.key) == ["MINE-1"])
         #expect(rig.store.snapshot.sources.jira.state == .ok)
         #expect(rig.store.snapshot.sources.jira.message == nil)
+    }
+
+    @Test func aFailedLinkedFetchIsLoggedAsAnErrorWithoutTheKeys() async throws {
+        let start = Date()
+        let rig = Rig()
+        rig.github.results.withLock {
+            $0 = [.success(GitHubResult(viewerLogin: "me", mine: [makePR(number: 1, key: "LOGGED-7")], reviewRequests: []))]
+        }
+        rig.jira.linked.withLock { $0 = .failure(JiraError.http(418)) }
+        await rig.store.refresh([.github, .jira])
+        let log = try OSLogStore(scope: .currentProcessIdentifier)
+        let messages = try log.getEntries(
+            at: log.position(date: start),
+            matching: NSPredicate(format: "subsystem == %@ AND category == %@", "io.jp4.devpulse", "jira"))
+            .compactMap { $0 as? OSLogEntryLog }
+            .filter { $0.level == .error }
+            .map(\.composedMessage)
+        #expect(messages.contains { $0.contains("HTTP 418") }, "\(messages)")
+        #expect(!messages.contains { $0.contains("LOGGED-7") })
     }
 
     @Test func aFailedMainJiraFetchSkipsTheLinkedFetchAndKeepsTheLinkedTickets() async {
