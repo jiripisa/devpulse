@@ -22,6 +22,9 @@ public struct JiraResult: Sendable, Equatable {
 public final class JiraSource: Sendable {
     static let jql = "assignee = currentUser() AND statusCategory != Done ORDER BY updated DESC"
     static let fields = ["summary", "status", "priority", "updated", "comment", "issuelinks"]
+    /// The same without `comment`: comments on tickets that are not mine are never shown or
+    /// notified, and they would be most of the bulk fetch's answer.
+    static let linkedFields = fields.filter { $0 != "comment" }
     static let maxResults = 50
     static let recentCommentLimit = 10
 
@@ -60,15 +63,15 @@ public final class JiraSource: Sendable {
     }
 
     /// The tickets with these keys, e.g. those of PRs that are not mine: one bulk fetch
-    /// (`POST /rest/api/3/issue/bulkfetch`) with the same fields as the search, for at most the
+    /// (`POST /rest/api/3/issue/bulkfetch`) with `linkedFields`, for at most the
     /// first `maxResults` keys, and no request at all without keys. Unlike a JQL `key in (…)`,
     /// a key that does not exist or that I may not see does not fail the others: Jira lists it
-    /// under `issueErrors`, which is left out. Their comments stay as returned; they never notify.
+    /// under `issueErrors`, which is left out. They come without comments and never notify.
     public func fetchTickets(keys: [String]) async throws -> [Ticket] {
         let keys = Array(keys.prefix(Self.maxResults))
         guard !keys.isEmpty else { return [] }
         let body = try JSONSerialization.data(withJSONObject: [
-            "issueIdsOrKeys": keys, "fields": Self.fields,
+            "issueIdsOrKeys": keys, "fields": Self.linkedFields,
         ] as [String: Any])
         let data = try await send(path: "/rest/api/3/issue/bulkfetch", method: "POST", body: body)
         let response = try mapped { try JSONDecoder().decode(BulkResponse.self, from: data) }
@@ -168,6 +171,15 @@ public final class JiraSource: Sendable {
         struct IssueError: Decodable {}
         var issues: [Issue]
         var issueErrors: [IssueError]?
+
+        /// `issues` may be left out when no key was found.
+        init(from decoder: any Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            issues = try c.decodeIfPresent([Issue].self, forKey: .issues) ?? []
+            issueErrors = try c.decodeIfPresent([IssueError].self, forKey: .issueErrors)
+        }
+
+        private enum CodingKeys: String, CodingKey { case issues, issueErrors }
     }
 
     private struct Issue: Decodable {

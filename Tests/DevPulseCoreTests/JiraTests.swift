@@ -185,8 +185,8 @@ struct JiraTests {
             "summary": "Someone else's ticket", "status": { "name": "In Review", "statusCategory": { "key": "indeterminate" } },
             "updated": "2026-11-19T10:00:00.000+0100",
             "issuelinks": [ { "type": { "name": "Blocks", "inward": "is blocked by", "outward": "blocks" },
-                              "outwardIssue": { "key": "OTHER-10", "fields": { "summary": "Next", "status": { "name": "To Do", "statusCategory": { "key": "new" } } } } } ],
-            "comment": { "total": 0, "comments": [] } } } ],
+                              "outwardIssue": { "key": "OTHER-10", "fields": { "summary": "Next", "status": { "name": "To Do", "statusCategory": { "key": "new" } } } } } ]
+          } } ],
           "issueErrors": [ { "id": "UTF-8", "errorMessage": "Issue does not exist or you do not have permission to see it.", "status": 404 } ] }
         """.utf8)
 
@@ -195,7 +195,7 @@ struct JiraTests {
         return (JiraSource(credentials: credentials, transport: transport), transport)
     }
 
-    @Test("The linked tickets come from one bulk fetch with the same fields")
+    @Test("The linked tickets come from one bulk fetch with the search's fields but no comments")
     func linkedTicketsRequest() async throws {
         let (source, transport) = try Self.bulk()
         _ = try await source.fetchTickets(keys: ["OTHER-9", "UTF-8"])
@@ -208,7 +208,8 @@ struct JiraTests {
         let body = try #require(request.httpBody)
         let json = try #require(try JSONSerialization.jsonObject(with: body) as? [String: Any])
         #expect(json["issueIdsOrKeys"] as? [String] == ["OTHER-9", "UTF-8"])
-        #expect(json["fields"] as? [String] == ["summary", "status", "priority", "updated", "comment", "issuelinks"])
+        // Comments on tickets that are not mine are never shown or notified, so not fetched.
+        #expect(json["fields"] as? [String] == ["summary", "status", "priority", "updated", "issuelinks"])
         #expect(Set(json.keys) == ["issueIdsOrKeys", "fields"])
     }
 
@@ -222,6 +223,23 @@ struct JiraTests {
         #expect(tickets[0].url == "https://example.atlassian.net/browse/OTHER-9")
         #expect(tickets[0].related == [RelatedTicket(
             key: "OTHER-10", summary: "Next", status: "To Do", statusCategory: .todo, relation: "blocks")])
+    }
+
+    @Test("An answer without issues, only errors, is an empty list")
+    func linkedTicketsOnlyErrors() async throws {
+        let answer = Data(#"{ "issueErrors": [ { "id": "UTF-8", "errorMessage": "Issue does not exist", "status": 404 } ] }"#.utf8)
+        let transport = FakeJiraTransport(search: try Self.fixture(), comments: [Self.bulkPath: answer])
+        let source = JiraSource(credentials: Self.credentials, transport: transport)
+        #expect(try await source.fetchTickets(keys: ["UTF-8"]).isEmpty)
+    }
+
+    @Test("A linked ticket without a comment field has no comments")
+    func linkedTicketWithoutComments() async throws {
+        let (source, _) = try Self.bulk()
+        let ticket = try #require(try await source.fetchTickets(keys: ["OTHER-9"]).first)
+        #expect(ticket.commentCount == 0)
+        #expect(ticket.recentComments.isEmpty)
+        #expect(ticket.lastCommentAt == nil)
     }
 
     @Test("No keys, no request; more than 50 keys are cut to the first 50")
