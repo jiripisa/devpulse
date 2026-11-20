@@ -17,9 +17,11 @@
   related ticket in the detail to open it in Jira or on GitHub (in Ghostty and other terminals
   with hyperlinks).
 - The terminal UI's detail shows a ticket's related Jira tickets (blocks, is blocked by, relates
-  to …) with key, status and summary, and for a pull request also when its ticket is not
-  assigned to you.
+  to …) with key, status and summary.
+- A pull request's detail in the terminal UI shows the status and the related tickets of its
+  Jira ticket also when that ticket is not assigned to you.
 - The website shows real screenshots of the app.
+- Building from source now needs Xcode; the Command Line Tools alone are no longer enough.
 
 ## 0.1.0 — 2026-11-20
 
