@@ -10,8 +10,6 @@ import ServiceManagement
 @Observable
 final class AppModel {
     private(set) var snapshot: Snapshot
-    /// Direct review requests plus waiting Claude sessions; the menu bar shows it.
-    private(set) var attentionCount = 0
     private(set) var isRefreshing = false
     /// The GitHub login of the last successful fetch, for the Settings status line.
     private(set) var githubLogin: String?
@@ -92,7 +90,6 @@ final class AppModel {
         weakStore = store
         self.store = store
         snapshot = demo ?? store.snapshot
-        attentionCount = snapshot.attentionCount
         opener = Opener { [weak self] pid in self?.snapshot.sessions.first { $0.pid == pid } }
         start()
     }
@@ -173,8 +170,6 @@ final class AppModel {
 
     private func publish(_ new: Snapshot) {
         snapshot = new
-        let count = new.attentionCount
-        if count != attentionCount { attentionCount = count }
         if store.githubLogin != githubLogin { githubLogin = store.githubLogin }
         server.broadcast(.snapshot(new))
     }

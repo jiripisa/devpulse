@@ -8,36 +8,6 @@ private func makeSession(pid: Int, status: SessionStatus) -> ClaudeSession {
     ClaudeSession(pid: pid, name: "s\(pid)", cwd: "/tmp", status: status, updatedAt: now)
 }
 
-private func makeSnapshot(
-    reviewRequests: [PullRequest] = [], sessions: [ClaudeSession] = []
-) -> Snapshot {
-    let ok = SourceStatus(state: .ok)
-    return Snapshot(
-        appVersion: "0.1.0", generatedAt: now, sources: Sources(github: ok, jira: ok, claude: ok),
-        myPullRequests: [makePR(number: 99)], reviewRequests: reviewRequests, tickets: [],
-        sessions: sessions)
-}
-
-@Suite struct AttentionCountTests {
-    @Test func emptySnapshotNeedsNothing() {
-        #expect(makeSnapshot().attentionCount == 0)
-    }
-
-    @Test func countsDirectReviewRequestsAndWaitingSessions() {
-        var direct = makePR(number: 1)
-        direct.requestedDirectly = true
-        let team = makePR(number: 2)
-        let snapshot = makeSnapshot(
-            reviewRequests: [direct, team],
-            sessions: [
-                makeSession(pid: 1, status: .waiting), makeSession(pid: 2, status: .busy),
-                makeSession(pid: 3, status: .idle), makeSession(pid: 4, status: .waiting),
-                makeSession(pid: 5, status: .unknown),
-            ])
-        #expect(snapshot.attentionCount == 3)
-    }
-}
-
 @Suite struct SessionStateTextTests {
     @Test func saysWhatTheSessionDoes() {
         var waiting = makeSession(pid: 1, status: .waiting)
