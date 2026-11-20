@@ -9,6 +9,6 @@ struct MenuBarLabel: View {
         Image(systemName: "waveform.path.ecg")
             // The label lives as long as the app, so it hands the Settings action to the model
             // (needed for the socket's `openSettings` before the popover was ever opened).
-            .onAppear { model.showSettingsWindow = { openSettings() } }
+            .onAppear { model.settingsPresenter.setOpenAction { openSettings() } }
     }
 }

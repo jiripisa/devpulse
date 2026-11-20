@@ -27,6 +27,7 @@ struct SettingsView: View {
         }
         .frame(width: 520)
         .scenePadding(.top)
+        .background(WindowReader { model.settingsPresenter.windowAppeared($0) })
     }
 }
 

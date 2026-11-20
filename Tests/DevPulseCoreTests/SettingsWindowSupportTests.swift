@@ -139,3 +139,69 @@ import Testing
         #expect(!AppLocation.isInstalled(bundleURL: URL(fileURLWithPath: path), home: home))
     }
 }
+
+@Suite @MainActor struct SettingsPresenterTests {
+    private final class FakeWindow {
+        let name: String
+        init(_ name: String) { self.name = name }
+    }
+
+    private final class Recorder {
+        var calls: [String] = []
+    }
+
+    private func presenter(_ recorder: Recorder) -> SettingsPresenter<FakeWindow> {
+        SettingsPresenter(
+            activate: { recorder.calls.append("activate") },
+            bringToFront: { recorder.calls.append("front \($0.name)") })
+    }
+
+    @Test func aRequestActivatesOpensAndBringsTheWindowToFront() {
+        let recorder = Recorder()
+        let settings = presenter(recorder)
+        settings.setOpenAction { recorder.calls.append("open") }
+        let window = FakeWindow("w")
+        settings.windowAppeared(window)
+        recorder.calls = []
+
+        settings.request()
+        #expect(recorder.calls == ["activate", "open", "front w"])
+    }
+
+    @Test func aNewWindowIsBroughtToFrontWhenItAppears() {
+        let recorder = Recorder()
+        let settings = presenter(recorder)
+        settings.setOpenAction { recorder.calls.append("open") }
+        settings.request()
+        #expect(recorder.calls == ["activate", "open"])
+        // The first open creates the window: it is in front once it is there.
+        let window = FakeWindow("new")
+        settings.windowAppeared(window)
+        #expect(recorder.calls == ["activate", "open", "front new"])
+    }
+
+    @Test func aRequestBeforeTheOpenActionRunsWhenItArrives() {
+        let recorder = Recorder()
+        let settings = presenter(recorder)
+        settings.request()
+        #expect(recorder.calls == ["activate"])
+        settings.setOpenAction { recorder.calls.append("open") }
+        #expect(recorder.calls == ["activate", "open"])
+        // Handing the action over again (another view) does not open it a second time.
+        settings.setOpenAction { recorder.calls.append("open again") }
+        #expect(recorder.calls == ["activate", "open"])
+    }
+
+    @Test func aWindowThatIsGoneIsNotBroughtBack() {
+        let recorder = Recorder()
+        let settings = presenter(recorder)
+        settings.setOpenAction { recorder.calls.append("open") }
+        var window: FakeWindow? = FakeWindow("old")
+        settings.windowAppeared(window!)
+        window = nil
+        recorder.calls = []
+
+        settings.request()
+        #expect(recorder.calls == ["activate", "open"])
+    }
+}
