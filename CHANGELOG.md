@@ -13,6 +13,12 @@
 - No more number next to the menu bar icon.
 - A new app icon, a radar, and a new menu bar icon, a sonar dial. The app icon fills the macOS
   icon shape; before, it sat small on a light tile.
+- In the `devpulse` terminal UI, ⌘-click the Jira key, the branch, the pull request's title or a
+  related ticket in the detail to open it in Jira or on GitHub (in Ghostty and other terminals
+  with hyperlinks).
+- The terminal UI's detail shows a ticket's related Jira tickets (blocks, is blocked by, relates
+  to …) with key, status and summary, and for a pull request also when its ticket is not
+  assigned to you.
 
 ## 0.1.0 — 2026-11-20
 

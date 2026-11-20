@@ -282,11 +282,12 @@ gh auth login</code></pre>
           with <span class="ui">→</span> and the linked Jira key.</dd>
           <dt><span class="n">5</span>Detail</dt>
           <dd>Everything about the selected item. For a pull request: the
-          linked ticket and its status, branch, checks, reviews, comments,
-          whether the review was requested from you or your team, the last
-          update and the three most recent comments. For a ticket: status,
-          priority, comments, and the pull requests and sessions linked to it.
-          For a session: state (and what it waits for), folder, Jira key and
+          linked ticket and its status (also when the ticket is not assigned
+          to you), branch, checks, reviews, comments, whether the review was
+          requested from you or your team, the last update, the ticket's
+          related tickets and the three most recent comments. For a ticket:
+          status, priority, comments, the pull requests and sessions linked to
+          it, and its related tickets. For a session: state (and what it waits for), folder, Jira key and
           process ID. The bottom lines name the keys that apply.</dd>
           <dt><span class="n">6</span>Sources</dt>
           <dd>Each source with its state and age: <span class="ui">✓ 2m</span>
@@ -315,6 +316,7 @@ gh auth login</code></pre>
               <tr><td><kbd>?</kbd></td><td>Show all keys; <kbd>Esc</kbd>, <kbd>?</kbd>, <kbd>q</kbd> or a click closes the list.</td></tr>
               <tr><td><kbd>q</kbd>, <kbd>Ctrl</kbd>-<kbd>C</kbd></td><td>Quit.</td></tr>
               <tr><td>Mouse</td><td>A click selects a row (and its panel); the wheel moves through the panel under the pointer.</td></tr>
+              <tr><td><kbd>⌘</kbd>-click</td><td>In Ghostty, open the link under the pointer in the detail (see <a href="#tui-links">Links</a>).</td></tr>
             </tbody>
           </table>
         </div>
@@ -325,6 +327,20 @@ gh auth login</code></pre>
         shows how many rows match, for example <span class="ui">2/4</span>.
         <kbd>Enter</kbd> keeps the filter and returns to the lists;
         <kbd>Esc</kbd> clears it.</p>
+        <p><b>Related tickets.</b> When a ticket has links in Jira, the detail
+        shows a <span class="ui">Related</span> section with one row per link:
+        how it relates in Jira's words (<span class="ui">blocks</span>,
+        <span class="ui">is blocked by</span>, <span class="ui">relates to</span>),
+        the key, the status in its colour and the summary. A pull request
+        shows the related tickets of its own ticket, even when that ticket is
+        not assigned to you. Without links there is no section.</p>
+        <p id="tui-links"><b>Links.</b> In Ghostty, <kbd>⌘</kbd>-click the
+        Jira key, the branch, the pull request's title or a row under
+        <span class="ui">Related</span> to open it: the ticket in Jira, the
+        branch on GitHub (in the fork, for a pull request from a fork) or the
+        pull request. The same works for a ticket's key and summary and a
+        session's Jira key. A terminal without hyperlinks shows the same
+        text.</p>
 
         <h3 id="tui-states">States and messages</h3>
         <ul>

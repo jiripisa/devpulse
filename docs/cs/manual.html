@@ -284,10 +284,11 @@ gh auth login</code></pre>
           za <span class="ui">→</span> navázaný klíč z Jiry.</dd>
           <dt><span class="n">5</span>Detail</dt>
           <dd>Všechno o vybrané položce. U pull requestu navázaný tiket a jeho
-          stav, větev, kontroly, review, komentáře, jestli review chtějí po vás
-          nebo po týmu, poslední změna a tři nejnovější komentáře. U tiketu
-          stav, priorita, komentáře a navázané pull requesty a sessions.
-          U session stav (a na co čeká), složka, klíč z Jiry a ID procesu.
+          stav (i když tiket není přiřazený vám), větev, kontroly, review,
+          komentáře, jestli review chtějí po vás nebo po týmu, poslední změna,
+          související tikety a tři nejnovější komentáře. U tiketu stav,
+          priorita, komentáře, navázané pull requesty a sessions a související
+          tikety. U session stav (a na co čeká), složka, klíč z Jiry a ID procesu.
           Spodní řádky říkají, které klávesy tu platí.</dd>
           <dt><span class="n">6</span>Zdroje</dt>
           <dd>Každý zdroj se stavem a stářím dat: <span class="ui">✓ 2m</span>,
@@ -316,6 +317,7 @@ gh auth login</code></pre>
               <tr><td><kbd>?</kbd></td><td>Seznam všech kláves; zavře ho <kbd>Esc</kbd>, <kbd>?</kbd>, <kbd>q</kbd> nebo kliknutí.</td></tr>
               <tr><td><kbd>q</kbd>, <kbd>Ctrl</kbd>-<kbd>C</kbd></td><td>Konec.</td></tr>
               <tr><td>Myš</td><td>Kliknutí vybere řádek (i jeho panel), kolečko posouvá panel pod ukazatelem.</td></tr>
+              <tr><td><kbd>⌘</kbd>-kliknutí</td><td>V Ghostty otevře odkaz pod ukazatelem v detailu (viz <a href="#tui-links">Odkazy</a>).</td></tr>
             </tbody>
           </table>
         </div>
@@ -326,6 +328,19 @@ gh auth login</code></pre>
         panelu ukazuje, kolik řádků vyhovuje, třeba <span class="ui">2/4</span>.
         <kbd>Enter</kbd> filtr ponechá a vrátí vás do seznamů, <kbd>Esc</kbd>
         ho zruší.</p>
+        <p><b>Související tikety.</b> Když má tiket v Jiře vazby, detail ukáže
+        oddíl <span class="ui">Related</span> s řádkem pro každou vazbu: jak
+        spolu tikety souvisí, slovy Jiry (<span class="ui">blocks</span>,
+        <span class="ui">is blocked by</span>, <span class="ui">relates to</span>),
+        klíč, stav v jeho barvě a název. Pull request ukazuje související
+        tikety svého tiketu, i když ten tiket není přiřazený vám. Bez vazeb se
+        oddíl neukáže.</p>
+        <p id="tui-links"><b>Odkazy.</b> V Ghostty otevřete kliknutím
+        s <kbd>⌘</kbd> klíč z Jiry, větev, název pull requestu nebo řádek
+        v oddílu <span class="ui">Related</span>: tiket v Jiře, větev na
+        GitHubu (u pull requestu z forku ve forku) nebo pull request. Stejně
+        funguje klíč a název tiketu a klíč z Jiry u session. Terminál bez
+        podpory odkazů ukáže stejný text.</p>
 
         <h3 id="tui-states">Stavy a hlášky</h3>
         <ul>
