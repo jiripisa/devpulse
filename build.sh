@@ -105,6 +105,8 @@ sign_sparkle() {
 # Command Line Tools.
 echo "Compiling app icon and asset catalog..."
 ICON_DIR=$(mktemp -d)
+# Removed however the script ends, also when actool fails (build.sh sets no other trap).
+trap 'rm -rf "$ICON_DIR"' EXIT
 ditto "$ICON_DOCUMENT" "$ICON_DIR/AppIcon.icon"
 mkdir -p "$ICON_DIR/AppIcon.icon/Assets"
 cp "$ICON_SOURCE" "$ICON_DIR/AppIcon.icon/Assets/AppIcon.png"
