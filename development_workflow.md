@@ -162,6 +162,12 @@ DEVPULSE_SOCKET="$HOME/Library/Application Support/DevPulse/devpulse-demo.sock" 
 `scripts/demo-snapshot.json` holds neutral example data for the website; never put real PRs,
 tickets or sessions in it. Capture screenshots by window ID of the demo's own process
 (`screencapture -l <id>`), never the whole screen.
+
+When DevPulse is installed, take the shots from a scratch copy of the debug build with its own
+bundle id (`io.jp4.devpulse.shots`, re-signed ad hoc). The debug build has the app's bundle
+id: AppKit would save its window frames into the app's `io.jp4.devpulse` domain, and Launch
+Services would know two `io.jp4.devpulse` apps. Afterwards `defaults delete io.jp4.devpulse.shots`
+and unregister the copy (`lsregister -u <copy>`) before removing it.
 After new screenshots in `docs/assets/manual/`, `swift scripts/artwork/compose.swift` (from the
 repository root) redraws `docs/assets/hero.png` and `docs/assets/og-image.png`.
 

@@ -50,13 +50,30 @@ A `403 … agreement is missing or has expired` from notarytool means the user
 must accept the new Apple agreement at developer.apple.com/account — stop and
 tell them.
 
-## 3. Screenshot (when the UI changed)
+## 3. Screenshots (when the UI changed)
 
-Open `build/release/DevPulse.app`, capture only its window
-(`screencapture -x -o -l <window id>`; the window id from
-`CGWindowListCopyWindowInfo`), look at the image, then copy it to
-`docs/assets/devpulse-window.png`. Never capture the whole screen or other
-apps' windows. Quit the app afterwards.
+**Never capture the release build, the installed app or any window that shows
+real data** (your PRs, tickets and sessions are an employer's data). Shots come
+only from the DEBUG demo with `scripts/demo-snapshot.json`, as
+`development_workflow.md` §3 describes:
+
+1. `./build.sh debug`, then copy `build/debug/DevPulse.app` to a scratch folder,
+   give the copy its own bundle id (`io.jp4.devpulse.shots`) and re-sign it ad
+   hoc, so it never writes into the `io.jp4.devpulse` domain.
+2. Start the copy's binary with `-DevPulseDemoSnapshot "$PWD/scripts/demo-snapshot.json"`
+   and `-DevPulseDemoOpen <launcher:<query>|popover|settings:<tab>>`; note its PID.
+   For the TUI, run the debug `Contents/Helpers/devpulse` in a terminal you start
+   yourself, with `DEVPULSE_SOCKET` set to the demo's socket.
+3. Pick the window by that PID from `CGWindowListCopyWindowInfo` and capture
+   only it: `screencapture -x -o -l <window id>`. Never the whole screen, never
+   another process's window. Look at every image.
+4. Replace the matching files: `docs/assets/manual/*.png`, then run
+   `swift scripts/artwork/compose.swift` for `docs/assets/hero.png` and
+   `docs/assets/og-image.png`. Check the manual's marks (`--iw`/`--ih`, `--x`/`--y`)
+   in EN and CS when an image changed size.
+5. Quit the demo by its PID, then clean up: `defaults delete io.jp4.devpulse.demo`
+   and `defaults delete io.jp4.devpulse.shots`, remove the scratch copy (unregister
+   it with `lsregister -u` first) and a leftover `devpulse-demo.sock`.
 
 ## 4. Commit, merge, tag
 
