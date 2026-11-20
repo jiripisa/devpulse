@@ -140,7 +140,7 @@ gh auth login</code></pre>
           vás.</dd>
           <dt>Default repository</dt>
           <dd><code>owner/name</code>, které <a href="#launcher">rychlé hledání</a>
-          použije pro <code>gh &lt;číslo&gt;</code>, když číslo nepatří žádnému
+          použije pro <code>gh &lt;číslo&gt;</code> a samotné číslo, když číslo nepatří žádnému
           z vašich známých pull requestů. Prázdné pole znamená repozitář, ve
           kterém máte nejvíc pull requestů; pole ho ukazuje šedě.</dd>
         </dl>
@@ -171,7 +171,7 @@ gh auth login</code></pre>
         <dl class="controls">
           <dt>Default project</dt>
           <dd>Klíč projektu, který <a href="#launcher">rychlé hledání</a> doplní
-          před <code>jira &lt;číslo&gt;</code>. Prázdné pole znamená projekt,
+          před <code>jira &lt;číslo&gt;</code> a samotné číslo. Prázdné pole znamená projekt,
           ve kterém máte nejvíc tiketů; pole ho ukazuje šedě.</dd>
         </dl>
         <p>DevPulse ukazuje tikety, které máte přiřazené a které ještě nejsou
@@ -180,9 +180,7 @@ gh auth login</code></pre>
 
       <section id="popover">
         <h2>Menu bar</h2>
-        <p>Ikona DevPulse je křivka pulsu. Když vás něco potřebuje, objeví se
-        vedle ní číslo: žádosti o review poslané přímo vám plus sessions Claude
-        Code, které čekají na váš vstup. Kliknutím na ikonu otevřete okénko.</p>
+        <p>Ikona DevPulse je křivka pulsu. Kliknutím na ni otevřete okénko.</p>
         <figure class="fig" style="max-width:28rem">
           <div class="view" style="--iw:760;--ih:1172">
             <img src="../assets/manual/devpulse-popover.png" alt="Okénko DevPulse s pull requesty, žádostmi o review, tikety z Jiry a session Claude Code">
@@ -354,8 +352,9 @@ gh auth login</code></pre>
       <section id="launcher">
         <h2>Rychlé hledání</h2>
         <p>Stiskněte kdekoli <kbd>⌥</kbd><kbd>Space</kbd> a uprostřed obrazovky
-        se otevře vyhledávací panel. Napište <code>gh</code> pro pull requesty
-        nebo <code>jira</code> pro tikety; zkratku změníte v
+        se otevře vyhledávací panel. Napište číslo, které se pak hledá všude,
+        <code>gh</code> pro pull requesty nebo <code>jira</code> pro tikety;
+        zkratku změníte v
         <a href="#general">obecných nastaveních</a>.</p>
         <figure class="fig" hidden><!-- shown once devpulse-launcher.png exists -->
           <div class="view" style="--iw:1280;--ih:774">
@@ -367,17 +366,23 @@ gh auth login</code></pre>
         </figure>
         <dl class="controls">
           <dt><span class="n">1</span>Vyhledávací pole</dt>
-          <dd>Sem napište dotaz podle tabulky níže.</dd>
+          <dd>Sem napište dotaz podle tabulky níže. Dokud nic nenapíšete,
+          ukazuje světle šedou nápovědu <span class="ui">Number, gh … or
+          jira …</span>.</dd>
           <dt><span class="n">2</span>Výsledky</dt>
-          <dd>Nejvýš 20 řádků, každý s názvem a pod ním repozitářem, stavem
-          tiketu nebo, u řádku, který otevře číslo či klíč, pro který žádnou
-          položku nemáte, adresou, kterou otevře. Vybraný řádek je
+          <dd>Nejvýš 20 řádků. Ikona říká, co řádek je: pull request
+          (rozvětvená šipka), žádost o review (jedna nebo dvě postavy jako
+          v okénku), tiket z Jiry, nebo session Claude Code (její stav jako
+          v okénku). Pod názvem je repozitář, stav tiketu, stav a složka
+          session nebo, u řádku, který otevře číslo či klíč, pro který žádnou
+          položku nemáte, adresa, kterou otevře. Vybraný řádek je
           zvýrazněný.</dd>
         </dl>
         <div class="table">
           <table>
             <thead><tr><th>Napíšete</th><th>Výsledek</th></tr></thead>
             <tbody>
+              <tr><td><code>2474</code></td><td>Všechno s tímto číslem: vaše pull requesty a žádosti o review s číslem 2474 v libovolném repozitáři, za nimi vaše tikety s číslem 2474 v libovolném projektu (<code>STORE-2474</code>, <code>WA-2474</code>) a sessions Claude Code, jejichž klíč z Jiry nebo název složky toto číslo obsahuje (<code>store-2474-fix</code>, ale ne <code>store-24740</code>). Nakonec řádky, které otevřou 2474 ve <a href="#github">výchozím repozitáři</a> a <code>STORE-2474</code> ve <a href="#jira">výchozím projektu</a>, pokud už v seznamu nejsou.</td></tr>
               <tr><td><code>gh</code></td><td>Vaše pull requesty, za nimi žádosti o review.</td></tr>
               <tr><td><code>gh invoice</code></td><td>Ty, jejichž název nebo repozitář text obsahuje.</td></tr>
               <tr><td><code>gh 812</code></td><td>Váš pull request nebo žádost o review s tímto číslem. Když takový nemáte, řádek, který otevře <code>812</code> ve <a href="#github">výchozím repozitáři</a>.</td></tr>
@@ -394,7 +399,7 @@ gh auth login</code></pre>
             <thead><tr><th>Klávesa</th><th>Akce</th></tr></thead>
             <tbody>
               <tr><td><kbd>↑</kbd> <kbd>↓</kbd></td><td>Posun výběru.</td></tr>
-              <tr><td><kbd>Enter</kbd> nebo kliknutí</td><td>Otevřít vybraný řádek v prohlížeči.</td></tr>
+              <tr><td><kbd>Enter</kbd> nebo kliknutí</td><td>Otevřít vybraný řádek: pull request nebo tiket v prohlížeči, u session Claude Code přenést dopředu její okno Ghostty.</td></tr>
               <tr><td><kbd>⌘</kbd><kbd>Enter</kbd></td><td>Otevřít tiket z Jiry navázaný na vybraný pull request.</td></tr>
               <tr><td><kbd>Esc</kbd></td><td>Zavřít panel.</td></tr>
             </tbody>

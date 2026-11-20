@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- `,` in the `devpulse` terminal UI opens Settings in front of the terminal; before, the window
+  could open behind it.
+- The quick launcher's hint reads "Number, gh … or jira …" in a lighter grey, so it no longer
+  looks like typed text.
+- Type just a number in the quick launcher to find it everywhere: your pull requests and review
+  requests with that number in any repository, your Jira tickets with it in any project, and
+  Claude Code sessions whose Jira key or folder has it, plus rows for the default repository and
+  project. Each row shows an icon for what it is.
+- No more number next to the menu bar icon.
+
 ## 0.1.0 — 2026-11-20
 
 - First version.
