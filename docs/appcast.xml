@@ -5,13 +5,13 @@
     <link>https://jiripisa.github.io/devpulse/</link>
     <description>DevPulse updates</description>
     <item>
-      <title>DevPulse 0.9.0</title>
-      <sparkle:version>0.9.0</sparkle:version>
-      <sparkle:shortVersionString>0.9.0</sparkle:shortVersionString>
+      <title>DevPulse 0.9.1</title>
+      <sparkle:version>0.9.1</sparkle:version>
+      <sparkle:shortVersionString>0.9.1</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>27.0</sparkle:minimumSystemVersion>
-      <pubDate>Fri, 20 Nov 2026 04:07:31 +0000</pubDate>
-      <description><![CDATA[<ul><li><code>,</code> in the <code>devpulse</code> terminal UI opens Settings in front of the terminal; before, the window could open behind it.</li><li>The quick launcher&#x27;s hint reads &quot;Number, gh … or jira …&quot; in a lighter grey, so it no longer looks like typed text.</li><li>Type just a number in the quick launcher to find it everywhere: your pull requests and review requests with that number in any repository, your Jira tickets with it in any project, and Claude Code sessions whose Jira key or folder has it, plus rows for the default repository and project. Each row shows an icon for what it is.</li><li>No more number next to the menu bar icon.</li><li>A new app icon, a radar, and a new menu bar icon, a sonar dial. The app icon fills the macOS icon shape; before, it sat small on a light tile.</li><li>In the <code>devpulse</code> terminal UI, ⌘-click the Jira key, the branch, the pull request&#x27;s title or a related ticket in the detail to open it in Jira or on GitHub (in Ghostty and other terminals with hyperlinks).</li><li>The terminal UI&#x27;s detail shows a ticket&#x27;s related Jira tickets (blocks, is blocked by, relates to …) with key, status and summary.</li><li>A pull request&#x27;s detail in the terminal UI shows the status and the related tickets of its Jira ticket also when that ticket is not assigned to you.</li><li>The website shows real screenshots of the app.</li><li>Building from source now needs Xcode; the Command Line Tools alone are no longer enough.</li></ul>]]></description>
-      <enclosure url="https://github.com/jiripisa/devpulse/releases/download/v0.9.0/DevPulse-0.9.0.dmg" type="application/octet-stream" sparkle:edSignature="okOrKxqaMeJnv2ATaS1B19THIPYkEbvjG78oaUz3Pmods/AzdpxmWQL6o/qod4S++MMh5tH7C42zGZ/XeQCjCA==" length="5546222"/>
+      <pubDate>Fri, 20 Nov 2026 09:52:23 +0000</pubDate>
+      <description><![CDATA[<ul><li>In the <code>devpulse</code> terminal UI, a plain click (or ⌘-click) on an underlined link in the detail opens it in the browser; ⇧⌘-click is no longer needed.</li></ul>]]></description>
+      <enclosure url="https://github.com/jiripisa/devpulse/releases/download/v0.9.1/DevPulse-0.9.1.dmg" type="application/octet-stream" sparkle:edSignature="ewDwUi79+LHxk9qA41VNZVWqIh61EJaX66wmzpSIZVwtbBZQ2Fv3rIr+fMi0V4adgh841dvStihxdVOQ3b9IBA==" length="5548753"/>
     </item>
   </channel>
 </rss>
