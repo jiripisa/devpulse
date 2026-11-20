@@ -34,6 +34,10 @@ extension DemoSnapshot {
     /// The defaults suite a demo keeps its settings in; the app's own domain stays untouched.
     public static let defaultsSuite = "io.jp4.devpulse.demo"
 
+    /// The GitHub login a demo's Settings show as signed in ("Signed in as alice"); a demo never
+    /// asks `gh`.
+    public static let githubLogin = "alice"
+
     /// What a demo's Settings show: example Jira and GitHub values, defaults otherwise. The Jira
     /// token is never stored; the demo only says that one is.
     public static var settings: AppSettings {

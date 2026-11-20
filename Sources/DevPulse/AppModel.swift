@@ -94,6 +94,9 @@ final class AppModel {
         weakStore = store
         self.store = store
         snapshot = demo ?? store.snapshot
+        #if DEBUG
+        if demo != nil { githubLogin = DemoSnapshot.githubLogin }
+        #endif
         opener = Opener { [weak self] pid in self?.snapshot.sessions.first { $0.pid == pid } }
         start()
     }

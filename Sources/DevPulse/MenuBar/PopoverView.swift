@@ -5,6 +5,8 @@ import SwiftUI
 /// The menu bar window: the four sections of spec §5.4, each source's state, and the actions.
 struct PopoverView: View {
     let model: AppModel
+    /// The lists scroll above this height. The demo window lifts it so a screenshot shows them all.
+    var maxListHeight: CGFloat = 520
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -16,7 +18,7 @@ struct PopoverView: View {
                     sections(now: context.date)
                         .padding(.vertical, 6)
                 }
-                .frame(maxHeight: 520)
+                .frame(maxHeight: maxListHeight)
                 .fixedSize(horizontal: false, vertical: true)
             }
             Divider()
