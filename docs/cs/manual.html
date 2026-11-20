@@ -341,7 +341,7 @@ gh auth login</code></pre>
               <tr><td><kbd>?</kbd></td><td>Seznam všech kláves; zavře ho <kbd>Esc</kbd>, <kbd>?</kbd>, <kbd>q</kbd> nebo kliknutí.</td></tr>
               <tr><td><kbd>q</kbd>, <kbd>Ctrl</kbd>-<kbd>C</kbd></td><td>Konec.</td></tr>
               <tr><td>Myš</td><td>Kliknutí vybere řádek (i jeho panel), kolečko posouvá panel pod ukazatelem.</td></tr>
-              <tr><td><kbd>⌘</kbd>-kliknutí</td><td>V Ghostty otevře odkaz pod ukazatelem v detailu (viz <a href="#tui-links">Odkazy</a>); pokud váš terminál posílá kliknutí aplikaci, držte k tomu i <kbd>⇧</kbd> (<kbd>⇧</kbd><kbd>⌘</kbd>-kliknutí).</td></tr>
+              <tr><td>Kliknutí, <kbd>⌘</kbd>-kliknutí</td><td>Otevře podtržený odkaz pod ukazatelem v detailu v prohlížeči (viz <a href="#tui-links">Odkazy</a>).</td></tr>
             </tbody>
           </table>
         </div>
@@ -359,14 +359,14 @@ gh auth login</code></pre>
         klíč, stav v jeho barvě a název. Pull request ukazuje související
         tikety svého tiketu, i když ten tiket není přiřazený vám. Bez vazeb se
         oddíl neukáže.</p>
-        <p id="tui-links"><b>Odkazy.</b> V Ghostty otevřete kliknutím
-        s <kbd>⌘</kbd> klíč z Jiry, větev, název pull requestu nebo řádek
-        v oddílu <span class="ui">Related</span>: tiket v Jiře, větev na
-        GitHubu (u pull requestu z forku ve forku) nebo pull request. Stejně
-        funguje klíč a název tiketu a klíč z Jiry u session. Pokud váš
-        terminál posílá kliknutí aplikaci, držte k tomu i <kbd>⇧</kbd>
-        (<kbd>⇧</kbd><kbd>⌘</kbd>-kliknutí). Terminál bez podpory odkazů
-        ukáže stejný text.</p>
+        <p id="tui-links"><b>Odkazy.</b> Odkazy v detailu jsou podtržené.
+        Kliknutím otevřete v prohlížeči klíč z Jiry, větev, název pull
+        requestu nebo řádek v oddílu <span class="ui">Related</span>: tiket
+        v Jiře, větev na GitHubu (u pull requestu z forku ve forku) nebo pull
+        request. Stejně funguje klíč a název tiketu a klíč z Jiry u session.
+        Funguje i <kbd>⌘</kbd>-kliknutí. Terminály s podporou odkazů, třeba
+        Ghostty, otevřou odkaz i samy po <kbd>⇧</kbd><kbd>⌘</kbd>-kliknutí;
+        to je záložní cesta terminálu, DevPulse k ní nepotřebuje.</p>
 
         <h3 id="tui-states">Stavy a hlášky</h3>
         <ul>
@@ -376,6 +376,8 @@ gh auth login</code></pre>
           <li><span class="ui">not connected — action not sent</span> v liště
           kláves: stiskli jste klávesu, která potřebuje aplikaci, zatímco
           nebyla k dispozici.</li>
+          <li><span class="ui">could not open link</span> v liště kláves:
+          po kliknutí na odkaz se nepodařilo spustit prohlížeč.</li>
           <li><span class="ui">refreshing…</span> v liště kláves: stiskli jste
           <kbd>r</kbd>. Zmizí, jakmile přijdou nová data, nejpozději po 10
           sekundách, nebo s další klávesou.</li>

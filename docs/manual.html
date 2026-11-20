@@ -340,7 +340,7 @@ gh auth login</code></pre>
               <tr><td><kbd>?</kbd></td><td>Show all keys; <kbd>Esc</kbd>, <kbd>?</kbd>, <kbd>q</kbd> or a click closes the list.</td></tr>
               <tr><td><kbd>q</kbd>, <kbd>Ctrl</kbd>-<kbd>C</kbd></td><td>Quit.</td></tr>
               <tr><td>Mouse</td><td>A click selects a row (and its panel); the wheel moves through the panel under the pointer.</td></tr>
-              <tr><td><kbd>⌘</kbd>-click</td><td>In Ghostty, open the link under the pointer in the detail (see <a href="#tui-links">Links</a>); if your terminal sends clicks to the app instead, hold <kbd>⇧</kbd> as well (<kbd>⇧</kbd><kbd>⌘</kbd>-click).</td></tr>
+              <tr><td>Click, <kbd>⌘</kbd>-click</td><td>Open the underlined link under the pointer in the detail in the browser (see <a href="#tui-links">Links</a>).</td></tr>
             </tbody>
           </table>
         </div>
@@ -358,14 +358,15 @@ gh auth login</code></pre>
         the key, the status in its colour and the summary. A pull request
         shows the related tickets of its own ticket, even when that ticket is
         not assigned to you. Without links there is no section.</p>
-        <p id="tui-links"><b>Links.</b> In Ghostty, <kbd>⌘</kbd>-click the
-        Jira key, the branch, the pull request's title or a row under
-        <span class="ui">Related</span> to open it: the ticket in Jira, the
-        branch on GitHub (in the fork, for a pull request from a fork) or the
-        pull request. The same works for a ticket's key and summary and a
-        session's Jira key. If your terminal sends clicks to the app instead,
-        hold <kbd>⇧</kbd> as well (<kbd>⇧</kbd><kbd>⌘</kbd>-click). A terminal
-        without hyperlinks shows the same text.</p>
+        <p id="tui-links"><b>Links.</b> Links in the detail are underlined.
+        Click the Jira key, the branch, the pull request's title or a row
+        under <span class="ui">Related</span> to open it in the browser: the
+        ticket in Jira, the branch on GitHub (in the fork, for a pull request
+        from a fork) or the pull request. The same works for a ticket's key
+        and summary and a session's Jira key. <kbd>⌘</kbd>-click works too.
+        Terminals with hyperlinks, such as Ghostty, also open a link
+        themselves with <kbd>⇧</kbd><kbd>⌘</kbd>-click; that is the
+        terminal's own fallback and needs no help from DevPulse.</p>
 
         <h3 id="tui-states">States and messages</h3>
         <ul>
@@ -374,6 +375,8 @@ gh auth login</code></pre>
           reconnects by itself as soon as the app is back.</li>
           <li><span class="ui">not connected — action not sent</span> in the key
           bar: a key that needs the app was pressed while it was away.</li>
+          <li><span class="ui">could not open link</span> in the key bar: a
+          click on a link could not start the browser.</li>
           <li><span class="ui">refreshing…</span> in the key bar: you pressed
           <kbd>r</kbd>. It goes when the new data arrives, after 10 seconds at
           the latest, or with the next key.</li>

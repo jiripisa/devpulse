@@ -302,7 +302,9 @@ The layout and the keys follow lazygit:
 - Redraws happen only on a socket update, a key press, a resize, or once a minute to refresh
   relative times.
 - A header line shows each source's state: OK with its age, fetching, or error.
-- Mouse support: click to select, scroll wheel (my call).
+- Mouse support: click to select, scroll wheel (my call). A click on an underlined link in the
+  detail opens it in the browser with `/usr/bin/open` (web links only), whatever modifier bits
+  come with it, so ⌘-click works too.
 
 **Subcommands:**
 - `devpulse`: the TUI;
