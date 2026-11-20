@@ -37,7 +37,9 @@ let package = Package(
         .testTarget(
             name: "DevPulseCoreTests",
             dependencies: ["DevPulseCore"],
-            path: "Tests/DevPulseCoreTests"
+            path: "Tests/DevPulseCoreTests",
+            // Read by path (#filePath), not bundled.
+            exclude: ["Fixtures"]
         ),
     ]
 )

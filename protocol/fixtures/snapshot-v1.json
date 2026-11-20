@@ -1,0 +1,123 @@
+{
+  "appVersion": "0.1.0",
+  "generatedAt": "2026-11-19T10:00:00Z",
+  "jiraBaseURL": "https://example.atlassian.net",
+  "sources": {
+    "github": { "state": "ok", "lastSuccess": "2026-11-19T09:59:30Z" },
+    "jira": { "state": "error", "lastSuccess": "2026-11-19T09:40:00Z", "message": "Jira returned 401" },
+    "claude": { "state": "ok", "lastSuccess": "2026-11-19T09:59:58Z" }
+  },
+  "myPullRequests": [
+    {
+      "id": "PR_kwDOA1b2c3",
+      "repo": "acmecorp/store",
+      "number": 1234,
+      "title": "STORE-2474 Replace invoice order",
+      "url": "https://github.com/acmecorp/store/pull/1234",
+      "headBranch": "feature/STORE-2474-replace-invoice",
+      "headOid": "9f2c1d7e4b6a8c0d3e5f71829a4b6c8d0e1f2a3b",
+      "jiraKey": "STORE-2474",
+      "checks": "pending",
+      "reviewDecision": "reviewRequired",
+      "approvals": 1,
+      "pendingReviewers": 2,
+      "commentCount": 3,
+      "lastCommentAt": "2026-11-19T09:30:00Z",
+      "requestedDirectly": false,
+      "updatedAt": "2026-11-19T09:30:00Z",
+      "recentComments": [
+        { "id": "IC_kwDOA1", "author": "alice", "authorName": "Alice Nováková", "authorKind": "human", "createdAt": "2026-11-19T09:10:00Z" },
+        { "id": "IC_kwDOA2", "author": "copilot-pull-request-reviewer", "authorKind": "copilot", "createdAt": "2026-11-19T09:30:00Z" }
+      ]
+    },
+    {
+      "id": "PR_kwDOA4d5e6",
+      "repo": "jiripisa/devpulse",
+      "number": 7,
+      "title": "Tidy up the build script",
+      "url": "https://github.com/jiripisa/devpulse/pull/7",
+      "headBranch": "chore/build-script",
+      "headOid": "1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d",
+      "checks": "success",
+      "reviewDecision": "approved",
+      "approvals": 1,
+      "pendingReviewers": 0,
+      "commentCount": 0,
+      "requestedDirectly": false,
+      "updatedAt": "2026-11-18T16:00:00Z",
+      "recentComments": []
+    }
+  ],
+  "reviewRequests": [
+    {
+      "id": "PR_kwDOA7g8h9",
+      "repo": "acmecorp/store",
+      "number": 1250,
+      "title": "STORE-2290 Přehled příliš žluťoučkých koní",
+      "url": "https://github.com/acmecorp/store/pull/1250",
+      "headBranch": "feature/STORE-2290-prehled",
+      "headOid": "aabbccddeeff00112233445566778899aabbccdd",
+      "jiraKey": "STORE-2290",
+      "checks": "failure",
+      "reviewDecision": "changesRequested",
+      "approvals": 0,
+      "pendingReviewers": 1,
+      "commentCount": 1,
+      "lastCommentAt": "2026-11-19T08:00:00Z",
+      "requestedDirectly": true,
+      "updatedAt": "2026-11-19T08:00:00Z",
+      "recentComments": [
+        { "id": "IC_kwDOB1", "author": "dependabot[bot]", "authorKind": "bot", "createdAt": "2026-11-19T08:00:00Z" }
+      ]
+    },
+    {
+      "id": "PR_kwDOA0j1k2",
+      "repo": "acmecorp/webapp",
+      "number": 88,
+      "title": "Fix column sorting",
+      "url": "https://github.com/acmecorp/webapp/pull/88",
+      "headBranch": "fix/column-sorting",
+      "headOid": "0011223344556677889900aabbccddeeff001122",
+      "checks": "error",
+      "reviewDecision": "none",
+      "approvals": 0,
+      "pendingReviewers": 3,
+      "commentCount": 0,
+      "requestedDirectly": false,
+      "updatedAt": "2026-11-17T12:00:00Z",
+      "recentComments": []
+    }
+  ],
+  "tickets": [
+    {
+      "key": "STORE-2290",
+      "summary": "Přehled příliš žluťoučkých koní úpějících ďábelské ódy na nádvoří",
+      "status": "In Progress",
+      "statusCategory": "inProgress",
+      "priority": "High",
+      "url": "https://example.atlassian.net/browse/STORE-2290",
+      "updatedAt": "2026-11-19T07:45:00Z",
+      "commentCount": 2,
+      "lastCommentAt": "2026-11-19T07:45:00Z",
+      "recentComments": [
+        { "id": "10042", "author": "712020:abc-123", "authorName": "Petr Dvořák", "authorKind": "human", "createdAt": "2026-11-19T07:00:00Z" },
+        { "id": "10043", "author": "557058:automation", "authorName": "Automation for Jira", "authorKind": "bot", "createdAt": "2026-11-19T07:45:00Z" }
+      ]
+    },
+    {
+      "key": "STORE-2474",
+      "summary": "Replace invoice order",
+      "status": "To Do",
+      "statusCategory": "todo",
+      "url": "https://example.atlassian.net/browse/STORE-2474",
+      "updatedAt": "2026-11-18T09:00:00Z",
+      "commentCount": 0,
+      "recentComments": []
+    }
+  ],
+  "sessions": [
+    { "pid": 41001, "name": "devpulse", "cwd": "/Users/dev/devpulse", "status": "busy", "updatedAt": "2026-11-19T09:59:58Z" },
+    { "pid": 41002, "name": "store", "cwd": "/Users/dev/store", "status": "waiting", "waitingFor": "permission prompt", "updatedAt": "2026-11-19T09:58:00Z" },
+    { "pid": 41003, "name": "store-2290", "cwd": "/Users/dev/store-2290", "status": "idle", "jiraKey": "STORE-2290", "updatedAt": "2026-11-19T09:20:00Z" }
+  ]
+}

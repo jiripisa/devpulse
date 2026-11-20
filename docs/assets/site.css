@@ -67,6 +67,7 @@ section h2 { margin: 0 0 1rem; color: var(--ink); font-size: clamp(1.6rem, 3.5vw
 section p, section li { max-width: var(--measure); }
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 2rem; }
 .grid h3 { margin: 0 0 .4rem; color: var(--ink); font-size: 1.1rem; }
+.grid.features { grid-template-columns: repeat(auto-fit, minmax(min(24rem, 100%), 1fr)); }
 pre { overflow-x: auto; padding: 1rem; border-radius: 8px; background: var(--panel); border: 1px solid var(--line); color: var(--ink); }
 
 footer { padding-block: 2.5rem 3rem; color: var(--ink3); font-size: .9rem; border-top: 1px solid var(--line); }

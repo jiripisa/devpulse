@@ -1,0 +1,377 @@
+{
+  "data": {
+    "viewer": {
+      "login": "me-synthetic"
+    },
+    "mine": {
+      "nodes": [
+        {
+          "id": "PR_widgets_101",
+          "number": 101,
+          "title": "STORE-100 Add widget",
+          "url": "https://github.com/acme/widgets/pull/101",
+          "headRefName": "feature/STORE-999-other",
+          "headRefOid": "0000000000000000000000000000000000000065",
+          "updatedAt": "2026-11-19T10:00:00Z",
+          "repository": {
+            "nameWithOwner": "acme/widgets"
+          },
+          "reviewDecision": "APPROVED",
+          "commits": {
+            "nodes": [
+              {
+                "commit": {
+                  "statusCheckRollup": {
+                    "state": "SUCCESS"
+                  }
+                }
+              }
+            ]
+          },
+          "latestOpinionatedReviews": {
+            "nodes": [
+              {
+                "state": "APPROVED"
+              },
+              {
+                "state": "APPROVED"
+              },
+              {
+                "state": "COMMENTED"
+              }
+            ]
+          },
+          "reviewRequests": {
+            "totalCount": 0
+          },
+          "comments": {
+            "totalCount": 3,
+            "nodes": [
+              {
+                "id": "IC_1",
+                "createdAt": "2026-11-19T08:00:00Z",
+                "author": {
+                  "login": "alice",
+                  "__typename": "User",
+                  "name": "Alice Example"
+                }
+              },
+              {
+                "id": "IC_2",
+                "createdAt": "2026-11-19T09:00:00Z",
+                "author": {
+                  "login": "ci-helper",
+                  "__typename": "Bot"
+                }
+              },
+              {
+                "id": "IC_3",
+                "createdAt": "2026-11-18T09:00:00Z",
+                "author": {
+                  "login": "Copilot",
+                  "__typename": "Bot"
+                }
+              }
+            ]
+          },
+          "reviews": {
+            "totalCount": 2,
+            "nodes": [
+              {
+                "id": "PRR_1",
+                "submittedAt": "2026-11-19T09:30:00Z",
+                "createdAt": "2026-11-19T09:30:00Z",
+                "author": {
+                  "login": "bob",
+                  "__typename": "User",
+                  "name": "Bob Example"
+                }
+              },
+              {
+                "id": "PRR_2",
+                "submittedAt": "2026-11-17T09:30:00Z",
+                "createdAt": "2026-11-17T09:30:00Z",
+                "author": {
+                  "login": "copilot-fan",
+                  "__typename": "User"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "PR_widgets_102",
+          "number": 102,
+          "title": "Fix gadget",
+          "url": "https://github.com/acme/widgets/pull/102",
+          "headRefName": "feature/STORE-200-gadget",
+          "headRefOid": "0000000000000000000000000000000000000066",
+          "updatedAt": "2026-11-19T10:00:00Z",
+          "repository": {
+            "nameWithOwner": "acme/widgets"
+          },
+          "reviewDecision": "REVIEW_REQUIRED",
+          "commits": {
+            "nodes": [
+              {
+                "commit": {
+                  "statusCheckRollup": {
+                    "state": "PENDING"
+                  }
+                }
+              }
+            ]
+          },
+          "latestOpinionatedReviews": {
+            "nodes": []
+          },
+          "reviewRequests": {
+            "totalCount": 2
+          },
+          "comments": {
+            "totalCount": 0,
+            "nodes": []
+          },
+          "reviews": {
+            "totalCount": 0,
+            "nodes": []
+          }
+        },
+        {
+          "id": "PR_widgets_103",
+          "number": 103,
+          "title": "No key here",
+          "url": "https://github.com/acme/widgets/pull/103",
+          "headRefName": "chore/cleanup",
+          "headRefOid": "0000000000000000000000000000000000000067",
+          "updatedAt": "2026-11-19T10:00:00Z",
+          "repository": {
+            "nameWithOwner": "acme/widgets"
+          },
+          "reviewDecision": "CHANGES_REQUESTED",
+          "commits": {
+            "nodes": [
+              {
+                "commit": {
+                  "statusCheckRollup": {
+                    "state": "FAILURE"
+                  }
+                }
+              }
+            ]
+          },
+          "latestOpinionatedReviews": {
+            "nodes": []
+          },
+          "reviewRequests": {
+            "totalCount": 1
+          },
+          "comments": {
+            "totalCount": 0,
+            "nodes": []
+          },
+          "reviews": {
+            "totalCount": 0,
+            "nodes": []
+          }
+        },
+        {
+          "id": "PR_widgets_104",
+          "number": 104,
+          "title": "Another",
+          "url": "https://github.com/acme/widgets/pull/104",
+          "headRefName": "chore/other",
+          "headRefOid": "0000000000000000000000000000000000000068",
+          "updatedAt": "2026-11-19T10:00:00Z",
+          "repository": {
+            "nameWithOwner": "acme/widgets"
+          },
+          "reviewDecision": null,
+          "commits": {
+            "nodes": [
+              {
+                "commit": {
+                  "statusCheckRollup": {
+                    "state": "ERROR"
+                  }
+                }
+              }
+            ]
+          },
+          "latestOpinionatedReviews": {
+            "nodes": []
+          },
+          "reviewRequests": {
+            "totalCount": 1
+          },
+          "comments": {
+            "totalCount": 0,
+            "nodes": []
+          },
+          "reviews": {
+            "totalCount": 0,
+            "nodes": []
+          }
+        },
+        {
+          "id": "PR_widgets_105",
+          "number": 105,
+          "title": "Without checks",
+          "url": "https://github.com/acme/widgets/pull/105",
+          "headRefName": "chore/none",
+          "headRefOid": "0000000000000000000000000000000000000069",
+          "updatedAt": "2026-11-19T10:00:00Z",
+          "repository": {
+            "nameWithOwner": "acme/widgets"
+          },
+          "reviewDecision": null,
+          "commits": {
+            "nodes": [
+              {
+                "commit": {
+                  "statusCheckRollup": null
+                }
+              }
+            ]
+          },
+          "latestOpinionatedReviews": {
+            "nodes": []
+          },
+          "reviewRequests": {
+            "totalCount": 1
+          },
+          "comments": {
+            "totalCount": 0,
+            "nodes": []
+          },
+          "reviews": {
+            "totalCount": 0,
+            "nodes": []
+          }
+        }
+      ]
+    },
+    "direct": {
+      "nodes": [
+        {
+          "id": "PR_gizmos_201",
+          "number": 201,
+          "title": "Review me directly",
+          "url": "https://github.com/acme/gizmos/pull/201",
+          "headRefName": "feature/STORE-300-x",
+          "headRefOid": "00000000000000000000000000000000000000c9",
+          "updatedAt": "2026-11-19T11:00:00Z",
+          "repository": {
+            "nameWithOwner": "acme/gizmos"
+          },
+          "reviewDecision": null,
+          "commits": {
+            "nodes": [
+              {
+                "commit": {
+                  "statusCheckRollup": {
+                    "state": "SUCCESS"
+                  }
+                }
+              }
+            ]
+          },
+          "latestOpinionatedReviews": {
+            "nodes": []
+          },
+          "reviewRequests": {
+            "totalCount": 1
+          },
+          "comments": {
+            "totalCount": 0,
+            "nodes": []
+          },
+          "reviews": {
+            "totalCount": 0,
+            "nodes": []
+          }
+        }
+      ]
+    },
+    "team": {
+      "nodes": [
+        {
+          "id": "PR_gizmos_201",
+          "number": 201,
+          "title": "Review me directly",
+          "url": "https://github.com/acme/gizmos/pull/201",
+          "headRefName": "feature/STORE-300-x",
+          "headRefOid": "00000000000000000000000000000000000000c9",
+          "updatedAt": "2026-11-19T11:00:00Z",
+          "repository": {
+            "nameWithOwner": "acme/gizmos"
+          },
+          "reviewDecision": null,
+          "commits": {
+            "nodes": [
+              {
+                "commit": {
+                  "statusCheckRollup": {
+                    "state": "SUCCESS"
+                  }
+                }
+              }
+            ]
+          },
+          "latestOpinionatedReviews": {
+            "nodes": []
+          },
+          "reviewRequests": {
+            "totalCount": 1
+          },
+          "comments": {
+            "totalCount": 0,
+            "nodes": []
+          },
+          "reviews": {
+            "totalCount": 0,
+            "nodes": []
+          }
+        },
+        {
+          "id": "PR_gizmos_202",
+          "number": 202,
+          "title": "Team review",
+          "url": "https://github.com/acme/gizmos/pull/202",
+          "headRefName": "feature/y",
+          "headRefOid": "00000000000000000000000000000000000000ca",
+          "updatedAt": "2026-11-19T12:00:00Z",
+          "repository": {
+            "nameWithOwner": "acme/gizmos"
+          },
+          "reviewDecision": null,
+          "commits": {
+            "nodes": [
+              {
+                "commit": {
+                  "statusCheckRollup": {
+                    "state": "PENDING"
+                  }
+                }
+              }
+            ]
+          },
+          "latestOpinionatedReviews": {
+            "nodes": []
+          },
+          "reviewRequests": {
+            "totalCount": 1
+          },
+          "comments": {
+            "totalCount": 0,
+            "nodes": []
+          },
+          "reviews": {
+            "totalCount": 0,
+            "nodes": []
+          }
+        }
+      ]
+    }
+  }
+}

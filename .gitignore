@@ -14,3 +14,6 @@ __pycache__/
 
 # Superpowers brainstorm/plan scratch
 .superpowers/
+
+# Rust TUI build output
+tui/target/

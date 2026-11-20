@@ -60,6 +60,22 @@ cp "$SPM_BUILD_DIR/$SPM_CONFIG/$APP_NAME" "$APP_BUNDLE/Contents/MacOS/"
 # Copy Info.plist
 cp "Resources/Info.plist" "$APP_BUNDLE/Contents/"
 
+# Terminal client (tui/, Rust) -> Contents/Helpers/devpulse. Not in Contents/MacOS: on a
+# case-insensitive volume "devpulse" would collide with the "DevPulse" executable.
+HELPER="$APP_BUNDLE/Contents/Helpers/devpulse"
+if [ -d tui ]; then
+    VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" Resources/Info.plist)
+    if [ "$MODE" == "debug" ]; then
+        CARGO_PROFILE="debug"; CARGO_FLAGS=()
+    else
+        CARGO_PROFILE="release"; CARGO_FLAGS=(--release)
+    fi
+    echo "Building the command line tool ($CARGO_PROFILE)..."
+    DEVPULSE_VERSION="$VERSION" cargo build --manifest-path tui/Cargo.toml ${CARGO_FLAGS[@]+"${CARGO_FLAGS[@]}"}
+    mkdir -p "$APP_BUNDLE/Contents/Helpers"
+    cp "tui/target/$CARGO_PROFILE/devpulse" "$HELPER"
+fi
+
 # Embed Sparkle (auto-update). The app is unsandboxed, so the XPC services
 # (only needed by sandboxed apps) are left out.
 SPARKLE_SRC=".build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework"
@@ -106,6 +122,11 @@ echo -n "APPL????" > "$APP_BUNDLE/Contents/PkgInfo"
 # Strip extended attributes
 xattr -cr "$APP_BUNDLE"
 
+# Ad-hoc sign the helper before the app bundle (a bundle signature seals its contents).
+if [ -f "$HELPER" ]; then
+    codesign --force --sign - "$HELPER" 2>&1 | grep -v "replacing existing signature" || true
+fi
+
 # Ad-hoc sign with entitlements for debug/release (TCC needs entitlements
 # baked into the binary signature, not just present in the bundle).
 sign_sparkle -
@@ -132,6 +153,9 @@ fi
 echo "Signing with: $IDENTITY"
 
 sign_sparkle "$IDENTITY" --options runtime --timestamp
+if [ -f "$HELPER" ]; then
+    codesign --force --options runtime --timestamp --sign "$IDENTITY" "$HELPER"
+fi
 codesign --force --options runtime --timestamp \
     --entitlements "Resources/$APP_NAME.entitlements" \
     --sign "$IDENTITY" \

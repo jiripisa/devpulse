@@ -24,6 +24,10 @@
 	<string>0.1.0</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>27.0</string>
+	<key>LSUIElement</key>
+	<true/>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>DevPulse brings the Ghostty window of a Claude Code session to the front when you click the session.</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSPrincipalClass</key>

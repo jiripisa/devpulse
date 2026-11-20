@@ -4,12 +4,15 @@
 
 - Xcode command line tools (Swift 6), macOS 27+. No Xcode project: Swift
   Package Manager builds the code, `build.sh` assembles the `.app` bundle.
+- A Rust toolchain (`rustup`, stable) for the terminal client in `tui/`;
+  `build.sh` runs `cargo build` for it.
 
 ```
 devpulse/
 ├── Package.swift
 ├── Sources/DevPulse/          # SwiftUI app (thin layer)
 ├── Sources/DevPulseCore/      # logic without UI, tested
+├── tui/                     # Rust terminal client `devpulse` (cargo)
 ├── Tests/DevPulseCoreTests/   # Swift Testing
 ├── Resources/               # Info.plist, entitlements, AppIcon.png (1024 px)
 ├── scripts/make_appcast.py  # Sparkle feed, called by build.sh dist
@@ -32,8 +35,14 @@ devpulse/
 Executable → `Contents/MacOS`, `Resources/Info.plist` → `Contents/`,
 `Resources/AppIcon.png` → `AppIcon.icns` (sips + iconutil), Sparkle.framework →
 `Contents/Frameworks` (XPC services removed; the app is unsandboxed), PkgInfo,
-then an ad-hoc signature with the entitlements. New resource files must be
-copied in `build.sh` explicitly.
+the terminal client → `Contents/Helpers/devpulse` (`cargo build` of `tui/` with
+`DEVPULSE_VERSION` from `Info.plist`; debug profile in `debug`, `--release`
+otherwise; never in `Contents/MacOS`, where the name would collide with the
+`DevPulse` executable on a case-insensitive volume), then an ad-hoc signature
+for the helper and for the app with the entitlements. In `dist` the helper is
+signed with the Developer ID identity (hardened runtime, timestamp) before the
+app. Settings › General links the helper to `/usr/local/bin/devpulse`. New
+resource files must be copied in `build.sh` explicitly.
 
 ### 2.2 Distribution (`dist`)
 
@@ -79,6 +88,24 @@ hardened runtime and notarization. Add entitlements to
   `Resources/` is newer than the binary, registers the bundle with Launch
   Services, then runs the binary in the terminal: logs stream live, Ctrl+C quits.
 - `./run.sh release` — rebuilds if stale, then `open`s the app.
+
+### Demo data for screenshots
+
+Debug builds take `-DevPulseDemoSnapshot <path>`: the app shows that snapshot (protocol v1
+JSON, like `protocol/fixtures/snapshot-v1.json`) in the popover, the launcher and on the
+socket, so the TUI shows it too. It fetches nothing, does not watch Claude Code sessions,
+posts no notifications and neither reads nor saves the settings. Sparkle does not start, so
+it never checks for updates, and `devpulse upgrade` fails with "Not available in demo
+mode.". Every date is moved so that
+`generatedAt` is the launch time. Release builds ignore the argument.
+
+```
+./build.sh debug
+build/debug/DevPulse.app/Contents/MacOS/DevPulse -DevPulseDemoSnapshot "$PWD/scripts/demo-snapshot.json"
+```
+
+`scripts/demo-snapshot.json` holds neutral example data for the website; never put real PRs,
+tickets or sessions in it. Quit any other DevPulse first: both would use the same socket.
 
 ## 4. Development Methodology
 

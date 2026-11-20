@@ -1,0 +1,57 @@
+{
+  "issues": [
+    {
+      "key": "SYN-1",
+      "fields": {
+        "summary": "First synthetic ticket",
+        "status": { "name": "To Do", "statusCategory": { "key": "new" } },
+        "priority": { "name": "High" },
+        "updated": "2026-11-19T10:15:30.123+0100",
+        "comment": {
+          "total": 3,
+          "comments": [
+            { "id": "9001", "author": { "accountId": "acc-alice", "displayName": "Alice Example", "accountType": "atlassian" }, "created": "2026-11-18T09:00:00.000+0100" },
+            { "id": "9002", "author": { "accountId": "acc-bot", "displayName": "Automation", "accountType": "app" }, "created": "2026-11-19T08:00:00.000+0100" },
+            { "id": "9003", "author": { "accountId": "acc-me", "displayName": "Me Synthetic", "accountType": "atlassian" }, "created": "2026-11-19T09:30:00.000+0100" }
+          ]
+        }
+      }
+    },
+    {
+      "key": "SYN-2",
+      "fields": {
+        "summary": "Second synthetic ticket",
+        "status": { "name": "In Progress", "statusCategory": { "key": "indeterminate" } },
+        "priority": null,
+        "updated": "2026-11-19T11:00:00.000+0000",
+        "comment": { "total": 0, "comments": [] }
+      }
+    },
+    {
+      "key": "SYN-3",
+      "fields": {
+        "summary": "Third synthetic ticket",
+        "status": { "name": "Done", "statusCategory": { "key": "done" } },
+        "priority": { "name": "Low" },
+        "updated": "2026-11-17T12:00:00.000+0100",
+        "comment": {
+          "total": 12,
+          "comments": [
+            { "id": "1", "author": { "accountId": "acc-c", "displayName": "C", "accountType": "customer" }, "created": "2026-11-01T10:00:00.000+0100" },
+            { "id": "2", "author": { "accountId": "acc-a", "displayName": "A", "accountType": "atlassian" }, "created": "2026-11-02T10:00:00.000+0100" },
+            { "id": "3", "author": { "accountId": "acc-a", "displayName": "A", "accountType": "atlassian" }, "created": "2026-11-03T10:00:00.000+0100" },
+            { "id": "4", "author": { "accountId": "acc-a", "displayName": "A", "accountType": "atlassian" }, "created": "2026-11-04T10:00:00.000+0100" },
+            { "id": "5", "author": { "accountId": "acc-a", "displayName": "A", "accountType": "atlassian" }, "created": "2026-11-05T10:00:00.000+0100" },
+            { "id": "6", "author": { "accountId": "acc-a", "displayName": "A", "accountType": "atlassian" }, "created": "2026-11-06T10:00:00.000+0100" },
+            { "id": "7", "author": { "accountId": "acc-a", "displayName": "A", "accountType": "atlassian" }, "created": "2026-11-07T10:00:00.000+0100" },
+            { "id": "8", "author": { "accountId": "acc-a", "displayName": "A", "accountType": "atlassian" }, "created": "2026-11-08T10:00:00.000+0100" },
+            { "id": "9", "author": { "accountId": "acc-a", "displayName": "A", "accountType": "atlassian" }, "created": "2026-11-09T10:00:00.000+0100" },
+            { "id": "10", "author": { "accountId": "acc-a", "displayName": "A", "accountType": "atlassian" }, "created": "2026-11-10T10:00:00.000+0100" },
+            { "id": "11", "author": { "accountId": "acc-a", "displayName": "A", "accountType": "atlassian" }, "created": "2026-11-11T10:00:00.000+0100" },
+            { "id": "12", "author": { "displayName": "No Type" }, "created": "2026-11-12T10:00:00.000+0100" }
+          ]
+        }
+      }
+    }
+  ]
+}

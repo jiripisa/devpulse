@@ -3,18 +3,18 @@ import SwiftUI
 @main
 struct DevPulseApp: App {
 
-    @State private var updates = UpdateService()
+    @State private var model = AppModel()
 
     var body: some Scene {
-        WindowGroup {
-            ContentView()
+        MenuBarExtra {
+            PopoverView(model: model)
+        } label: {
+            MenuBarLabel(model: model)
         }
-        .commands {
-            // Auto-update: manual check next to About.
-            CommandGroup(after: .appInfo) {
-                Button("Check for Updates…") { updates.checkNow() }
-                    .disabled(!updates.canCheck)
-            }
+        .menuBarExtraStyle(.window)
+
+        Settings {
+            SettingsView(model: model)
         }
     }
 }

@@ -1,0 +1,130 @@
+import Foundation
+import Testing
+@testable import DevPulseCore
+
+private func freshDefaults() -> UserDefaults {
+    let name = "devpulse.tests.\(UUID().uuidString)"
+    let defaults = UserDefaults(suiteName: name)!
+    defaults.removePersistentDomain(forName: name)
+    return defaults
+}
+
+@Suite struct SettingsTests {
+    @Test func defaultsMatchTheSpec() {
+        let settings = AppSettings()
+        #expect(settings.refreshInterval == 120)
+        #expect(Source.allCases.allSatisfy { settings.sourceEnabled[$0] == true })
+        #expect(settings.includeTeamReviewRequests == false)
+        #expect(settings.defaultRepo == nil)
+        #expect(settings.defaultJiraProject == nil)
+        #expect(settings.jiraSite == nil)
+        #expect(settings.jiraEmail == nil)
+        #expect(settings.hotkey == Hotkey(keyCode: 49, modifiers: [.option]))
+        #expect(settings.launchAtLogin == true)
+    }
+
+    @Test func triggerDefaultsAndSources() {
+        let on: Set<NotificationTrigger> = [
+            .directReviewRequest, .prHumanComment, .prCopilotComment, .ciFinished,
+            .jiraHumanComment, .claudeWaiting, .claudeFinished,
+        ]
+        for trigger in NotificationTrigger.allCases {
+            #expect(trigger.defaultEnabled == on.contains(trigger), "\(trigger)")
+            #expect(AppSettings().triggers[trigger] == trigger.defaultEnabled)
+        }
+        #expect(NotificationTrigger.directReviewRequest.source == .github)
+        #expect(NotificationTrigger.ciFinished.source == .github)
+        #expect(NotificationTrigger.jiraAutomationComment.source == .jira)
+        #expect(NotificationTrigger.claudeWaiting.source == .claude)
+        #expect(NotificationTrigger.claudeFinished.source == .claude)
+    }
+
+    @Test func intervalIsClampedTo60To1800() {
+        #expect(AppSettings(refreshInterval: 5).refreshInterval == 60)
+        #expect(AppSettings(refreshInterval: 99_999).refreshInterval == 1800)
+        #expect(AppSettings(refreshInterval: 300).refreshInterval == 300)
+        var settings = AppSettings()
+        settings.refreshInterval = 1
+        #expect(settings.refreshInterval == 60)
+    }
+
+    @Test func decodingClampsAndFillsMissingFields() throws {
+        let settings = try JSONDecoder().decode(AppSettings.self, from: Data(#"{"refreshInterval": 10}"#.utf8))
+        #expect(settings.refreshInterval == 60)
+        #expect(settings.launchAtLogin == true)
+        #expect(settings.hotkey.keyCode == 49)
+        // Stored before notifications had their own switches.
+        #expect(Source.allCases.allSatisfy { settings.notificationsEnabled[$0] == true })
+    }
+
+    @Test func jsonRoundTrip() throws {
+        var settings = AppSettings()
+        settings.refreshInterval = 600
+        settings.sourceEnabled[.jira] = false
+        settings.notificationsEnabled[.claude] = false
+        settings.triggers[.prBotComment] = true
+        settings.includeTeamReviewRequests = true
+        settings.defaultRepo = "acme/app"
+        settings.defaultJiraProject = "ACME"
+        settings.jiraSite = URL(string: "https://acme.atlassian.net")
+        settings.jiraEmail = "me@acme.test"
+        settings.hotkey = Hotkey(keyCode: 40, modifiers: [.command, .shift])
+        settings.launchAtLogin = false
+        let data = try JSONEncoder().encode(settings)
+        #expect(try JSONDecoder().decode(AppSettings.self, from: data) == settings)
+    }
+
+    @Test func userDefaultsRoundTrip() {
+        let defaults = freshDefaults()
+        #expect(AppSettings.load(from: defaults) == AppSettings())
+        var settings = AppSettings()
+        settings.defaultRepo = "acme/app"
+        settings.sourceEnabled[.claude] = false
+        settings.save(to: defaults)
+        #expect(AppSettings.load(from: defaults) == settings)
+    }
+
+    @Test func mostFrequentRepoPicksTheModeWithAlphabeticalTies() {
+        #expect(AppSettings.mostFrequentRepo([]) == nil)
+        let prs = ["b/x", "a/y", "b/x", "a/y", "c/z"].enumerated().map { makePR(repo: $1, number: $0) }
+        #expect(AppSettings.mostFrequentRepo(prs) == "a/y")
+        let prs2 = ["b/x", "b/x", "a/y"].enumerated().map { makePR(repo: $1, number: $0) }
+        #expect(AppSettings.mostFrequentRepo(prs2) == "b/x")
+    }
+
+    @Test func mostFrequentProjectUsesTheKeyPrefix() {
+        #expect(AppSettings.mostFrequentProject([]) == nil)
+        let tickets = ["WA-1", "STORE-2", "STORE-3", "WA-4"].map { makeTicket(key: $0) }
+        #expect(AppSettings.mostFrequentProject(tickets) == "STORE")
+        #expect(AppSettings.mostFrequentProject([makeTicket(key: "WA-1"), makeTicket(key: "A-1")]) == "A")
+    }
+}
+
+@Suite struct KeychainTests {
+    @Test func writeReadOverwriteDelete() throws {
+        let service = "io.jp4.devpulse.tests.\(UUID().uuidString)"
+        defer { Keychain.delete(service: service, account: "me") }
+        #expect(Keychain.read(service: service, account: "me") == nil)
+        try Keychain.write("secret", service: service, account: "me")
+        #expect(Keychain.read(service: service, account: "me") == "secret")
+        try Keychain.write("other", service: service, account: "me")
+        #expect(Keychain.read(service: service, account: "me") == "other")
+        Keychain.delete(service: service, account: "me")
+        #expect(Keychain.read(service: service, account: "me") == nil)
+    }
+}
+
+func makePR(repo: String = "acme/app", number: Int = 1, id: String? = nil) -> PullRequest {
+    PullRequest(
+        id: id ?? "\(repo)#\(number)", repo: repo, number: number, title: "PR \(number)",
+        url: "https://github.com/\(repo)/pull/\(number)", headBranch: "b", headOid: "o",
+        checks: .none, reviewDecision: .none, approvals: 0, pendingReviewers: 0, commentCount: 0,
+        requestedDirectly: false, updatedAt: Date(timeIntervalSince1970: 0), recentComments: [])
+}
+
+func makeTicket(key: String) -> Ticket {
+    Ticket(
+        key: key, summary: "S", status: "To Do", statusCategory: .todo,
+        url: "https://acme.atlassian.net/browse/\(key)", updatedAt: Date(timeIntervalSince1970: 0),
+        commentCount: 0, recentComments: [])
+}

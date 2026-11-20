@@ -36,37 +36,500 @@
       <p>Obsah</p>
       <ol>
         <li><a href="#start">Začínáme</a></li>
-        <li><a href="#window">Hlavní okno</a></li>
-        <li><a href="#updates">Aktualizace</a></li>
+        <li><a href="#cli">Nástroj pro příkazovou řádku</a></li>
+        <li><a href="#github">Připojení GitHubu</a></li>
+        <li><a href="#jira">Připojení Jiry</a></li>
+        <li><a href="#popover">Menu bar</a></li>
+        <li><a href="#tui">Přehled v terminálu</a>
+          <ol>
+            <li><a href="#tui-keys">Klávesy</a></li>
+            <li><a href="#tui-states">Stavy a hlášky</a></li>
+          </ol>
+        </li>
+        <li><a href="#launcher">Rychlé hledání</a></li>
+        <li><a href="#notifications">Notifikace</a></li>
+        <li><a href="#general">Obecná nastavení</a></li>
+        <li><a href="#updates">Aktualizace</a>
+          <ol>
+            <li><a href="#upgrade"><code>devpulse upgrade</code></a></li>
+          </ol>
+        </li>
       </ol>
     </nav>
 
     <article>
       <section id="start">
         <h2>Začínáme</h2>
+        <p>DevPulse drží na jednom místě vaše pull requesty na GitHubu, tikety
+        v Jiře a běžící sessions Claude Code: v okénku v menu baru a v živém
+        přehledu v terminálu. Potřebuje macOS 27 nebo novější.</p>
         <ol>
           <li>Stáhněte obraz disku ze <a href="index.html#get">stránky ke stažení</a>
           a otevřete ho.</li>
           <li>Přetáhněte <b>DevPulse</b> do složky <b>Aplikace</b> a spusťte ji odtamtud.</li>
         </ol>
+        <p>DevPulse bydlí v menu baru a v Docku ikonu nemá. Když poprvé
+        poběží ze složky Aplikace, udělá dvě věci:</p>
+        <ul>
+          <li>Zapne <span class="ui">Launch at login</span>, takže se spustí po
+          každém přihlášení. Vypnout to jde v <a href="#general">obecných
+          nastaveních</a>.</li>
+          <li>Zeptá se <span class="ui">Install the command line tool?</span>
+          Tlačítkem <span class="ui">Install</span> získáte příkaz
+          <code>devpulse</code>, tlačítkem <span class="ui">Not Now</span> to
+          odložíte; víc v další kapitole.</li>
+        </ul>
+        <p>macOS se také zeptá, jestli smí DevPulse posílat notifikace. Pokud
+        je chcete, povolte to; co všechno vám DevPulse umí oznámit, najdete
+        v kapitole <a href="#notifications">Notifikace</a>.</p>
       </section>
 
-      <section id="window">
-        <h2>Hlavní okno</h2>
-        <!-- FILL: stejné obrázky a značky jako v anglické verzi, česky. -->
-        <figure class="fig">
-          <div class="view" style="--iw:1400;--ih:800">
-            <img src="../assets/devpulse-window.png" alt="Okno aplikace DevPulse">
+      <section id="cli">
+        <h2>Nástroj pro příkazovou řádku</h2>
+        <p>Přehled v terminálu i <code>devpulse upgrade</code> obstarává příkaz
+        <code>devpulse</code>. Je přibalený uvnitř aplikace; abyste ho mohli
+        psát v terminálu, musí být v PATH:</p>
+        <ol>
+          <li>Otevřete <span class="ui">Settings… › General</span>.</li>
+          <li>U položky <span class="ui">Command line tool</span> klikněte na
+          <span class="ui">Install</span> a zadejte heslo, až si o něj macOS
+          řekne.</li>
+        </ol>
+        <p>Vznikne odkaz <code>/usr/local/bin/devpulse</code> na nástroj uvnitř
+        aplikace (a chybí-li, i samotná složka). Protože jde o odkaz, každá
+        aktualizace aplikace zaktualizuje i příkaz. Potom řádek ukazuje
+        <span class="ui">Installed at /usr/local/bin/devpulse</span>. Pokud na
+        té cestě už něco jiného je nebo odkaz vede na kopii DevPulse, která už
+        neexistuje, řádek vypíše cíl a nabídne <span class="ui">Replace</span>.</p>
+        <div class="note">
+          <p>Tlačítko je neaktivní, dokud DevPulse neběží ze složky
+          <b>/Applications</b> nebo <b>~/Applications</b>, třeba když ho
+          spouštíte rovnou z obrazu disku nebo ze Stažených souborů. Hláška
+          vysvětluje proč: <span class="ui">Move DevPulse to the Applications
+          folder first — the command line tool would otherwise point at a
+          location that can disappear.</span> Odkaz by jinak vedl na místo,
+          které může zmizet. Přesuňte aplikaci, spusťte ji znovu a nainstalujte.
+          Kopie, ve které nástroj chybí, hlásí <span class="ui">The command line
+          tool is missing from this copy of DevPulse.</span>; stáhněte aplikaci
+          znovu.</p>
+        </div>
+        <p><code>devpulse --version</code> vypíše verzi příkazu.</p>
+      </section>
+
+      <section id="github">
+        <h2>Připojení GitHubu</h2>
+        <p>DevPulse používá přihlášení nástroje GitHub CLI, takže žádný token
+        nikam nevkládáte. V terminálu:</p>
+<pre><code>brew install gh
+gh auth login</code></pre>
+        <p>DevPulse si token od <code>gh</code> vyžádá jednou, při startu,
+        a drží ho jen v paměti; znovu se ptá, jen když ho GitHub odmítne. Záložka <span class="ui">Settings… › GitHub</span> má
+        tyto prvky:</p>
+        <dl class="controls">
+          <dt>Status</dt>
+          <dd>Když poslední načtení vyšlo, <span class="ui">Signed in as …</span>
+          s vaším loginem; jinak popis problému, například
+          <span class="ui">Not logged in — run “gh auth login”</span> nebo
+          <span class="ui">GitHub CLI (gh) not found — install it with Homebrew</span>.</dd>
+          <dt>Check Again</dt>
+          <dd>Ukáže se, dokud GitHub není připojený. Po <code>gh auth login</code>
+          na něj klikněte a data se načtou hned.</dd>
+          <dt>Include team review requests</dt>
+          <dd>Ve výchozím stavu vypnuto. Zapnuté přidá do <b>Review requests</b>
+          i pull requesty, které o review žádají některý z vašich týmů, ne jen
+          vás.</dd>
+          <dt>Default repository</dt>
+          <dd><code>owner/name</code>, které <a href="#launcher">rychlé hledání</a>
+          použije pro <code>gh &lt;číslo&gt;</code>, když číslo nepatří žádnému
+          z vašich známých pull requestů. Prázdné pole znamená repozitář, ve
+          kterém máte nejvíc pull requestů; pole ho ukazuje šedě.</dd>
+        </dl>
+      </section>
+
+      <section id="jira">
+        <h2>Připojení Jiry</h2>
+        <p>Otevřené tikety z Jira Cloud čte DevPulse pomocí API tokenu.</p>
+        <ol>
+          <li>Vytvořte token na
+          <a href="https://id.atlassian.com/manage-profile/security/api-tokens">id.atlassian.com › Security › API tokens</a>
+          (stejnou stránku otevře odkaz <span class="ui">Create an API token at
+          id.atlassian.com</span> v nastavení) a zkopírujte ho.</li>
+          <li>Otevřete <span class="ui">Settings… › Jira</span>.</li>
+          <li>Vyplňte <span class="ui">Site</span> (třeba
+          <code>acme.atlassian.net</code>), <span class="ui">E-mail</span> (váš
+          účet Atlassian) a <span class="ui">API token</span>. DevPulse se
+          k webu vždy připojuje přes HTTPS, i když zadáte <code>http://</code>.</li>
+          <li>Klikněte na <span class="ui">Test Connection</span>. Odpoví
+          <span class="ui">Connected — 5 open tickets</span>, nebo řekne, co je
+          špatně, například <span class="ui">Jira credentials rejected</span>.</li>
+          <li>Klikněte na <span class="ui">Save</span>.</li>
+        </ol>
+        <p>Token se ukládá do vaší přihlašovací Klíčenky, nikdy do souboru
+        s nastavením. Po uložení pole tokenu ukazuje <span class="ui">Saved in
+        Keychain — leave empty to keep</span>: když měníte <span class="ui">Site</span> nebo e-mail,
+        nechte ho prázdné a token zůstane, nebo vložte nový a nahradíte ho.</p>
+        <dl class="controls">
+          <dt>Default project</dt>
+          <dd>Klíč projektu, který <a href="#launcher">rychlé hledání</a> doplní
+          před <code>jira &lt;číslo&gt;</code>. Prázdné pole znamená projekt,
+          ve kterém máte nejvíc tiketů; pole ho ukazuje šedě.</dd>
+        </dl>
+        <p>DevPulse ukazuje tikety, které máte přiřazené a které ještě nejsou
+        hotové.</p>
+      </section>
+
+      <section id="popover">
+        <h2>Menu bar</h2>
+        <p>Ikona DevPulse je křivka pulsu. Když vás něco potřebuje, objeví se
+        vedle ní číslo: žádosti o review poslané přímo vám plus sessions Claude
+        Code, které čekají na váš vstup. Kliknutím na ikonu otevřete okénko.</p>
+        <figure class="fig" style="max-width:28rem">
+          <div class="view" style="--iw:760;--ih:1172">
+            <img src="../assets/manual/devpulse-popover.png" alt="Okénko DevPulse s pull requesty, žádostmi o review, tikety z Jiry a session Claude Code">
+            <span class="mark" style="--x:92.1;--y:1;--w:5.3;--h:3.4"><b>1</b></span>
+            <span class="mark" style="--x:83.7;--y:6.8;--w:13.7;--h:2.4"><b>2</b></span>
+            <span class="mark" style="--x:2.1;--y:9.7;--w:81.6;--h:5.5"><b>3</b></span>
+            <span class="mark" style="--x:2.1;--y:40.1;--w:5.8;--h:17.9"><b>4</b></span>
+            <span class="mark" style="--x:2.1;--y:63.5;--w:95.8;--h:3.2"><b>5</b></span>
+            <span class="mark" style="--x:2.1;--y:88.1;--w:62;--h:5.1"><b>6</b></span>
+            <span class="mark" style="--x:1.8;--y:95.1;--w:17.9;--h:3.8"><b>7</b></span>
+            <span class="mark" style="--x:73.4;--y:95.1;--w:25;--h:3.8"><b>8</b></span>
           </div>
+          <figcaption>Okénko má čtyři části: My pull requests, Review requests,
+          Jira a Claude Code. Když se nevejdou, dá se v nich posouvat.</figcaption>
         </figure>
-        <p>Tvoje PR na GitHubu, tikety v Jiře a Claude Code sessions — živě v menu baru i v terminálu.</p>
+        <dl class="controls">
+          <dt><span class="n">1</span>Obnovit</dt>
+          <dd>Načte GitHub a Jiru hned teď. Během načítání se točí kolečko.
+          DevPulse data načítá i sám, ve výchozím nastavení každé 2 minuty.</dd>
+          <dt><span class="n">2</span>Stav zdroje</dt>
+          <dd>Kdy se data části načetla (<span class="ui">1 min ago</span>),
+          nebo co se pokazilo, i se stářím dat, která zůstávají vidět
+          (<span class="ui">Offline · data from 20 min ago</span>). Prázdná
+          část Jira, která ještě není nastavená, ukazuje odkaz
+          <span class="ui">Set up in Settings…</span> na záložku Jira.</dd>
+          <dt><span class="n">3</span>Pull request</dt>
+          <dd>Ikona ukazuje stav CI: zelená fajfka znamená, že CI prošlo,
+          červený křížek, že selhalo, žluté hodiny, že ještě běží, a prázdné
+          kolečko, že pull request žádné kontroly nemá. Pod názvem je
+          repozitář s číslem, navázaný klíč z Jiry, stav review
+          (<span class="ui">approved</span>, <span class="ui">changes requested</span>)
+          a komentáře. Kliknutím otevřete pull request na GitHubu.</dd>
+          <dt><span class="n">4</span>Žádost o review</dt>
+          <dd>Jedna postava: review chtějí po vás. Dvě postavy: po některém
+          z vašich týmů (jen se zapnutým <span class="ui">Include team review
+          requests</span>). Kliknutím otevřete pull request.</dd>
+          <dt><span class="n">5</span>Tiket z Jiry</dt>
+          <dd>Klíč, název a stav. Kliknutím otevřete tiket v Jiře.</dd>
+          <dt><span class="n">6</span>Session Claude Code</dt>
+          <dd>Ikona ukazuje stav: oranžová tečka znamená, že session čeká na
+          váš vstup, modré půlkolečko, že pracuje, a prázdné kolečko, že nic
+          nedělá. Vedle jména je klíč z Jiry
+          nalezený v názvu složky, pod ním stav a složka. Kliknutím přenesete
+          okno Ghostty s touto session dopředu. Poprvé se macOS zeptá, jestli
+          smí DevPulse ovládat Ghostty; bez toho svolení DevPulse Ghostty jen
+          aktivuje.</dd>
+          <dt><span class="n">7</span>Settings…</dt>
+          <dd>Otevře okno s nastavením.</dd>
+          <dt><span class="n">8</span>Quit DevPulse</dt>
+          <dd>Ukončí aplikaci. Notifikace, rychlé hledání i přehled v terminálu
+          stojí, dokud ji znovu nespustíte.</dd>
+        </dl>
+        <p>Klíč z Jiry v názvu nebo větvi pull requestu ho s tiketem propojí;
+        klíč v názvu složky session Claude Code udělá totéž pro session. Názvy
+        jako <code>UTF-8</code> nebo <code>SHA-256</code> se za klíče
+        nepovažují, a když je klíčů víc, vyhraje klíč projektu, ve kterém máte
+        tikety (nebo <a href="#jira">výchozího projektu</a>). Když najedete
+        myší na řádek, uvidíte celý název nebo složku.</p>
+        <p>DevPulse ukazuje interaktivní sessions nativního příkazu
+        <code>claude</code>, tedy toho, který nainstaluje vlastní instalátor
+        Claude Code. Claude Code nainstalovaný přes npm běží jako proces
+        Node.js a DevPulse ho nenajde; stejně tak neinteraktivní běhy, třeba
+        ty z SDK.</p>
+      </section>
+
+      <section id="tui">
+        <h2>Přehled v terminálu</h2>
+        <p>Napište v terminálu <code>devpulse</code> a stejná data dostanete
+        jako živý přehled ovládaný klávesnicí, ve stylu lazygitu. Aktualizuje
+        se sám, jakmile má aplikace něco nového, takže ho můžete mít otevřený
+        celý den. Když aplikace neběží, <code>devpulse</code> ji spustí.</p>
+        <figure class="fig">
+          <div class="view" style="--iw:1936;--ih:1168">
+            <img src="../assets/manual/devpulse-tui.png" alt="Přehled devpulse v terminálu se čtyřmi očíslovanými panely a panelem s detailem">
+            <span class="mark" style="--x:0.5;--y:8.6;--w:44;--h:36.6"><b>1</b></span>
+            <span class="mark" style="--x:0.5;--y:46.2;--w:44;--h:13.5"><b>2</b></span>
+            <span class="mark" style="--x:0.5;--y:61;--w:44;--h:19.2"><b>3</b></span>
+            <span class="mark" style="--x:0.5;--y:81.3;--w:44;--h:13.3"><b>4</b></span>
+            <span class="mark" style="--x:45.2;--y:8.6;--w:53.8;--h:86.2"><b>5</b></span>
+            <span class="mark" style="--x:9.8;--y:5.7;--w:31.5;--h:3.1"><b>6</b></span>
+            <span class="mark" style="--x:0.5;--y:95.7;--w:83.2;--h:3.4"><b>7</b></span>
+            <span class="mark" style="--x:93;--y:95.7;--w:5.8;--h:3.4"><b>8</b></span>
+          </div>
+          <figcaption><code>devpulse</code> v Ghostty. Barvy se řídí motivem
+          vašeho terminálu.</figcaption>
+        </figure>
+        <dl class="controls">
+          <dt><span class="n">1</span>My pull requests</dt>
+          <dd>Repozitář, číslo, stav CI (<span class="ui">✓</span> prošlo,
+          <span class="ui">✗</span> selhalo, <span class="ui">…</span> běží)
+          a název.</dd>
+          <dt><span class="n">2</span>Review requests</dt>
+          <dd>Pull requesty, které čekají na vaše review: <span class="ui">●</span>,
+          když review chtějí přímo po vás, tlumené <span class="ui">○</span>,
+          když po některém z vašich týmů.</dd>
+          <dt><span class="n">3</span>Jira</dt>
+          <dd>Vaše otevřené tikety: klíč, stav a název.</dd>
+          <dt><span class="n">4</span>Claude Code</dt>
+          <dd>Běžící sessions: <span class="ui">◐ busy</span>,
+          <span class="ui">● waiting for input</span>, <span class="ui">○ idle</span>,
+          za <span class="ui">→</span> navázaný klíč z Jiry.</dd>
+          <dt><span class="n">5</span>Detail</dt>
+          <dd>Všechno o vybrané položce. U pull requestu navázaný tiket a jeho
+          stav, větev, kontroly, review, komentáře, jestli review chtějí po vás
+          nebo po týmu, poslední změna a tři nejnovější komentáře. U tiketu
+          stav, priorita, komentáře a navázané pull requesty a sessions.
+          U session stav (a na co čeká), složka, klíč z Jiry a ID procesu.
+          Spodní řádky říkají, které klávesy tu platí.</dd>
+          <dt><span class="n">6</span>Zdroje</dt>
+          <dd>Každý zdroj se stavem a stářím dat: <span class="ui">✓ 2m</span>,
+          když je vše v pořádku, <span class="ui">✗</span> s chybou a stářím
+          zobrazených dat, <span class="ui">fetching</span>, <span class="ui">off</span>
+          nebo <span class="ui">not set up</span>.</dd>
+          <dt><span class="n">7</span>Lišta kláves</dt>
+          <dd>Klávesy, které teď můžete stisknout; v úzkém okně se ty méně
+          důležité vynechají.</dd>
+          <dt><span class="n">8</span>Pozice</dt>
+          <dd>Vybraný řádek a délka seznamu v aktivním panelu.</dd>
+        </dl>
+
+        <h3 id="tui-keys">Klávesy</h3>
+        <div class="table">
+          <table>
+            <thead><tr><th>Klávesa</th><th>Akce</th></tr></thead>
+            <tbody>
+              <tr><td><kbd>↑</kbd> <kbd>↓</kbd> nebo <kbd>j</kbd> <kbd>k</kbd></td><td>Posun výběru.</td></tr>
+              <tr><td><kbd>1</kbd>–<kbd>4</kbd>, <kbd>Tab</kbd>, <kbd>Shift</kbd>-<kbd>Tab</kbd></td><td>Přepnutí panelu.</td></tr>
+              <tr><td><kbd>Enter</kbd></td><td>Otevřít: pull request nebo tiket v prohlížeči, session v jejím okně Ghostty.</td></tr>
+              <tr><td><kbd>J</kbd></td><td>Otevřít tiket z Jiry navázaný na vybraný pull request nebo session Claude Code.</td></tr>
+              <tr><td><kbd>/</kbd></td><td>Filtr. <kbd>Enter</kbd> ho ponechá, <kbd>Esc</kbd> ho zruší.</td></tr>
+              <tr><td><kbd>r</kbd></td><td>Načíst GitHub a Jiru hned teď; lišta kláves ukazuje <span class="ui">refreshing…</span>, dokud nepřijdou nová data.</td></tr>
+              <tr><td><kbd>,</kbd></td><td>Otevřít nastavení v aplikaci.</td></tr>
+              <tr><td><kbd>?</kbd></td><td>Seznam všech kláves; zavře ho <kbd>Esc</kbd>, <kbd>?</kbd>, <kbd>q</kbd> nebo kliknutí.</td></tr>
+              <tr><td><kbd>q</kbd>, <kbd>Ctrl</kbd>-<kbd>C</kbd></td><td>Konec.</td></tr>
+              <tr><td>Myš</td><td>Kliknutí vybere řádek (i jeho panel), kolečko posouvá panel pod ukazatelem.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p><b>Filtr.</b> Stiskněte <kbd>/</kbd> a pište: všechny čtyři panely
+        ukážou jen řádky, které text obsahují. Hledá se v názvu, repozitáři,
+        větvi, klíči z Jiry a čísle pull requestu, v klíči, názvu a stavu
+        tiketu a ve jméně, složce a klíči z Jiry u session. Počet v hlavičce
+        panelu ukazuje, kolik řádků vyhovuje, třeba <span class="ui">2/4</span>.
+        <kbd>Enter</kbd> filtr ponechá a vrátí vás do seznamů, <kbd>Esc</kbd>
+        ho zruší.</p>
+
+        <h3 id="tui-states">Stavy a hlášky</h3>
+        <ul>
+          <li><span class="ui">disconnected — reconnecting…</span> červeně
+          nahoře: aplikace skončila nebo se restartuje. Přehled si nechá
+          poslední data a sám se znovu připojí, jakmile aplikace zase poběží.</li>
+          <li><span class="ui">not connected — action not sent</span> v liště
+          kláves: stiskli jste klávesu, která potřebuje aplikaci, zatímco
+          nebyla k dispozici.</li>
+          <li><span class="ui">refreshing…</span> v liště kláves: stiskli jste
+          <kbd>r</kbd>. Zmizí, jakmile přijdou nová data, nejpozději po 10
+          sekundách, nebo s další klávesou.</li>
+          <li>Prázdný panel říká proč: <span class="ui">Jira is not set up —
+          press , for Settings</span>, <span class="ui">GitHub unavailable — see
+          the header</span> nebo při filtrování <span class="ui">no match for
+          “…”</span>.</li>
+          <li>Když v jiném terminálu běží <code>devpulse upgrade</code>, vpravo
+          nahoře je vidět jeho průběh, například <span class="ui">downloading
+          update 42%</span>. Výsledek, <span class="ui">up to date</span> nebo
+          <span class="ui">update failed: …</span>, tam zůstane asi 10 sekund.</li>
+        </ul>
+      </section>
+
+      <section id="launcher">
+        <h2>Rychlé hledání</h2>
+        <p>Stiskněte kdekoli <kbd>⌥</kbd><kbd>Space</kbd> a uprostřed obrazovky
+        se otevře vyhledávací panel. Napište <code>gh</code> pro pull requesty
+        nebo <code>jira</code> pro tikety; zkratku změníte v
+        <a href="#general">obecných nastaveních</a>.</p>
+        <figure class="fig">
+          <div class="view" style="--iw:1280;--ih:774">
+            <img src="../assets/manual/devpulse-launcher.png" alt="Rychlé hledání se seznamem pull requestů pro dotaz gh">
+            <span class="mark" style="--x:1;--y:1;--w:98;--h:13"><b>1</b></span>
+            <span class="mark" style="--x:1;--y:15.5;--w:98;--h:11.9"><b>2</b></span>
+          </div>
+          <figcaption>Rychlé hledání po napsání <code>gh</code>.</figcaption>
+        </figure>
+        <dl class="controls">
+          <dt><span class="n">1</span>Vyhledávací pole</dt>
+          <dd>Sem napište dotaz podle tabulky níže.</dd>
+          <dt><span class="n">2</span>Výsledky</dt>
+          <dd>Nejvýš 20 řádků, každý s názvem a pod ním repozitářem, stavem
+          tiketu nebo, u řádku, který otevře číslo či klíč, pro který žádnou
+          položku nemáte, adresou, kterou otevře. Vybraný řádek je
+          zvýrazněný.</dd>
+        </dl>
+        <div class="table">
+          <table>
+            <thead><tr><th>Napíšete</th><th>Výsledek</th></tr></thead>
+            <tbody>
+              <tr><td><code>gh</code></td><td>Vaše pull requesty, za nimi žádosti o review.</td></tr>
+              <tr><td><code>gh invoice</code></td><td>Ty, jejichž název nebo repozitář text obsahuje.</td></tr>
+              <tr><td><code>gh 812</code></td><td>Váš pull request nebo žádost o review s tímto číslem. Když takový nemáte, řádek, který otevře <code>812</code> ve <a href="#github">výchozím repozitáři</a>.</td></tr>
+              <tr><td><code>gh webapp 455</code></td><td>Pull request 455 v daném repozitáři: stačí název repozitáře, ve kterém máte pull requesty, nebo celé <code>owner/name</code>.</td></tr>
+              <tr><td><code>jira</code></td><td>Vaše tikety.</td></tr>
+              <tr><td><code>jira export</code></td><td>Ty, jejichž název nebo klíč text obsahuje.</td></tr>
+              <tr><td><code>jira STORE-2290</code></td><td>Tento tiket, i když ve vašem seznamu není.</td></tr>
+              <tr><td><code>jira 2290</code></td><td>Totéž s <a href="#jira">výchozím projektem</a> na začátku: <code>STORE-2290</code>.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="table">
+          <table>
+            <thead><tr><th>Klávesa</th><th>Akce</th></tr></thead>
+            <tbody>
+              <tr><td><kbd>↑</kbd> <kbd>↓</kbd></td><td>Posun výběru.</td></tr>
+              <tr><td><kbd>Enter</kbd> nebo kliknutí</td><td>Otevřít vybraný řádek v prohlížeči.</td></tr>
+              <tr><td><kbd>⌘</kbd><kbd>Enter</kbd></td><td>Otevřít tiket z Jiry navázaný na vybraný pull request.</td></tr>
+              <tr><td><kbd>Esc</kbd></td><td>Zavřít panel.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="notifications">
+        <h2>Notifikace</h2>
+        <p>Když se stane něco nového, pošle DevPulse notifikaci macOS.
+        Kliknutím na ni otevřete pull request nebo tiket, případně přenesete
+        dopředu okno Ghostty se session Claude Code. Co chcete dostávat,
+        nastavíte v <span class="ui">Settings… › Notifications</span>.</p>
+        <p>Každý zdroj má hlavní vypínač v nadpisu své části
+        (<span class="ui">GitHub</span>, <span class="ui">Jira</span>,
+        <span class="ui">Claude Code</span>), ve výchozím stavu zapnutý. Jeho
+        vypnutím zastavíte jen notifikace; data v okénku i v terminálu
+        zůstanou. Pod ním má vlastní vypínač každý druh notifikace; tyto
+        vypínače jsou zašedlé, dokud je hlavní vypínač jejich zdroje vypnutý:</p>
+        <div class="table">
+          <table>
+            <thead><tr><th>Vypínač</th><th>Výchozí</th><th>Notifikace</th></tr></thead>
+            <tbody>
+              <tr><th colspan="3">GitHub</th></tr>
+              <tr><td>Review requested from you</td><td>zapnuto</td><td>Review requested</td></tr>
+              <tr><td>Review requested from one of your teams</td><td>vypnuto</td><td>Review requested</td></tr>
+              <tr><td>New comment or review by a person</td><td>zapnuto</td><td>New comment on #812</td></tr>
+              <tr><td>New comment or review by Copilot</td><td>zapnuto</td><td>New comment on #812</td></tr>
+              <tr><td>New comment by another bot (CI, Sonar, Dependabot…)</td><td>vypnuto</td><td>New comment on #812</td></tr>
+              <tr><td>CI finished (passed, failed or errored)</td><td>zapnuto</td><td>CI passed on #812, CI failed on #812, CI error on #812</td></tr>
+              <tr><th colspan="3">Jira</th></tr>
+              <tr><td>New comment by a person</td><td>zapnuto</td><td>New comment on STORE-2290</td></tr>
+              <tr><td>New comment by Jira automation or an app</td><td>vypnuto</td><td>New comment on STORE-2290</td></tr>
+              <tr><th colspan="3">Claude Code</th></tr>
+              <tr><td>A session is waiting for your input</td><td>zapnuto</td><td>Claude is waiting</td></tr>
+              <tr><td>A session finished its work</td><td>zapnuto</td><td>Claude finished</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <ul>
+          <li>Vypínače komentářů se týkají komentářů a review u vašich vlastních
+          pull requestů a tiketů. Vaše vlastní komentáře notifikaci nikdy
+          nespustí.</li>
+          <li><span class="ui">Review requested from one of your teams</span>
+          funguje jen se zapnutým <span class="ui">Include team review
+          requests</span> v <a href="#github">záložce GitHub</a>.</li>
+          <li><span class="ui">CI finished</span> přijde jednou za každý
+          pushnutý commit a výsledek.</li>
+          <li>Session Claude Code se ozve jednou, když začne čekat, a jednou,
+          když přejde z práce do klidu.</li>
+          <li>Hned po instalaci nebo po opětovném zapnutí zdroje si DevPulse
+          jen poznamená, co už existuje; žádná záplava starých položek se
+          nekoná. Co vám už oznámil, si pamatuje i po restartu.</li>
+        </ul>
+        <p>Pokud má DevPulse notifikace v macOS vypnuté, záložka hlásí
+        <span class="ui">Notifications are turned off for DevPulse in System
+        Settings.</span> a tlačítko <span class="ui">Open System Settings</span>
+        vás tam přenese.</p>
+      </section>
+
+      <section id="general">
+        <h2>Obecná nastavení</h2>
+        <p><span class="ui">Settings… › General</span>:</p>
+        <dl class="controls">
+          <dt>Refresh GitHub and Jira every</dt>
+          <dd>1 až 30 minut, výchozí jsou 2; nastavuje se šipkami. Když Mac
+          spí nebo je zamčená obrazovka, načítání stojí a po probuzení či
+          odemčení proběhne hned jednou. Sessions Claude Code se podle časovače
+          nenačítají: DevPulse vidí jejich změny, jakmile nastanou.</dd>
+          <dt>Launch at login</dt>
+          <dd>Spustí DevPulse po přihlášení; ve výchozím stavu zapnuto. Pokud
+          macOS chce vaše schválení, řádek vás pošle do <span class="ui">System
+          Settings › General › Login Items</span>.</dd>
+          <dt>Quick launcher shortcut</dt>
+          <dd>Ukazuje aktuální zkratku, výchozí je <span class="ui">⌥Space</span>.
+          Klikněte na ni a stiskněte novou, nebo <kbd>Esc</kbd> pro zrušení.
+          Zkratku bez <kbd>⌘</kbd>, <kbd>⌥</kbd> nebo <kbd>⌃</kbd> odmítne
+          (<span class="ui">Use at least one of ⌘, ⌥ or ⌃</span>), stejně jako
+          <span class="ui">⌘Space</span> a <span class="ui">⌥⌘Space</span>, které
+          patří Spotlightu; pak čeká na jinou zkratku. Když ji už používá jiná
+          aplikace, ohlásí to červený řádek; zvolte jinou.</dd>
+          <dt>Command line tool</dt>
+          <dd><span class="ui">Install</span>, <span class="ui">Replace</span>
+          nebo cesta k nainstalovanému nástroji; viz
+          <a href="#cli">Nástroj pro příkazovou řádku</a>.</dd>
+        </dl>
+        <p>Záložky GitHub, Jira, Notifications a Updates popisují kapitoly
+        <a href="#github">Připojení GitHubu</a>, <a href="#jira">Připojení
+        Jiry</a>, <a href="#notifications">Notifikace</a> a
+        <a href="#updates">Aktualizace</a>.</p>
       </section>
 
       <section id="updates">
         <h2>Aktualizace</h2>
         <p>Při každém spuštění se DevPulse podívá, jestli existuje novější verze,
-        a pokud ano, nabídne ji; bez vašeho souhlasu se nic nenainstaluje.
-        <span class="ui">DevPulse › Check for Updates…</span> se zeptá hned.</p>
+        a pokud ano, nabídne ji v dialogu s poznámkami k verzi; bez vašeho
+        souhlasu se nic nenainstaluje. <span class="ui">Settings… › Updates</span>
+        nabízí:</p>
+        <dl class="controls">
+          <dt>Check for updates automatically</dt>
+          <dd>Ve výchozím stavu zapnuto. Vypnuté znamená, že se DevPulse při
+          spuštění už neptá.</dd>
+          <dt>Check Now</dt>
+          <dd>Vedle nainstalované verze (<span class="ui">DevPulse 0.1.0</span>).
+          Zeptá se hned a odpověď ukáže vždy, i když máte nejnovější verzi.</dd>
+        </dl>
+
+        <h3 id="upgrade"><code>devpulse upgrade</code></h3>
+        <p>Příkaz aktualizuje z terminálu bez jakéhokoli dialogu: zjistí, jestli
+        je nová verze, stáhne ji, nainstaluje, restartuje aplikaci a vypisuje
+        každý krok. Otevřený
+        přehled v terminálu se znovu připojí sám.</p>
+<pre><code>$ devpulse upgrade
+Checking for updates…
+Downloading… 100%
+Installing…
+Restarting DevPulse…
+Updated to v0.2.0</code></pre>
+        <div class="table">
+          <table>
+            <thead><tr><th>Poslední řádek</th><th>Návratový kód</th></tr></thead>
+            <tbody>
+              <tr><td><span class="ui">Updated to v…</span></td><td>0</td></tr>
+              <tr><td><span class="ui">DevPulse is up to date (v…)</span></td><td>0</td></tr>
+              <tr><td><span class="ui">Warning: DevPulse did not come back within 30 s; open it to check that the update was installed.</span></td><td>0</td></tr>
+              <tr><td><span class="ui">Update failed: …</span> s důvodem, na standardní chybový výstup</td><td>1</td></tr>
+              <tr><td><span class="ui">devpulse: cannot reach the DevPulse app (…). Is DevPulse installed?</span></td><td>1</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Špatný argument vypíše <code>usage: devpulse [upgrade | --version]</code>
+        a skončí s kódem 2. Když už je v aplikaci otevřený dialog s aktualizací,
+        <code>devpulse upgrade</code> ho nepřebírá: skončí hláškou
+        <span class="ui">Update failed: An update is already in progress in
+        DevPulse.</span> a dialog nechá na vás.</p>
       </section>
     </article>
   </div>

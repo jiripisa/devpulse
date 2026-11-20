@@ -36,38 +36,496 @@
       <p>Contents</p>
       <ol>
         <li><a href="#start">Getting started</a></li>
-        <li><a href="#window">The main window</a></li>
-        <li><a href="#updates">Updates</a></li>
+        <li><a href="#cli">Command line tool</a></li>
+        <li><a href="#github">Connecting GitHub</a></li>
+        <li><a href="#jira">Connecting Jira</a></li>
+        <li><a href="#popover">The menu bar</a></li>
+        <li><a href="#tui">The terminal dashboard</a>
+          <ol>
+            <li><a href="#tui-keys">Keys</a></li>
+            <li><a href="#tui-states">States and messages</a></li>
+          </ol>
+        </li>
+        <li><a href="#launcher">The quick launcher</a></li>
+        <li><a href="#notifications">Notifications</a></li>
+        <li><a href="#general">General settings</a></li>
+        <li><a href="#updates">Updates</a>
+          <ol>
+            <li><a href="#upgrade"><code>devpulse upgrade</code></a></li>
+          </ol>
+        </li>
       </ol>
     </nav>
 
     <article>
       <section id="start">
         <h2>Getting started</h2>
+        <p>DevPulse keeps your GitHub pull requests, your Jira tickets and your
+        running Claude Code sessions in one place: a popover in the menu bar
+        and a live dashboard in the terminal. It needs macOS 27 or later.</p>
         <ol>
           <li>Download the disk image from the <a href="index.html#get">download page</a>
           and open it.</li>
           <li>Drag <b>DevPulse</b> to <b>Applications</b> and start it from there.</li>
         </ol>
+        <p>DevPulse lives in the menu bar and has no Dock icon. The first time
+        it runs from the Applications folder it does two things:</p>
+        <ul>
+          <li>It turns on <span class="ui">Launch at login</span>, so it is
+          there after every restart. You can turn that off in
+          <a href="#general">General settings</a>.</li>
+          <li>It asks <span class="ui">Install the command line tool?</span>
+          Choose <span class="ui">Install</span> to get the <code>devpulse</code>
+          command, or <span class="ui">Not Now</span>; see the next section.</li>
+        </ul>
+        <p>macOS also asks whether DevPulse may send notifications. Allow it
+        if you want them; <a href="#notifications">Notifications</a> lists
+        what DevPulse can tell you.</p>
       </section>
 
-      <section id="window">
-        <h2>The main window</h2>
-        <!-- FILL: one figure per area of the window. Marks use percentages of
-             the whole image; --iw/--ih are the screenshot's pixel size. -->
-        <figure class="fig">
-          <div class="view" style="--iw:1400;--ih:800">
-            <img src="assets/devpulse-window.png" alt="The DevPulse window">
+      <section id="cli">
+        <h2>Command line tool</h2>
+        <p>The terminal dashboard and <code>devpulse upgrade</code> are run by
+        the <code>devpulse</code> command. It ships inside the app; to type it
+        in a terminal, put it on your PATH:</p>
+        <ol>
+          <li>Open <span class="ui">Settings… › General</span>.</li>
+          <li>Next to <span class="ui">Command line tool</span>, click
+          <span class="ui">Install</span> and enter your password when macOS
+          asks.</li>
+        </ol>
+        <p>This creates the link <code>/usr/local/bin/devpulse</code> to the
+        tool inside the app (and the folder, if it is missing). Because it is
+        a link, every update of the app also updates the command. Afterwards
+        the line reads <span class="ui">Installed at /usr/local/bin/devpulse</span>.
+        If something else already sits at that path, or the link points to a
+        copy of DevPulse that is gone, the line names the target and offers
+        <span class="ui">Replace</span>.</p>
+        <div class="note">
+          <p>The button is disabled while DevPulse runs from anywhere other
+          than <b>/Applications</b> or <b>~/Applications</b>, for example
+          straight from the disk image or from Downloads. The message says
+          why: <span class="ui">Move DevPulse to the Applications folder first
+          — the command line tool would otherwise point at a location that can
+          disappear.</span> Move the app, start it again and install. A copy
+          without the tool inside says <span class="ui">The command line tool
+          is missing from this copy of DevPulse.</span>; download the app
+          again.</p>
+        </div>
+        <p><code>devpulse --version</code> prints the version of the command.</p>
+      </section>
+
+      <section id="github">
+        <h2>Connecting GitHub</h2>
+        <p>DevPulse uses the login of the GitHub command line tool, so there is
+        no token to paste. In a terminal:</p>
+<pre><code>brew install gh
+gh auth login</code></pre>
+        <p>DevPulse asks <code>gh</code> for the token once, when it starts,
+        and keeps it in memory only; it asks again only when GitHub rejects the
+        token. The <span class="ui">Settings… › GitHub</span> tab
+        has these controls:</p>
+        <dl class="controls">
+          <dt>Status</dt>
+          <dd><span class="ui">Signed in as …</span> with your login when the
+          last fetch worked; otherwise the problem, such as
+          <span class="ui">Not logged in — run “gh auth login”</span> or
+          <span class="ui">GitHub CLI (gh) not found — install it with Homebrew</span>.</dd>
+          <dt>Check Again</dt>
+          <dd>Shown while GitHub is not connected. After <code>gh auth login</code>,
+          click it to fetch right away.</dd>
+          <dt>Include team review requests</dt>
+          <dd>Off by default. When on, <b>Review requests</b> also lists pull
+          requests that ask one of your teams for a review, not only you.</dd>
+          <dt>Default repository</dt>
+          <dd>The <code>owner/name</code> the <a href="#launcher">quick launcher</a>
+          uses for <code>gh &lt;number&gt;</code> when the number is not one of
+          your known pull requests. Empty means the repository of most of your
+          pull requests; the field shows it in grey.</dd>
+        </dl>
+      </section>
+
+      <section id="jira">
+        <h2>Connecting Jira</h2>
+        <p>DevPulse reads your open Jira Cloud tickets with an API token.</p>
+        <ol>
+          <li>Create a token at
+          <a href="https://id.atlassian.com/manage-profile/security/api-tokens">id.atlassian.com › Security › API tokens</a>
+          (the <span class="ui">Create an API token at id.atlassian.com</span>
+          link in Settings opens the same page) and copy it.</li>
+          <li>Open <span class="ui">Settings… › Jira</span>.</li>
+          <li>Fill in <span class="ui">Site</span> (for example
+          <code>acme.atlassian.net</code>), <span class="ui">E-mail</span> (your
+          Atlassian account) and <span class="ui">API token</span>. DevPulse
+          always talks to the site over HTTPS, also when you type
+          <code>http://</code>.</li>
+          <li>Click <span class="ui">Test Connection</span>. It answers
+          <span class="ui">Connected — 5 open tickets</span> or says what went
+          wrong, for example <span class="ui">Jira credentials rejected</span>.</li>
+          <li>Click <span class="ui">Save</span>.</li>
+        </ol>
+        <p>The token is stored in your login Keychain, never in the settings
+        file. Once saved, the token field reads <span class="ui">Saved in
+        Keychain — leave empty to keep</span>: leave it empty to keep the token
+        when you change the site or e-mail, or paste a new one to replace it.</p>
+        <dl class="controls">
+          <dt>Default project</dt>
+          <dd>The project key the <a href="#launcher">quick launcher</a> puts in
+          front of <code>jira &lt;number&gt;</code>. Empty means the project of
+          most of your tickets; the field shows it in grey.</dd>
+        </dl>
+        <p>DevPulse lists the tickets assigned to you that are not done.</p>
+      </section>
+
+      <section id="popover">
+        <h2>The menu bar</h2>
+        <p>The DevPulse icon is a pulse line. When something needs you, a
+        number appears next to it: the review requests sent to you directly
+        plus the Claude Code sessions waiting for your input. Click the icon
+        to open the popover.</p>
+        <figure class="fig" style="max-width:28rem">
+          <div class="view" style="--iw:760;--ih:1172">
+            <img src="assets/manual/devpulse-popover.png" alt="The DevPulse popover with pull requests, review requests, Jira tickets and a Claude Code session">
+            <span class="mark" style="--x:92.1;--y:1;--w:5.3;--h:3.4"><b>1</b></span>
+            <span class="mark" style="--x:83.7;--y:6.8;--w:13.7;--h:2.4"><b>2</b></span>
+            <span class="mark" style="--x:2.1;--y:9.7;--w:81.6;--h:5.5"><b>3</b></span>
+            <span class="mark" style="--x:2.1;--y:40.1;--w:5.8;--h:17.9"><b>4</b></span>
+            <span class="mark" style="--x:2.1;--y:63.5;--w:95.8;--h:3.2"><b>5</b></span>
+            <span class="mark" style="--x:2.1;--y:88.1;--w:62;--h:5.1"><b>6</b></span>
+            <span class="mark" style="--x:1.8;--y:95.1;--w:17.9;--h:3.8"><b>7</b></span>
+            <span class="mark" style="--x:73.4;--y:95.1;--w:25;--h:3.8"><b>8</b></span>
           </div>
+          <figcaption>The popover has four sections: My pull requests, Review
+          requests, Jira and Claude Code. It scrolls when they are long.</figcaption>
         </figure>
-        <p>Your GitHub PRs, Jira tickets and Claude Code sessions — live in the menu bar and the terminal.</p>
+        <dl class="controls">
+          <dt><span class="n">1</span>Refresh</dt>
+          <dd>Fetches GitHub and Jira now. A spinner shows while a fetch runs.
+          DevPulse also fetches by itself, every 2 minutes by default.</dd>
+          <dt><span class="n">2</span>Source state</dt>
+          <dd>When the section's data was fetched (<span class="ui">1 min ago</span>),
+          or what went wrong, with the age of the data still shown
+          (<span class="ui">Offline · data from 20 min ago</span>). An empty
+          Jira section that is not set up shows <span class="ui">Set up in
+          Settings…</span>, which opens the Jira tab.</dd>
+          <dt><span class="n">3</span>Pull request</dt>
+          <dd>The icon is the CI state: a green check for passed, a red cross
+          for failed, a yellow clock for running, an empty circle for no
+          checks. Below the title: the repository and number, the linked Jira
+          key, the review state (<span class="ui">approved</span>,
+          <span class="ui">changes requested</span>) and the comments.
+          Click it to open the pull request on GitHub.</dd>
+          <dt><span class="n">4</span>Review request</dt>
+          <dd>One person: the review was requested from you. Two people: from
+          one of your teams (only with <span class="ui">Include team review
+          requests</span>). Click it to open the pull request.</dd>
+          <dt><span class="n">5</span>Jira ticket</dt>
+          <dd>Key, summary and status. Click it to open the ticket in Jira.</dd>
+          <dt><span class="n">6</span>Claude Code session</dt>
+          <dd>The icon is the state: orange dot for waiting for your input,
+          blue half circle for working, empty circle for idle. Next to the name
+          is the Jira key found in its folder name; below are the state and the
+          folder. Click it to bring the session's Ghostty window to the front.
+          The first time, macOS asks whether DevPulse may control Ghostty;
+          without that permission DevPulse only activates Ghostty.</dd>
+          <dt><span class="n">7</span>Settings…</dt>
+          <dd>Opens the Settings window.</dd>
+          <dt><span class="n">8</span>Quit DevPulse</dt>
+          <dd>Quits the app. Notifications, the launcher and the terminal
+          dashboard stop until it runs again.</dd>
+        </dl>
+        <p>A Jira key in a pull request's title or branch name links it to that
+        ticket; a Jira key in a Claude Code session's folder name does the same
+        for the session. Names such as <code>UTF-8</code> or <code>SHA-256</code>
+        do not count as keys, and when there are several keys, one of a project
+        you have tickets in (or of the <a href="#jira">default project</a>)
+        wins. Hover over a row to see its full title or folder.</p>
+        <p>DevPulse shows the interactive sessions of the native
+        <code>claude</code> command, the one Claude Code's own installer puts
+        in place. A Claude Code installed with npm runs as a Node.js process
+        and is not detected; neither are non-interactive runs, such as the
+        SDK's.</p>
+      </section>
+
+      <section id="tui">
+        <h2>The terminal dashboard</h2>
+        <p>Type <code>devpulse</code> in a terminal for the same data as a
+        live, keyboard-driven dashboard in the style of lazygit. It updates by
+        itself the moment the app has news, so you can keep it open all day.
+        If the app is not running, <code>devpulse</code> starts it.</p>
+        <figure class="fig">
+          <div class="view" style="--iw:1936;--ih:1168">
+            <img src="assets/manual/devpulse-tui.png" alt="The devpulse terminal dashboard with four numbered panels and the detail pane">
+            <span class="mark" style="--x:0.5;--y:8.6;--w:44;--h:36.6"><b>1</b></span>
+            <span class="mark" style="--x:0.5;--y:46.2;--w:44;--h:13.5"><b>2</b></span>
+            <span class="mark" style="--x:0.5;--y:61;--w:44;--h:19.2"><b>3</b></span>
+            <span class="mark" style="--x:0.5;--y:81.3;--w:44;--h:13.3"><b>4</b></span>
+            <span class="mark" style="--x:45.2;--y:8.6;--w:53.8;--h:86.2"><b>5</b></span>
+            <span class="mark" style="--x:9.8;--y:5.7;--w:31.5;--h:3.1"><b>6</b></span>
+            <span class="mark" style="--x:0.5;--y:95.7;--w:83.2;--h:3.4"><b>7</b></span>
+            <span class="mark" style="--x:93;--y:95.7;--w:5.8;--h:3.4"><b>8</b></span>
+          </div>
+          <figcaption><code>devpulse</code> in Ghostty. The colours follow your
+          terminal's theme.</figcaption>
+        </figure>
+        <dl class="controls">
+          <dt><span class="n">1</span>My pull requests</dt>
+          <dd>Repository, number, CI state (<span class="ui">✓</span> passed,
+          <span class="ui">✗</span> failed, <span class="ui">…</span> running)
+          and title.</dd>
+          <dt><span class="n">2</span>Review requests</dt>
+          <dd>Pull requests waiting for your review: <span class="ui">●</span>
+          when the review was requested from you, a dim <span class="ui">○</span>
+          when from one of your teams.</dd>
+          <dt><span class="n">3</span>Jira</dt>
+          <dd>Your open tickets: key, status and summary.</dd>
+          <dt><span class="n">4</span>Claude Code</dt>
+          <dd>Running sessions: <span class="ui">◐ busy</span>,
+          <span class="ui">● waiting for input</span>, <span class="ui">○ idle</span>,
+          with <span class="ui">→</span> and the linked Jira key.</dd>
+          <dt><span class="n">5</span>Detail</dt>
+          <dd>Everything about the selected item. For a pull request: the
+          linked ticket and its status, branch, checks, reviews, comments,
+          whether the review was requested from you or your team, the last
+          update and the three most recent comments. For a ticket: status,
+          priority, comments, and the pull requests and sessions linked to it.
+          For a session: state (and what it waits for), folder, Jira key and
+          process ID. The bottom lines name the keys that apply.</dd>
+          <dt><span class="n">6</span>Sources</dt>
+          <dd>Each source with its state and age: <span class="ui">✓ 2m</span>
+          when fine, <span class="ui">✗</span> and the error with the age of
+          the data shown, <span class="ui">fetching</span>, <span class="ui">off</span>
+          or <span class="ui">not set up</span>.</dd>
+          <dt><span class="n">7</span>Key bar</dt>
+          <dd>The keys you can press now; when the window is narrow, the less
+          important ones are left out.</dd>
+          <dt><span class="n">8</span>Position</dt>
+          <dd>The selected row and the length of the focused list.</dd>
+        </dl>
+
+        <h3 id="tui-keys">Keys</h3>
+        <div class="table">
+          <table>
+            <thead><tr><th>Key</th><th>Action</th></tr></thead>
+            <tbody>
+              <tr><td><kbd>↑</kbd> <kbd>↓</kbd> or <kbd>j</kbd> <kbd>k</kbd></td><td>Move the selection.</td></tr>
+              <tr><td><kbd>1</kbd>–<kbd>4</kbd>, <kbd>Tab</kbd>, <kbd>Shift</kbd>-<kbd>Tab</kbd></td><td>Switch panel.</td></tr>
+              <tr><td><kbd>Enter</kbd></td><td>Open: the browser for a pull request or ticket, the Ghostty window for a session.</td></tr>
+              <tr><td><kbd>J</kbd></td><td>Open the Jira ticket linked to the selected pull request or Claude Code session.</td></tr>
+              <tr><td><kbd>/</kbd></td><td>Filter. <kbd>Enter</kbd> keeps the filter, <kbd>Esc</kbd> clears it.</td></tr>
+              <tr><td><kbd>r</kbd></td><td>Refresh GitHub and Jira now; the key bar shows <span class="ui">refreshing…</span> until the new data arrives.</td></tr>
+              <tr><td><kbd>,</kbd></td><td>Open Settings in the app.</td></tr>
+              <tr><td><kbd>?</kbd></td><td>Show all keys; <kbd>Esc</kbd>, <kbd>?</kbd>, <kbd>q</kbd> or a click closes the list.</td></tr>
+              <tr><td><kbd>q</kbd>, <kbd>Ctrl</kbd>-<kbd>C</kbd></td><td>Quit.</td></tr>
+              <tr><td>Mouse</td><td>A click selects a row (and its panel); the wheel moves through the panel under the pointer.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p><b>Filter.</b> Press <kbd>/</kbd> and type: all four panels show only
+        the rows that contain the text. It matches a pull request's title,
+        repository, branch, Jira key and number, a ticket's key, summary and
+        status, and a session's name, folder and Jira key. Each panel's count
+        shows how many rows match, for example <span class="ui">2/4</span>.
+        <kbd>Enter</kbd> keeps the filter and returns to the lists;
+        <kbd>Esc</kbd> clears it.</p>
+
+        <h3 id="tui-states">States and messages</h3>
+        <ul>
+          <li><span class="ui">disconnected — reconnecting…</span> in red at the
+          top: the app quit or restarted. The dashboard keeps the last data and
+          reconnects by itself as soon as the app is back.</li>
+          <li><span class="ui">not connected — action not sent</span> in the key
+          bar: a key that needs the app was pressed while it was away.</li>
+          <li><span class="ui">refreshing…</span> in the key bar: you pressed
+          <kbd>r</kbd>. It goes when the new data arrives, after 10 seconds at
+          the latest, or with the next key.</li>
+          <li>An empty panel says why: <span class="ui">Jira is not set up —
+          press , for Settings</span>, <span class="ui">GitHub unavailable — see
+          the header</span>, or <span class="ui">no match for “…”</span> while
+          filtering.</li>
+          <li>While <code>devpulse upgrade</code> runs in another terminal, the
+          top right shows its progress, for example <span class="ui">downloading
+          update 42%</span>. The result, <span class="ui">up to date</span> or
+          <span class="ui">update failed: …</span>, stays for about 10 seconds.</li>
+        </ul>
+      </section>
+
+      <section id="launcher">
+        <h2>The quick launcher</h2>
+        <p>Press <kbd>⌥</kbd><kbd>Space</kbd> anywhere to open a search panel
+        in the middle of the screen. Type <code>gh</code> for pull requests or
+        <code>jira</code> for tickets; the shortcut can be changed in
+        <a href="#general">General settings</a>.</p>
+        <figure class="fig">
+          <div class="view" style="--iw:1280;--ih:774">
+            <img src="assets/manual/devpulse-launcher.png" alt="The quick launcher listing pull requests for the query gh">
+            <span class="mark" style="--x:1;--y:1;--w:98;--h:13"><b>1</b></span>
+            <span class="mark" style="--x:1;--y:15.5;--w:98;--h:11.9"><b>2</b></span>
+          </div>
+          <figcaption>The launcher after typing <code>gh</code>.</figcaption>
+        </figure>
+        <dl class="controls">
+          <dt><span class="n">1</span>Search field</dt>
+          <dd>Type a query from the table below.</dd>
+          <dt><span class="n">2</span>Results</dt>
+          <dd>Up to 20 rows, each with its title and, below it, the repository,
+          the ticket's status or, for a row that opens a number or key you have
+          no item for, the address it opens. The selected row is
+          highlighted.</dd>
+        </dl>
+        <div class="table">
+          <table>
+            <thead><tr><th>Type</th><th>Result</th></tr></thead>
+            <tbody>
+              <tr><td><code>gh</code></td><td>Your pull requests, then your review requests.</td></tr>
+              <tr><td><code>gh invoice</code></td><td>Those whose title or repository contains the text.</td></tr>
+              <tr><td><code>gh 812</code></td><td>Your pull request or review request with that number. If you have none, a row that opens <code>812</code> in the <a href="#github">default repository</a>.</td></tr>
+              <tr><td><code>gh webapp 455</code></td><td>Pull request 455 in that repository: the name of a repository you have pull requests in, or a full <code>owner/name</code>.</td></tr>
+              <tr><td><code>jira</code></td><td>Your tickets.</td></tr>
+              <tr><td><code>jira export</code></td><td>Those whose summary or key contains the text.</td></tr>
+              <tr><td><code>jira STORE-2290</code></td><td>That ticket, even when it is not in your list.</td></tr>
+              <tr><td><code>jira 2290</code></td><td>The same, with the <a href="#jira">default project</a> in front: <code>STORE-2290</code>.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="table">
+          <table>
+            <thead><tr><th>Key</th><th>Action</th></tr></thead>
+            <tbody>
+              <tr><td><kbd>↑</kbd> <kbd>↓</kbd></td><td>Move the selection.</td></tr>
+              <tr><td><kbd>Enter</kbd> or a click</td><td>Open the selected row in the browser.</td></tr>
+              <tr><td><kbd>⌘</kbd><kbd>Enter</kbd></td><td>Open the Jira ticket linked to the selected pull request.</td></tr>
+              <tr><td><kbd>Esc</kbd></td><td>Close the launcher.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="notifications">
+        <h2>Notifications</h2>
+        <p>DevPulse posts a macOS notification when something new happens.
+        Clicking it opens the pull request or ticket, or brings the Claude
+        Code session's Ghostty window to the front. Choose what you get in
+        <span class="ui">Settings… › Notifications</span>.</p>
+        <p>Each source has a master switch in its section heading
+        (<span class="ui">GitHub</span>, <span class="ui">Jira</span>,
+        <span class="ui">Claude Code</span>), on by default. Turning one off
+        stops its notifications only; the data stays in the popover and the
+        dashboard. Below it, every kind of notification has its own switch;
+        these are greyed out while their source's master switch is off:</p>
+        <div class="table">
+          <table>
+            <thead><tr><th>Switch</th><th>Default</th><th>Notification</th></tr></thead>
+            <tbody>
+              <tr><th colspan="3">GitHub</th></tr>
+              <tr><td>Review requested from you</td><td>on</td><td>Review requested</td></tr>
+              <tr><td>Review requested from one of your teams</td><td>off</td><td>Review requested</td></tr>
+              <tr><td>New comment or review by a person</td><td>on</td><td>New comment on #812</td></tr>
+              <tr><td>New comment or review by Copilot</td><td>on</td><td>New comment on #812</td></tr>
+              <tr><td>New comment by another bot (CI, Sonar, Dependabot…)</td><td>off</td><td>New comment on #812</td></tr>
+              <tr><td>CI finished (passed, failed or errored)</td><td>on</td><td>CI passed on #812, CI failed on #812, CI error on #812</td></tr>
+              <tr><th colspan="3">Jira</th></tr>
+              <tr><td>New comment by a person</td><td>on</td><td>New comment on STORE-2290</td></tr>
+              <tr><td>New comment by Jira automation or an app</td><td>off</td><td>New comment on STORE-2290</td></tr>
+              <tr><th colspan="3">Claude Code</th></tr>
+              <tr><td>A session is waiting for your input</td><td>on</td><td>Claude is waiting</td></tr>
+              <tr><td>A session finished its work</td><td>on</td><td>Claude finished</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <ul>
+          <li>The comment switches cover comments and reviews on your own pull
+          requests and tickets. Your own comments never notify.</li>
+          <li><span class="ui">Review requested from one of your teams</span>
+          works only with <span class="ui">Include team review requests</span>
+          on in the <a href="#github">GitHub tab</a>.</li>
+          <li><span class="ui">CI finished</span> notifies once per pushed
+          commit and result.</li>
+          <li>A Claude Code session notifies once when it starts waiting, and
+          once when it goes from working to idle.</li>
+          <li>Right after installing, or after a source is turned back on,
+          DevPulse only notes what is already there; you are not flooded with
+          old items. What you were told about is remembered across restarts.</li>
+        </ul>
+        <p>If notifications are turned off for DevPulse in macOS, the tab says
+        <span class="ui">Notifications are turned off for DevPulse in System
+        Settings.</span>; <span class="ui">Open System Settings</span> takes you
+        there.</p>
+      </section>
+
+      <section id="general">
+        <h2>General settings</h2>
+        <p><span class="ui">Settings… › General</span>:</p>
+        <dl class="controls">
+          <dt>Refresh GitHub and Jira every</dt>
+          <dd>1 to 30 minutes, 2 by default; use the arrows. Fetching pauses
+          while the Mac sleeps or the screen is locked and runs once right after
+          it wakes or unlocks. Claude Code sessions are not fetched on a
+          timer: DevPulse sees their changes as they happen.</dd>
+          <dt>Launch at login</dt>
+          <dd>Starts DevPulse when you log in; on by default. If macOS wants
+          your approval, a line points to <span class="ui">System Settings ›
+          General › Login Items</span>.</dd>
+          <dt>Quick launcher shortcut</dt>
+          <dd>Shows the current shortcut, <span class="ui">⌥Space</span> by
+          default. Click it, then press the new shortcut, or <kbd>Esc</kbd> to
+          cancel. A shortcut without <kbd>⌘</kbd>, <kbd>⌥</kbd> or <kbd>⌃</kbd>
+          is refused (<span class="ui">Use at least one of ⌘, ⌥ or ⌃</span>), and
+          so are <span class="ui">⌘Space</span> and <span class="ui">⌥⌘Space</span>,
+          which belong to Spotlight; the recorder then waits for another
+          shortcut. If another app already uses it, a red line says so; pick a
+          different one.</dd>
+          <dt>Command line tool</dt>
+          <dd><span class="ui">Install</span>, <span class="ui">Replace</span>
+          or the installed path; see <a href="#cli">Command line tool</a>.</dd>
+        </dl>
+        <p>The GitHub, Jira, Notifications and Updates tabs are described in
+        <a href="#github">Connecting GitHub</a>, <a href="#jira">Connecting
+        Jira</a>, <a href="#notifications">Notifications</a> and
+        <a href="#updates">Updates</a>.</p>
       </section>
 
       <section id="updates">
         <h2>Updates</h2>
         <p>At every launch DevPulse asks whether a newer version exists and, if
-        so, offers it; nothing is installed without your OK. <span class="ui">DevPulse
-        › Check for Updates…</span> asks right away.</p>
+        so, offers it in a dialog with the release notes; nothing is installed
+        without your OK. <span class="ui">Settings… › Updates</span> has:</p>
+        <dl class="controls">
+          <dt>Check for updates automatically</dt>
+          <dd>On by default. Off, DevPulse no longer asks at launch.</dd>
+          <dt>Check Now</dt>
+          <dd>Next to the installed version (<span class="ui">DevPulse 0.1.0</span>).
+          Asks right away and always shows the answer, also when you are up to
+          date.</dd>
+        </dl>
+
+        <h3 id="upgrade"><code>devpulse upgrade</code></h3>
+        <p>Updates from the terminal without any dialog: it checks, downloads,
+        installs, restarts the app and prints each step. An open dashboard
+        reconnects by itself.</p>
+<pre><code>$ devpulse upgrade
+Checking for updates…
+Downloading… 100%
+Installing…
+Restarting DevPulse…
+Updated to v0.2.0</code></pre>
+        <div class="table">
+          <table>
+            <thead><tr><th>Last line</th><th>Exit code</th></tr></thead>
+            <tbody>
+              <tr><td><span class="ui">Updated to v…</span></td><td>0</td></tr>
+              <tr><td><span class="ui">DevPulse is up to date (v…)</span></td><td>0</td></tr>
+              <tr><td><span class="ui">Warning: DevPulse did not come back within 30 s; open it to check that the update was installed.</span></td><td>0</td></tr>
+              <tr><td><span class="ui">Update failed: …</span> with the reason, on standard error</td><td>1</td></tr>
+              <tr><td><span class="ui">devpulse: cannot reach the DevPulse app (…). Is DevPulse installed?</span></td><td>1</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>A wrong argument prints <code>usage: devpulse [upgrade | --version]</code>
+        and exits with 2. If an update dialog is already open in the app,
+        <code>devpulse upgrade</code> does not take it over; it ends with
+        <span class="ui">Update failed: An update is already in progress in
+        DevPulse.</span> and leaves the dialog to you.</p>
       </section>
     </article>
   </div>

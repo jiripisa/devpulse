@@ -1,0 +1,224 @@
+{
+  "appVersion": "0.1.0",
+  "generatedAt": "2026-11-19T10:00:00Z",
+  "jiraBaseURL": "https://acmecorp.atlassian.net",
+  "sources": {
+    "github": { "state": "ok", "lastSuccess": "2026-11-19T09:59:20Z" },
+    "jira": { "state": "ok", "lastSuccess": "2026-11-19T09:59:10Z" },
+    "claude": { "state": "ok", "lastSuccess": "2026-11-19T09:59:58Z" }
+  },
+  "myPullRequests": [
+    {
+      "id": "PR_demo_812",
+      "repo": "acmecorp/webapp",
+      "number": 812,
+      "title": "Replace invoice order on update",
+      "url": "https://github.com/acmecorp/webapp/pull/812",
+      "headBranch": "feature/STORE-2474-invoice-order",
+      "headOid": "9f2c1d7e4b6a8c0d3e5f71829a4b6c8d0e1f2a3b",
+      "jiraKey": "STORE-2474",
+      "checks": "success",
+      "reviewDecision": "reviewRequired",
+      "approvals": 1,
+      "pendingReviewers": 1,
+      "commentCount": 3,
+      "lastCommentAt": "2026-11-19T09:48:00Z",
+      "requestedDirectly": false,
+      "updatedAt": "2026-11-19T09:48:00Z",
+      "recentComments": [
+        { "id": "IC_demo_1", "author": "alice-novakova", "authorName": "Alice Nováková", "authorKind": "human", "createdAt": "2026-11-19T09:12:00Z" },
+        { "id": "IC_demo_2", "author": "bob-carter", "authorName": "Bob Carter", "authorKind": "human", "createdAt": "2026-11-19T09:31:00Z" },
+        { "id": "IC_demo_3", "author": "copilot-pull-request-reviewer", "authorKind": "copilot", "createdAt": "2026-11-19T09:48:00Z" }
+      ]
+    },
+    {
+      "id": "PR_demo_455",
+      "repo": "acmecorp/api",
+      "number": 455,
+      "title": "Rate limits for the export endpoint",
+      "url": "https://github.com/acmecorp/api/pull/455",
+      "headBranch": "feature/STORE-2481-export-rate-limits",
+      "headOid": "1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d",
+      "jiraKey": "STORE-2481",
+      "checks": "pending",
+      "reviewDecision": "reviewRequired",
+      "approvals": 0,
+      "pendingReviewers": 2,
+      "commentCount": 1,
+      "lastCommentAt": "2026-11-19T08:40:00Z",
+      "requestedDirectly": false,
+      "updatedAt": "2026-11-19T09:55:00Z",
+      "recentComments": [
+        { "id": "IC_demo_4", "author": "petr-dvorak", "authorName": "Petr Dvořák", "authorKind": "human", "createdAt": "2026-11-19T08:40:00Z" }
+      ]
+    },
+    {
+      "id": "PR_demo_798",
+      "repo": "acmecorp/webapp",
+      "number": 798,
+      "title": "Dark mode for the settings page",
+      "url": "https://github.com/acmecorp/webapp/pull/798",
+      "headBranch": "feature/settings-dark-mode",
+      "headOid": "aabbccddeeff00112233445566778899aabbccdd",
+      "checks": "failure",
+      "reviewDecision": "changesRequested",
+      "approvals": 0,
+      "pendingReviewers": 0,
+      "commentCount": 5,
+      "lastCommentAt": "2026-11-19T07:52:00Z",
+      "requestedDirectly": false,
+      "updatedAt": "2026-11-19T07:52:00Z",
+      "recentComments": [
+        { "id": "IC_demo_5", "author": "alice-novakova", "authorName": "Alice Nováková", "authorKind": "human", "createdAt": "2026-11-19T07:30:00Z" },
+        { "id": "IC_demo_6", "author": "sonarcloud[bot]", "authorKind": "bot", "createdAt": "2026-11-19T07:52:00Z" }
+      ]
+    },
+    {
+      "id": "PR_demo_63",
+      "repo": "acmecorp/design-system",
+      "number": 63,
+      "title": "Bump date-fns to 4.1",
+      "url": "https://github.com/acmecorp/design-system/pull/63",
+      "headBranch": "chore/date-fns-4.1",
+      "headOid": "0011223344556677889900aabbccddeeff001122",
+      "checks": "success",
+      "reviewDecision": "approved",
+      "approvals": 2,
+      "pendingReviewers": 0,
+      "commentCount": 0,
+      "requestedDirectly": false,
+      "updatedAt": "2026-11-18T15:20:00Z",
+      "recentComments": []
+    }
+  ],
+  "reviewRequests": [
+    {
+      "id": "PR_demo_461",
+      "repo": "acmecorp/api",
+      "number": 461,
+      "title": "Cache customer lookups",
+      "url": "https://github.com/acmecorp/api/pull/461",
+      "headBranch": "feature/STORE-2502-customer-cache",
+      "headOid": "5566778899aabbccddeeff001122334455667788",
+      "jiraKey": "STORE-2502",
+      "checks": "success",
+      "reviewDecision": "reviewRequired",
+      "approvals": 0,
+      "pendingReviewers": 2,
+      "commentCount": 2,
+      "lastCommentAt": "2026-11-19T09:05:00Z",
+      "requestedDirectly": true,
+      "updatedAt": "2026-11-19T09:05:00Z",
+      "recentComments": [
+        { "id": "IC_demo_7", "author": "petr-dvorak", "authorName": "Petr Dvořák", "authorKind": "human", "createdAt": "2026-11-19T08:50:00Z" },
+        { "id": "IC_demo_8", "author": "copilot-pull-request-reviewer", "authorKind": "copilot", "createdAt": "2026-11-19T09:05:00Z" }
+      ]
+    },
+    {
+      "id": "PR_demo_820",
+      "repo": "acmecorp/webapp",
+      "number": 820,
+      "title": "Fix statement export for long customer names",
+      "url": "https://github.com/acmecorp/webapp/pull/820",
+      "headBranch": "fix/statement-export-names",
+      "headOid": "8899aabbccddeeff00112233445566778899aabb",
+      "checks": "pending",
+      "reviewDecision": "reviewRequired",
+      "approvals": 1,
+      "pendingReviewers": 1,
+      "commentCount": 0,
+      "requestedDirectly": true,
+      "updatedAt": "2026-11-19T09:40:00Z",
+      "recentComments": []
+    },
+    {
+      "id": "PR_demo_134",
+      "repo": "acmecorp/mobile",
+      "number": 134,
+      "title": "Push notification settings",
+      "url": "https://github.com/acmecorp/mobile/pull/134",
+      "headBranch": "feature/push-settings",
+      "headOid": "ccddeeff00112233445566778899aabbccddeeff",
+      "checks": "error",
+      "reviewDecision": "none",
+      "approvals": 0,
+      "pendingReviewers": 3,
+      "commentCount": 1,
+      "lastCommentAt": "2026-11-18T16:10:00Z",
+      "requestedDirectly": false,
+      "updatedAt": "2026-11-18T16:10:00Z",
+      "recentComments": [
+        { "id": "IC_demo_9", "author": "dependabot[bot]", "authorKind": "bot", "createdAt": "2026-11-18T16:10:00Z" }
+      ]
+    }
+  ],
+  "tickets": [
+    {
+      "key": "STORE-2474",
+      "summary": "Replace invoice order on update",
+      "status": "In Review",
+      "statusCategory": "inProgress",
+      "priority": "High",
+      "url": "https://acmecorp.atlassian.net/browse/STORE-2474",
+      "updatedAt": "2026-11-19T09:50:00Z",
+      "commentCount": 1,
+      "lastCommentAt": "2026-11-19T08:15:00Z",
+      "recentComments": [
+        { "id": "10101", "author": "712020:demo-alice", "authorName": "Alice Nováková", "authorKind": "human", "createdAt": "2026-11-19T08:15:00Z" }
+      ]
+    },
+    {
+      "key": "STORE-2481",
+      "summary": "Rate limits for the export endpoint",
+      "status": "In Progress",
+      "statusCategory": "inProgress",
+      "priority": "Medium",
+      "url": "https://acmecorp.atlassian.net/browse/STORE-2481",
+      "updatedAt": "2026-11-19T09:20:00Z",
+      "commentCount": 0,
+      "recentComments": []
+    },
+    {
+      "key": "STORE-2290",
+      "summary": "Monthly statement shows the wrong opening balance",
+      "status": "In Progress",
+      "statusCategory": "inProgress",
+      "priority": "High",
+      "url": "https://acmecorp.atlassian.net/browse/STORE-2290",
+      "updatedAt": "2026-11-19T07:45:00Z",
+      "commentCount": 2,
+      "lastCommentAt": "2026-11-19T07:45:00Z",
+      "recentComments": [
+        { "id": "10102", "author": "712020:demo-petr", "authorName": "Petr Dvořák", "authorKind": "human", "createdAt": "2026-11-19T07:00:00Z" },
+        { "id": "10103", "author": "557058:automation", "authorName": "Automation for Jira", "authorKind": "bot", "createdAt": "2026-11-19T07:45:00Z" }
+      ]
+    },
+    {
+      "key": "STORE-2399",
+      "summary": "Remove the legacy CSV importer",
+      "status": "To Do",
+      "statusCategory": "todo",
+      "priority": "Medium",
+      "url": "https://acmecorp.atlassian.net/browse/STORE-2399",
+      "updatedAt": "2026-11-17T13:00:00Z",
+      "commentCount": 0,
+      "recentComments": []
+    },
+    {
+      "key": "STORE-2510",
+      "summary": "Onboarding checklist for new customers",
+      "status": "To Do",
+      "statusCategory": "todo",
+      "priority": "Low",
+      "url": "https://acmecorp.atlassian.net/browse/STORE-2510",
+      "updatedAt": "2026-11-16T10:30:00Z",
+      "commentCount": 0,
+      "recentComments": []
+    }
+  ],
+  "sessions": [
+    { "pid": 41001, "name": "store-2481-rate-limits", "cwd": "~/dev/store-2481-rate-limits", "status": "busy", "jiraKey": "STORE-2481", "updatedAt": "2026-11-19T09:59:58Z" },
+    { "pid": 41002, "name": "webapp", "cwd": "~/dev/webapp", "status": "waiting", "waitingFor": "permission prompt", "updatedAt": "2026-11-19T09:57:00Z" },
+    { "pid": 41003, "name": "store-2290-statement", "cwd": "~/dev/store-2290-statement", "status": "idle", "jiraKey": "STORE-2290", "updatedAt": "2026-11-19T09:21:00Z" }
+  ]
+}
