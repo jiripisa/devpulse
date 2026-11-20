@@ -6,7 +6,8 @@ use crate::state::{AppState, Panel};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
-use ratatui::buffer::Buffer;
+use ratatui::buffer::{Buffer, CellDiffOption, CellWidth};
+use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier};
 use std::time::{Duration, SystemTime};
 
@@ -35,10 +36,98 @@ fn buffer(st: &AppState, w: u16, h: u16) -> Buffer {
     terminal.backend().buffer().clone()
 }
 
+/// The text a terminal shows: hyperlink sequences take no room and are left out.
 fn lines(buf: &Buffer) -> Vec<String> {
     let area = buf.area;
     (0..area.height)
-        .map(|y| (0..area.width).map(|x| buf[(x, y)].symbol()).collect::<String>())
+        .map(|y| (0..area.width).map(|x| link::visible(buf[(x, y)].symbol())).collect::<String>())
+        .collect()
+}
+
+/// Runs of cells in `area` that link to the same target: (row, visible text, target).
+fn link_runs(buf: &Buffer, area: Rect) -> Vec<(u16, String, String)> {
+    let mut runs: Vec<(u16, String, String)> = Vec::new();
+    for y in area.top()..area.bottom() {
+        let mut open: Option<(String, String)> = None;
+        for x in area.left()..area.right() {
+            let symbol = buf[(x, y)].symbol();
+            match (link::target(symbol), &mut open) {
+                (Some(url), Some((text, current))) if url == current => text.push_str(&link::visible(symbol)),
+                (Some(url), _) => {
+                    if let Some((text, url)) = open.take() {
+                        runs.push((y, text, url));
+                    }
+                    open = Some((link::visible(symbol), url.to_string()));
+                }
+                (None, _) => {
+                    if let Some((text, url)) = open.take() {
+                        runs.push((y, text, url));
+                    }
+                }
+            }
+        }
+        if let Some((text, url)) = open {
+            runs.push((y, text, url));
+        }
+    }
+    runs
+}
+
+fn detail_links(st: &AppState) -> Vec<(String, String)> {
+    let buf = buffer(st, 120, 32);
+    let d = areas(buf.area, st).unwrap().detail;
+    link_runs(&buf, d).into_iter().map(|(_, text, url)| (text.trim_end().to_string(), url)).collect()
+}
+
+/// What a terminal shows after it is sent the diff from `prev` to `next`: each cell's visible
+/// text is printed at its column and covers as many columns as it is wide.
+fn screen_after(prev: &Buffer, next: &Buffer) -> Vec<String> {
+    let area = next.area;
+    let mut screen = vec![vec![" ".to_string(); usize::from(area.width)]; usize::from(area.height)];
+    for (x, y, cell) in prev.diff(next) {
+        let shown = link::visible(cell.symbol());
+        let row = &mut screen[usize::from(y)];
+        let wide = usize::from(shown.as_str().cell_width());
+        for i in 1..wide {
+            if let Some(c) = row.get_mut(usize::from(x) + i) {
+                *c = String::new();
+            }
+        }
+        row[usize::from(x)] = shown;
+    }
+    screen.into_iter().map(|r| r.concat()).collect()
+}
+
+/// The buffer's rows as a terminal shows them: a wide character covers the cells after it.
+fn shown(buf: &Buffer) -> Vec<String> {
+    (buf.area.top()..buf.area.bottom())
+        .map(|y| {
+            let mut row = String::new();
+            let mut x = buf.area.left();
+            while x < buf.area.right() {
+                let symbol = link::visible(buf[(x, y)].symbol());
+                x += symbol.as_str().cell_width().max(1);
+                row.push_str(&symbol);
+            }
+            row
+        })
+        .collect()
+}
+
+fn state_with(edit: impl FnOnce(&mut Snapshot)) -> AppState {
+    let mut s: Snapshot = serde_json::from_str(FIXTURE).unwrap();
+    edit(&mut s);
+    let mut st = AppState::new();
+    st.apply(ServerMessage::Snapshot { protocol: 1, data: Box::new(s) });
+    st
+}
+
+/// The detail pane's rows, inside its border and padding.
+fn detail_rows(st: &AppState, w: u16, h: u16) -> Vec<String> {
+    let buf = buffer(st, w, h);
+    let d = areas(buf.area, st).unwrap().detail;
+    (d.y + 1..d.bottom() - 1)
+        .map(|y| (d.x + 2..d.right() - 2).map(|x| link::visible(buf[(x, y)].symbol())).collect())
         .collect()
 }
 
@@ -379,4 +468,227 @@ fn the_footer_and_the_header_show_refreshing_and_the_upgrade_result() {
     assert!(out.lines().last().unwrap().contains("refreshing…"), "{out}");
     st.apply(ServerMessage::Upgrade { phase: crate::protocol::UpgradePhase::UpToDate, progress: None, message: None });
     assert!(render(&st, 120, 32).lines().next().unwrap().contains("up to date"));
+}
+
+#[test]
+fn pr_detail_shows_the_ticket_status_and_its_related_tickets() {
+    let out = render(&fixture_state(), 120, 32);
+    println!("{out}");
+    assert!(out.contains("STORE-2474 · To Do"));
+    let rows = detail_rows(&fixture_state(), 120, 32);
+    let at = rows.iter().position(|r| r.trim() == "Related").expect("a Related section");
+    // One row per link: relation, key, status, summary, in columns, cut at the pane edge.
+    let blocked = &rows[at + 1];
+    assert!(blocked.starts_with("  is blocked by  STORE-2290  In Progress  Přehled"), "{blocked}");
+    assert!(blocked.ends_with('…'), "{blocked}");
+    assert_eq!(blocked.as_str().cell_width() as usize, rows[0].as_str().cell_width() as usize);
+    let relates = &rows[at + 2];
+    assert!(relates.starts_with("  relates to     STORE-2101  Done         Invoice"), "{relates}");
+    // The section sits before the recent comments.
+    let comments = rows.iter().position(|r| r.trim() == "Recent comments").unwrap();
+    assert!(at < comments);
+}
+
+#[test]
+fn related_statuses_have_their_colors() {
+    let st = fixture_state();
+    let buf = buffer(&st, 120, 32);
+    let d = areas(buf.area, &st).unwrap().detail;
+    // The first cell of `word` in a detail row.
+    let cell_of = |word: &str| {
+        let needle = format!("  {word}  ");
+        let (y, col) = (d.y..d.bottom())
+            .find_map(|y| {
+                let row: String = (d.x..d.right()).map(|x| link::visible(buf[(x, y)].symbol())).collect();
+                row.find(&needle).map(|i| (y, row[..i + 2].chars().count() as u16))
+            })
+            .unwrap();
+        buf[(d.x + col, y)].clone()
+    };
+    assert_eq!(cell_of("In Progress").fg, Color::Yellow);
+    assert_eq!(cell_of("Done").fg, Color::Green);
+}
+
+#[test]
+fn a_pr_whose_ticket_is_not_mine_uses_the_linked_tickets() {
+    let mut st = fixture_state();
+    press(&mut st, '2');
+    press(&mut st, 'j');
+    let out = render(&st, 120, 32);
+    println!("{out}");
+    assert!(out.contains("#88"));
+    assert!(out.contains("WEB-77 · In Review"), "{out}");
+    assert!(out.contains("  is caused by  WEB-70  Done  Column sorting"), "{out}");
+}
+
+#[test]
+fn ticket_detail_shows_its_related_tickets() {
+    let mut st = fixture_state();
+    press(&mut st, '3');
+    let out = render(&st, 120, 32);
+    println!("{out}");
+    assert!(out.contains("Related"));
+    // Columns as wide as their widest entry: relation, key, status, then the summary.
+    assert!(out.contains("  blocks         STORE-2474  To Do      Replace invoice order"), "{out}");
+    assert!(out.contains("  is blocked by  PAY-310     In Review  Payment gateway"), "{out}");
+}
+
+#[test]
+fn without_links_there_is_no_related_section() {
+    let mut st = state_with(|s| {
+        for t in &mut s.tickets {
+            t.related.clear();
+        }
+    });
+    assert!(!render(&st, 120, 32).contains("Related"));
+    press(&mut st, '3');
+    assert!(!render(&st, 120, 32).contains("Related"));
+}
+
+#[test]
+fn pr_detail_rows_are_hyperlinks() {
+    let links = detail_links(&fixture_state());
+    let pr = "https://github.com/acmecorp/store/pull/1234".to_string();
+    let jira = "https://example.atlassian.net/browse/".to_string();
+    for want in [
+        ("acmecorp/store #1234".to_string(), pr.clone()),
+        ("STORE-2474 Replace invoice order".into(), pr.clone()),
+        // Only the key, not the label or the status.
+        ("STORE-2474".into(), format!("{jira}STORE-2474")),
+        (
+            "feature/STORE-2474-replace-invoice".into(),
+            "https://github.com/acmecorp/store/tree/feature/STORE-2474-replace-invoice".into(),
+        ),
+    ] {
+        assert!(links.contains(&want), "missing {want:?} in {links:#?}");
+    }
+    // A related row links from its relation to the end of the (cut) summary.
+    let relates = links.iter().find(|(_, url)| url.ends_with("STORE-2101")).unwrap();
+    assert!(relates.0.starts_with("relates to     STORE-2101  Done") && relates.0.ends_with('…'), "{relates:?}");
+    let blocked = links.iter().find(|(_, url)| url.ends_with("STORE-2290")).unwrap();
+    assert!(blocked.0.starts_with("is blocked by  STORE-2290"), "{blocked:?}");
+    // Labels, the checks and the hints are plain text.
+    assert!(links.iter().all(|(text, _)| !text.contains("Jira") && !text.contains("Checks")));
+}
+
+#[test]
+fn a_fork_branch_links_into_the_head_repository() {
+    let mut st = fixture_state();
+    press(&mut st, '2');
+    let links = detail_links(&st);
+    let want = (
+        "feature/STORE-2290-prehled".to_string(),
+        "https://github.com/alice-dev/store/tree/feature/STORE-2290-prehled".to_string(),
+    );
+    assert!(links.contains(&want), "{links:#?}");
+    // Without a head repository the branch is looked up in the base repository.
+    let mut st = state_with(|s| s.review_requests[0].head_repo = None);
+    press(&mut st, '2');
+    let links = detail_links(&st);
+    assert!(links.iter().any(|(_, url)| url == "https://github.com/acmecorp/store/tree/feature/STORE-2290-prehled"));
+}
+
+#[test]
+fn ticket_and_session_details_link_to_jira() {
+    let mut st = fixture_state();
+    press(&mut st, '3');
+    let links = detail_links(&st);
+    let url = "https://example.atlassian.net/browse/STORE-2290".to_string();
+    assert!(links.contains(&("STORE-2290".to_string(), url.clone())), "{links:#?}");
+    assert!(links.iter().any(|(text, u)| text.starts_with("Přehled příliš") && *u == url), "{links:#?}");
+    assert!(links.iter().any(|(text, u)| text.starts_with("blocks") && u.ends_with("/browse/STORE-2474")));
+    assert!(links.iter().any(|(text, u)| text.starts_with("is blocked by  PAY-310") && u.ends_with("/browse/PAY-310")));
+    press(&mut st, '4');
+    press(&mut st, 'j');
+    press(&mut st, 'j');
+    assert!(detail_links(&st).contains(&("STORE-2290".to_string(), url)));
+}
+
+#[test]
+fn without_a_jira_site_keys_of_unknown_tickets_are_plain() {
+    let st = state_with(|s| {
+        s.jira_base_url = None;
+        s.tickets.clear();
+    });
+    let links = detail_links(&st);
+    assert!(links.iter().all(|(_, url)| !url.contains("/browse/")), "{links:#?}");
+    assert!(links.iter().any(|(_, url)| url.ends_with("/pull/1234")));
+}
+
+#[test]
+fn links_take_no_columns() {
+    let mut ticket = fixture_state();
+    press(&mut ticket, '3');
+    let wide = state_with(|s| s.my_pull_requests[0].title = "日本語のタイトル STORE-2474 příliš".into());
+    for st in [fixture_state(), ticket, wide] {
+        for (w, h) in [(120, 32), (80, 24), (60, 15)] {
+            let buf = buffer(&st, w, h);
+            assert!(buf.content().iter().any(|c| link::target(c.symbol()).is_some()));
+            // Every linked cell is exactly as wide as the text it shows.
+            for cell in buf.content() {
+                if link::target(cell.symbol()).is_some() {
+                    let shown = link::visible(cell.symbol());
+                    assert_eq!(cell.cell_width(), shown.as_str().cell_width(), "{shown:?}");
+                }
+            }
+            // So a terminal that is sent the diff shows exactly the text without links: every
+            // cell lands in its column, none is skipped, and no wide character is overwritten.
+            let mut plain = buf.clone();
+            for cell in &mut plain.content {
+                let shown = link::visible(cell.symbol());
+                cell.set_symbol(&shown).set_diff_option(CellDiffOption::None);
+            }
+            let empty = Buffer::empty(buf.area);
+            assert_eq!(screen_after(&empty, &buf), screen_after(&empty, &plain), "{w}×{h}");
+            assert_eq!(screen_after(&empty, &plain), shown(&plain), "{w}×{h}");
+            // And an unchanged frame sends nothing.
+            assert!(buf.diff(&buf).is_empty());
+        }
+    }
+}
+
+#[test]
+fn the_terminal_receives_osc8_around_the_text() {
+    use ratatui::backend::CrosstermBackend;
+    use ratatui::{TerminalOptions, Viewport};
+    use std::cell::RefCell;
+    use std::io::Write;
+    use std::rc::Rc;
+    /// Keeps what the backend writes, readable after the draw.
+    #[derive(Clone, Default)]
+    struct Shared(Rc<RefCell<Vec<u8>>>);
+    impl Write for Shared {
+        fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+            self.0.borrow_mut().extend_from_slice(buf);
+            Ok(buf.len())
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+    let st = fixture_state();
+    let written = Shared::default();
+    let options = TerminalOptions { viewport: Viewport::Fixed(Rect::new(0, 0, 120, 32)) };
+    let mut terminal = Terminal::with_options(CrosstermBackend::new(written.clone()), options).unwrap();
+    terminal.draw(|f| draw(f, &st, now())).unwrap();
+    let out = String::from_utf8(written.0.borrow().clone()).unwrap();
+    let open = "\x1b]8;;https://example.atlassian.net/browse/STORE-2474\x1b\\";
+    let close = "\x1b]8;;\x1b\\";
+    // Each cell of the key is wrapped on its own: open, one character, close.
+    assert!(out.contains(&format!("{open}S{close}{open}T{close}")), "no OSC 8 for the Jira key");
+    assert!(out.contains("\x1b]8;;https://github.com/acmecorp/store/pull/1234\x1b\\"));
+}
+
+#[test]
+fn narrow_detail_still_cuts_related_rows_with_an_ellipsis() {
+    for (w, h) in [(80, 32), (60, 30)] {
+        let rows = detail_rows(&fixture_state(), w, h);
+        let room = rows[0].as_str().cell_width();
+        for row in &rows {
+            assert_eq!(row.as_str().cell_width(), room, "{row:?}");
+        }
+        let at = rows.iter().position(|r| r.trim() == "Related").expect("a Related section");
+        assert!(rows[at + 1].trim_end().ends_with('…'), "{:?}", rows[at + 1]);
+        assert!(rows[at + 2].trim_end().ends_with('…'), "{:?}", rows[at + 2]);
+    }
 }

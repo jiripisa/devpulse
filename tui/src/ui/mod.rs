@@ -4,6 +4,7 @@ mod detail;
 mod footer;
 mod header;
 mod help;
+mod link;
 mod panels;
 mod text;
 
