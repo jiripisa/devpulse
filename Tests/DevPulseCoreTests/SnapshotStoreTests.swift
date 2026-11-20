@@ -367,16 +367,21 @@ private final class FakeClock: Sendable {
         #expect(keys == (1...50).map { "MANY-\($0)" })
     }
 
-    @Test func aFailedLinkedSearchKeepsTheLastLinkedTicketsAndTheJiraState() async {
+    @Test func aFailedLinkedFetchLeavesNoLinkedTicketsAndTheJiraStateOk() async {
         let rig = Rig()
         rig.github.results.withLock {
             $0 = [.success(GitHubResult(viewerLogin: "me", mine: [makePR(number: 1, key: "OTHER-1")], reviewRequests: []))]
         }
+        rig.jira.result.withLock { $0 = .success(JiraResult(myAccountId: "a", tickets: [makeTicket(key: "MINE-1")])) }
         rig.jira.linked.withLock { $0 = .success([makeTicket(key: "OTHER-1")]) }
         await rig.store.refresh([.github, .jira])
-        rig.jira.linked.withLock { $0 = .failure(JiraError.http(400)) }
-        await rig.store.refresh([.github, .jira])
         #expect(rig.store.snapshot.linkedTickets.map(\.key) == ["OTHER-1"])
+        // A site without the bulk fetch (404) or one that rejects it (400): nothing linked,
+        // my own tickets and the Jira state as usual.
+        rig.jira.linked.withLock { $0 = .failure(JiraError.http(404)) }
+        await rig.store.refresh([.github, .jira])
+        #expect(rig.store.snapshot.linkedTickets.isEmpty)
+        #expect(rig.store.snapshot.tickets.map(\.key) == ["MINE-1"])
         #expect(rig.store.snapshot.sources.jira.state == .ok)
         #expect(rig.store.snapshot.sources.jira.message == nil)
     }

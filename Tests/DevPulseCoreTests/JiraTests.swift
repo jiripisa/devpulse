@@ -6,7 +6,7 @@ import Testing
 private final class FakeJiraTransport: HTTPTransport {
     let status: Int
     let search: Mutex<Data>
-    /// Bodies of `GET /rest/api/3/issue/<key>/comment`, by path.
+    /// Bodies of other paths (`GET /rest/api/3/issue/<key>/comment`, `POST …/issue/bulkfetch`).
     let comments: [String: Data]
     let requests = Mutex<[URLRequest]>([])
 
@@ -177,40 +177,71 @@ struct JiraTests {
             key: "OTHER-7", summary: "", status: "", statusCategory: .todo, relation: "Cloners"))
     }
 
-    @Test("The linked-tickets search asks for the keys with the same fields")
+    private static let bulkPath = "/rest/api/3/issue/bulkfetch"
+
+    /// A bulk fetch answer: one issue found, one key Jira could not return.
+    private static let bulkAnswer = Data("""
+        { "issues": [ { "key": "OTHER-9", "fields": {
+            "summary": "Someone else's ticket", "status": { "name": "In Review", "statusCategory": { "key": "indeterminate" } },
+            "updated": "2026-11-19T10:00:00.000+0100",
+            "issuelinks": [ { "type": { "name": "Blocks", "inward": "is blocked by", "outward": "blocks" },
+                              "outwardIssue": { "key": "OTHER-10", "fields": { "summary": "Next", "status": { "name": "To Do", "statusCategory": { "key": "new" } } } } } ],
+            "comment": { "total": 0, "comments": [] } } } ],
+          "issueErrors": [ { "id": "UTF-8", "errorMessage": "Issue does not exist or you do not have permission to see it.", "status": 404 } ] }
+        """.utf8)
+
+    private static func bulk(status: Int = 200) throws -> (JiraSource, FakeJiraTransport) {
+        let transport = FakeJiraTransport(status: status, search: try fixture(), comments: [bulkPath: bulkAnswer])
+        return (JiraSource(credentials: credentials, transport: transport), transport)
+    }
+
+    @Test("The linked tickets come from one bulk fetch with the same fields")
     func linkedTicketsRequest() async throws {
-        let (source, transport) = try Self.make()
-        let tickets = try await source.fetchTickets(keys: ["SYN-1", "OTHER-9"])
-        let searches = transport.requests(to: "/rest/api/3/search/jql")
-        #expect(searches.count == 1)
-        let body = try #require(searches.first?.httpBody)
+        let (source, transport) = try Self.bulk()
+        _ = try await source.fetchTickets(keys: ["OTHER-9", "UTF-8"])
+        let requests = transport.requests.withLock { $0 }
+        // One request, no account lookup, no search, no comment fetches.
+        #expect(requests.count == 1)
+        let request = try #require(requests.first)
+        #expect(request.httpMethod == "POST")
+        #expect(request.url?.path == Self.bulkPath)
+        let body = try #require(request.httpBody)
         let json = try #require(try JSONSerialization.jsonObject(with: body) as? [String: Any])
-        #expect(json["jql"] as? String == "key in (SYN-1, OTHER-9)")
+        #expect(json["issueIdsOrKeys"] as? [String] == ["OTHER-9", "UTF-8"])
         #expect(json["fields"] as? [String] == ["summary", "status", "priority", "updated", "comment", "issuelinks"])
-        #expect(json["maxResults"] as? Int == 50)
-        // Mapped like my own tickets, links included; no account lookup, no comment fetches.
-        #expect(tickets.map(\.key) == ["SYN-1", "SYN-2", "SYN-3"])
-        #expect(tickets[0].related.count == 4)
-        #expect(transport.requests(to: "/rest/api/3/myself").isEmpty)
-        #expect(transport.requests.withLock { $0 }.count == 1)
+        #expect(Set(json.keys) == ["issueIdsOrKeys", "fields"])
+    }
+
+    @Test("Found issues map like my own tickets; keys Jira could not return are left out")
+    func linkedTicketsMapping() async throws {
+        let (source, _) = try Self.bulk()
+        let tickets = try await source.fetchTickets(keys: ["OTHER-9", "UTF-8"])
+        #expect(tickets.map(\.key) == ["OTHER-9"])
+        #expect(tickets[0].status == "In Review")
+        #expect(tickets[0].statusCategory == .inProgress)
+        #expect(tickets[0].url == "https://example.atlassian.net/browse/OTHER-9")
+        #expect(tickets[0].related == [RelatedTicket(
+            key: "OTHER-10", summary: "Next", status: "To Do", statusCategory: .todo, relation: "blocks")])
     }
 
     @Test("No keys, no request; more than 50 keys are cut to the first 50")
     func linkedTicketsOnlyWhenNeeded() async throws {
-        let (source, transport) = try Self.make()
+        let (source, transport) = try Self.bulk()
         #expect(try await source.fetchTickets(keys: []).isEmpty)
         #expect(transport.requests.withLock { $0 }.isEmpty)
         let keys = (1...60).map { "MANY-\($0)" }
         _ = try await source.fetchTickets(keys: keys)
-        let body = try #require(transport.requests(to: "/rest/api/3/search/jql").first?.httpBody)
+        let body = try #require(transport.requests(to: Self.bulkPath).first?.httpBody)
         let json = try #require(try JSONSerialization.jsonObject(with: body) as? [String: Any])
-        #expect(json["jql"] as? String == "key in (\(keys.prefix(50).joined(separator: ", ")))")
+        #expect(json["issueIdsOrKeys"] as? [String] == Array(keys.prefix(50)))
     }
 
-    @Test("The linked-tickets search reports failures like the main search")
+    @Test("A site without the bulk fetch reports the failure like the main search")
     func linkedTicketsFailure() async throws {
-        let (source, _) = try Self.make(status: 400)
-        await #expect(throws: JiraError.http(400)) { try await source.fetchTickets(keys: ["SYN-1"]) }
+        for status in [400, 404] {
+            let (source, _) = try Self.bulk(status: status)
+            await #expect(throws: JiraError.http(status)) { try await source.fetchTickets(keys: ["OTHER-9"]) }
+        }
     }
 
     @Test("Calls /myself on the first fetch only")

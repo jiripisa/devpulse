@@ -6,7 +6,7 @@ public protocol GitHubFetching: Sendable {
 
 public protocol JiraFetching: Sendable {
     func fetch() async throws -> JiraResult
-    /// The tickets with these keys, whoever they are assigned to, in one search.
+    /// The tickets with these keys, whoever they are assigned to, in one request.
     func fetchTickets(keys: [String]) async throws -> [Ticket]
 }
 
@@ -111,7 +111,7 @@ public final class SnapshotStore {
         let (githubResult, jiraResult) = await (githubOutcome, jiraOutcome)
         let results = Results(github: githubResult, jira: jiraResult, credentials: credentials, moment: moment)
 
-        // The tickets of PRs that are not mine: one more search, which needs both results.
+        // The tickets of PRs that are not mine: one more request, which needs both results.
         var linkedResult: Result<[Ticket], any Error>?
         if runJira, let jiraSource {
             let keys = LinkedTickets.keys(for: merged(results, for: sources, into: snapshot))
@@ -124,13 +124,14 @@ public final class SnapshotStore {
         if case .success(let result)? = githubResult { githubLogin = result.viewerLogin }
         if case .success(let result)? = jiraResult { jiraAccountId = result.myAccountId }
         if sources.contains(.jira) {
-            if !isEnabled(.jira) || credentials == nil {
-                next.linkedTickets = []
-            } else if case .success(let tickets)? = linkedResult {
-                next.linkedTickets = tickets
+            switch linkedResult {
+            case .success(let tickets)?: next.linkedTickets = tickets
+            // A failed fetch (a site without the bulk fetch, say) leaves nothing linked and the
+            // Jira state alone: the PR detail then shows just the key.
+            case .failure?: next.linkedTickets = []
+            // Jira off, not set up, or the refresh was cancelled.
+            case nil: if !isEnabled(.jira) || credentials == nil { next.linkedTickets = [] }
             }
-            // A failed search keeps the last linked tickets and leaves the Jira state alone: they
-            // are extra detail, and my own tickets came through.
         }
 
         // Only applies the switch: the sessions are the watcher's, never a new scan.

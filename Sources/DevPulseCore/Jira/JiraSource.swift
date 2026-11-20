@@ -1,4 +1,5 @@
 import Foundation
+import os
 import Synchronization
 
 public enum JiraError: Error, Equatable {
@@ -58,20 +59,26 @@ public final class JiraSource: Sendable {
         return JiraResult(myAccountId: me, tickets: tickets)
     }
 
-    /// The tickets with these keys, e.g. those of PRs that are not mine, in one search with the
-    /// same fields: at most the first `maxResults` keys, and no request at all without keys.
-    /// Their comments are left as the search returns them; they never notify.
+    /// The tickets with these keys, e.g. those of PRs that are not mine: one bulk fetch
+    /// (`POST /rest/api/3/issue/bulkfetch`) with the same fields as the search, for at most the
+    /// first `maxResults` keys, and no request at all without keys. Unlike a JQL `key in (…)`,
+    /// a key that does not exist or that I may not see does not fail the others: Jira lists it
+    /// under `issueErrors`, which is left out. Their comments stay as returned; they never notify.
     public func fetchTickets(keys: [String]) async throws -> [Ticket] {
-        guard let jql = Self.jql(forKeys: keys) else { return [] }
-        return try await search(jql).map { issue in try mapped { try issue.ticket(site: credentials.site) } }
+        let keys = Array(keys.prefix(Self.maxResults))
+        guard !keys.isEmpty else { return [] }
+        let body = try JSONSerialization.data(withJSONObject: [
+            "issueIdsOrKeys": keys, "fields": Self.fields,
+        ] as [String: Any])
+        let data = try await send(path: "/rest/api/3/issue/bulkfetch", method: "POST", body: body)
+        let response = try mapped { try JSONDecoder().decode(BulkResponse.self, from: data) }
+        if let errors = response.issueErrors, !errors.isEmpty {
+            Self.log.debug("Bulk fetch could not return \(errors.count, privacy: .public) of the linked tickets")
+        }
+        return try response.issues.map { issue in try mapped { try issue.ticket(site: credentials.site) } }
     }
 
-    /// `key in (A-1, B-2)` for the first `maxResults` keys; nil without keys.
-    static func jql(forKeys keys: [String]) -> String? {
-        let keys = keys.prefix(maxResults)
-        guard !keys.isEmpty else { return nil }
-        return "key in (\(keys.joined(separator: ", ")))"
-    }
+    private static let log = Logger(subsystem: "io.jp4.devpulse", category: "jira")
 
     private func search(_ jql: String) async throws -> [Issue] {
         let body = try JSONSerialization.data(withJSONObject: [
@@ -154,6 +161,14 @@ public final class JiraSource: Sendable {
     private struct Myself: Decodable { var accountId: String }
 
     private struct SearchResponse: Decodable { var issues: [Issue] }
+
+    /// The bulk fetch's answer: the issues found, and one entry per key it could not return
+    /// (only counted).
+    private struct BulkResponse: Decodable {
+        struct IssueError: Decodable {}
+        var issues: [Issue]
+        var issueErrors: [IssueError]?
+    }
 
     private struct Issue: Decodable {
         struct Fields: Decodable {
