@@ -11,6 +11,8 @@
   Claude Code sessions whose Jira key or folder has it, plus rows for the default repository and
   project. Each row shows an icon for what it is.
 - No more number next to the menu bar icon.
+- A new app icon, a radar, and a new menu bar icon, a sonar dial. The app icon fills the macOS
+  icon shape; before, it sat small on a light tile.
 
 ## 0.1.0 — 2026-11-20
 

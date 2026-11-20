@@ -2,8 +2,10 @@
 
 ## 1. Toolchain & Project Layout
 
-- Xcode command line tools (Swift 6), macOS 27+. No Xcode project: Swift
-  Package Manager builds the code, `build.sh` assembles the `.app` bundle.
+- Xcode (Swift 6), macOS 27+. The Command Line Tools alone are not enough,
+  because `actool`, which compiles the app icon and the asset catalog, comes
+  with Xcode. No Xcode project: Swift Package Manager builds the code,
+  `build.sh` assembles the `.app` bundle.
 - A Rust toolchain (`rustup`, stable) for the terminal client in `tui/`;
   `build.sh` runs `cargo build` for it.
 
@@ -14,7 +16,8 @@ devpulse/
 ├── Sources/DevPulseCore/      # logic without UI, tested
 ├── tui/                     # Rust terminal client `devpulse` (cargo)
 ├── Tests/DevPulseCoreTests/   # Swift Testing
-├── Resources/               # Info.plist, entitlements, AppIcon.png (1024 px)
+├── Resources/               # Info.plist, entitlements, AppIcon.png (1024 px master),
+│                            # AppIcon.icon, Assets.xcassets (menu bar icon)
 ├── scripts/make_appcast.py  # Sparkle feed, called by build.sh dist
 ├── docs/                    # GitHub Pages website + manual
 ├── build.sh                 # debug | release | dist | clean
@@ -32,8 +35,9 @@ devpulse/
 
 ### 2.1 App-bundle assembly (all modes)
 
-Executable → `Contents/MacOS`, `Resources/Info.plist` → `Contents/`,
-`Resources/AppIcon.png` → `AppIcon.icns` (sips + iconutil), Sparkle.framework →
+Executable → `Contents/MacOS`, `Resources/Info.plist` → `Contents/`, the app
+icon and the asset catalog → `Contents/Resources/Assets.car` and a fallback
+`AppIcon.icns` (see 2.1.1), Sparkle.framework →
 `Contents/Frameworks` (XPC services removed; the app is unsandboxed), PkgInfo,
 the terminal client → `Contents/Helpers/devpulse` (`cargo build` of `tui/` with
 `DEVPULSE_VERSION` from `Info.plist`; debug profile in `debug`, `--release`
@@ -43,6 +47,36 @@ for the helper and for the app with the entitlements. In `dist` the helper is
 signed with the Developer ID identity (hardened runtime, timestamp) before the
 app. Settings › General links the helper to `/usr/local/bin/devpulse`. New
 resource files must be copied in `build.sh` explicitly.
+
+### 2.1.1 App icon and asset catalog (actool)
+
+- `Resources/AppIcon.png` is the master: 1024 px, full bleed and opaque (no
+  transparent corners, no own squircle). macOS 27 masks it to the icon shape.
+  A plain `.icns` that does not fill the shape is put small on a light tile,
+  which is why the icon is no longer built with `sips` + `iconutil`.
+- `Resources/AppIcon.icon` is an Icon Composer document (`icon.json`: one
+  layer, glass, shadow, translucency and specular off) that holds no image in
+  the repo. `build.sh` copies it to a temporary folder and puts the master in
+  as `Assets/AppIcon.png`; actool does not follow a symlink there.
+- `Resources/Assets.xcassets` holds `MenuBarIcon.imageset`: an 18 pt vector
+  PDF, Render As: Template (`template-rendering-intent`), loaded with
+  `Image("MenuBarIcon")`. Further images and colours for the app go here too.
+- One actool call compiles both into `Contents/Resources/Assets.car` and a
+  fallback `AppIcon.icns` before anything is signed, in every mode:
+  ```
+  xcrun actool <tmp>/AppIcon.icon Resources/Assets.xcassets --compile <tmp>/out \
+    --output-format human-readable-text --notices --warnings --errors \
+    --output-partial-info-plist <tmp>/partial.plist \
+    --app-icon AppIcon --include-all-app-icons --enable-on-demand-resources NO \
+    --development-region en --target-device mac --minimum-deployment-target 27.0 \
+    --platform macosx
+  ```
+  `Info.plist` carries what the partial plist asks for: `CFBundleIconName`
+  and `CFBundleIconFile`, both `AppIcon`. Without Xcode (only the Command
+  Line Tools selected) the build stops with a hint to run
+  `sudo xcode-select -s /Applications/Xcode.app`.
+- `docs/assets/icon.png` (256 px, squircle mask applied) is drawn from the
+  same artwork; regenerate it when the master changes.
 
 ### 2.2 Distribution (`dist`)
 
