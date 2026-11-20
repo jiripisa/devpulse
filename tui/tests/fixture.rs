@@ -71,3 +71,54 @@ fn upgrade_messages_decode() {
     let m: ServerMessage = serde_json::from_str(r#"{"type":"somethingNew","x":1}"#).unwrap();
     assert!(matches!(m, ServerMessage::Unknown));
 }
+
+#[test]
+fn fixture_has_head_repos_related_and_linked_tickets() {
+    let s: Snapshot = serde_json::from_str(FIXTURE).unwrap();
+    assert_eq!(s.my_pull_requests[0].head_repo.as_deref(), Some("acmecorp/store"));
+    assert_eq!(s.review_requests[0].head_repo.as_deref(), Some("alice-dev/store"));
+    let related = &s.tickets[0].related;
+    assert_eq!(related.len(), 2);
+    assert_eq!(
+        related[0],
+        RelatedTicket {
+            key: "STORE-2474".into(),
+            summary: "Replace invoice order".into(),
+            status: "To Do".into(),
+            status_category: StatusCategory::Todo,
+            relation: "blocks".into(),
+        }
+    );
+    assert_eq!(related[1].relation, "is blocked by");
+    assert_eq!(related[1].status_category, StatusCategory::InProgress);
+    assert_eq!(s.linked_tickets.len(), 1);
+    assert_eq!(s.linked_tickets[0].key, "WEB-77");
+    assert_eq!(s.linked_tickets[0].related[0].key, "WEB-70");
+}
+
+#[test]
+fn a_snapshot_without_the_new_fields_still_decodes() {
+    let mut v: serde_json::Value = serde_json::from_str(FIXTURE).unwrap();
+    v.as_object_mut().unwrap().remove("linkedTickets");
+    for t in v["tickets"].as_array_mut().unwrap() {
+        t.as_object_mut().unwrap().remove("related");
+    }
+    for list in ["myPullRequests", "reviewRequests"] {
+        for p in v[list].as_array_mut().unwrap() {
+            p.as_object_mut().unwrap().remove("headRepo");
+        }
+    }
+    let s: Snapshot = serde_json::from_value(v).unwrap();
+    assert!(s.linked_tickets.is_empty());
+    assert!(s.tickets.iter().all(|t| t.related.is_empty()));
+    assert!(s.my_pull_requests.iter().chain(&s.review_requests).all(|p| p.head_repo.is_none()));
+}
+
+#[test]
+fn a_related_ticket_without_summary_or_status_decodes() {
+    let r: RelatedTicket =
+        serde_json::from_str(r#"{"key":"X-1","statusCategory":"brandNew","relation":"blocks"}"#).unwrap();
+    assert_eq!(r.summary, "");
+    assert_eq!(r.status, "");
+    assert_eq!(r.status_category, StatusCategory::Unknown);
+}

@@ -34,7 +34,8 @@ Xcode project. The terminal client in `tui/` is Rust.
 
 ### Build and run
 
-You need the Xcode command line tools and a Rust toolchain.
+You need Xcode (for `actool`, which compiles the app icon; the command line
+tools alone are not enough) and a Rust toolchain.
 
 ```
 ./run.sh            # debug build, runs in the terminal with logs (Ctrl+C quits)

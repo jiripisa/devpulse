@@ -39,7 +39,7 @@
       <span class="meta">Verze 0.1.0 pro macOS 27 a novější. <a href="manual.html">Přečtěte si manuál</a>.</span>
     </div>
     <figure class="shot">
-      <img src="../assets/hero.png" alt="DevPulse v menu baru a v terminálu" width="1600" height="1000">
+      <img src="../assets/hero.png" alt="Přehled devpulse v terminálu a okénko DevPulse z menu baru s ukázkovými pull requesty, tikety z Jiry a sessions Claude Code" width="1600" height="1000">
     </figure>
   </div>
 
@@ -62,8 +62,10 @@
         </div>
         <div>
           <h3>Rychlé hledání</h3>
-          <p>Stiskněte <kbd>⌥</kbd><kbd>Space</kbd>, napište <code>gh 812</code> nebo
-          <code>jira 2290</code> a Enter: pull request nebo tiket se otevře v prohlížeči.</p>
+          <p>Stiskněte <kbd>⌥</kbd><kbd>Space</kbd> a napište samotné číslo, třeba
+          <code>2290</code>: najde se v pull requestech, tiketech i sessions. Nebo napište
+          <code>gh 812</code> či <code>jira 2290</code> a Enter: pull request nebo tiket se
+          otevře v prohlížeči.</p>
         </div>
         <div>
           <h3>Skoro nic nespotřebuje</h3>
@@ -87,7 +89,7 @@
       </div>
       <div>
         <h2>Sestavení ze zdrojů</h2>
-        <p>Stačí nástroje příkazové řádky Xcode; projekt Xcode není potřeba.</p>
+        <p>Potřebujete Xcode a toolchain Rustu; projekt Xcode není potřeba.</p>
 <pre><code>git clone https://github.com/jiripisa/devpulse.git
 cd devpulse
 ./run.sh</code></pre>

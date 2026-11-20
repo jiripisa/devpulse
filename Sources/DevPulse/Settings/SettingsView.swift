@@ -3,7 +3,8 @@ import DevPulseCore
 import SwiftUI
 import UserNotifications
 
-enum SettingsTab: Hashable {
+/// The raw value names the tab for the demo's `-DevPulseDemoOpen settings:<tab>`.
+enum SettingsTab: String, Hashable {
     case general, github, jira, notifications, updates
 }
 
@@ -27,6 +28,7 @@ struct SettingsView: View {
         }
         .frame(width: 520)
         .scenePadding(.top)
+        .background(WindowReader { model.settingsPresenter.windowAppeared($0) })
     }
 }
 
@@ -127,7 +129,7 @@ private struct GitHubSettingsView: View {
                 TextField("Default repository", text: optionalText(\.defaultRepo),
                           prompt: Text(AppSettings.mostFrequentRepo(model.snapshot.myPullRequests) ?? "owner/name"))
             } footer: {
-                Text("Used by the quick launcher for `gh <number>`; empty means the repository of most of your pull requests.")
+                Text("Used by the quick launcher for a bare number and `gh <number>`; empty means the repository of most of your pull requests.")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
@@ -203,7 +205,7 @@ private struct JiraSettingsView: View {
                 TextField("Default project", text: defaultProject,
                           prompt: Text(AppSettings.mostFrequentProject(model.snapshot.tickets) ?? "KEY"))
             } footer: {
-                Text("Used by the quick launcher for `jira <number>`; empty means the project of most of your tickets.")
+                Text("Used by the quick launcher for a bare number and `jira <number>`; empty means the project of most of your tickets.")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }

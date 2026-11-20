@@ -2,11 +2,17 @@ import Foundation
 import Testing
 @testable import DevPulseCore
 
-private func freshDefaults() -> UserDefaults {
-    let name = "devpulse.tests.\(UUID().uuidString)"
-    let defaults = UserDefaults(suiteName: name)!
-    defaults.removePersistentDomain(forName: name)
-    return defaults
+/// Runs `body` with an empty defaults suite of its own and removes it afterwards. The suite is a
+/// file in a temporary folder: one named by a plain suite name would end up in
+/// `~/Library/Preferences`, where `cfprefsd` writes its plist back even after it was removed.
+private func withFreshDefaults(_ body: (UserDefaults) throws -> Void) rethrows {
+    let folder = FileManager.default.temporaryDirectory.appending(path: "devpulse.tests.\(UUID().uuidString)")
+    let name = folder.appending(path: "settings").path
+    defer {
+        UserDefaults(suiteName: name)?.removePersistentDomain(forName: name)
+        try? FileManager.default.removeItem(at: folder)
+    }
+    try body(UserDefaults(suiteName: name)!)
 }
 
 @Suite struct SettingsTests {
@@ -75,13 +81,14 @@ private func freshDefaults() -> UserDefaults {
     }
 
     @Test func userDefaultsRoundTrip() {
-        let defaults = freshDefaults()
-        #expect(AppSettings.load(from: defaults) == AppSettings())
-        var settings = AppSettings()
-        settings.defaultRepo = "acme/app"
-        settings.sourceEnabled[.claude] = false
-        settings.save(to: defaults)
-        #expect(AppSettings.load(from: defaults) == settings)
+        withFreshDefaults { defaults in
+            #expect(AppSettings.load(from: defaults) == AppSettings())
+            var settings = AppSettings()
+            settings.defaultRepo = "acme/app"
+            settings.sourceEnabled[.claude] = false
+            settings.save(to: defaults)
+            #expect(AppSettings.load(from: defaults) == settings)
+        }
     }
 
     @Test func mostFrequentRepoPicksTheModeWithAlphabeticalTies() {

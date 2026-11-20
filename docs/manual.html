@@ -125,8 +125,17 @@ gh auth login</code></pre>
         and keeps it in memory only; it asks again only when GitHub rejects the
         token. The <span class="ui">Settings… › GitHub</span> tab
         has these controls:</p>
+        <figure class="fig" style="max-width:34rem">
+          <div class="view" style="--iw:1040;--ih:900;--zh:77">
+            <img src="assets/manual/devpulse-settings-github.png" alt="The GitHub tab of Settings: status, team review requests and default repository">
+            <span class="mark" style="--x:3.8;--y:28.5;--w:92.3;--h:7.9"><b>1</b></span>
+            <span class="mark" style="--x:3.8;--y:38.7;--w:92.3;--h:8"><b>2</b></span>
+            <span class="mark" style="--x:3.8;--y:58.6;--w:92.3;--h:8"><b>3</b></span>
+          </div>
+          <figcaption>The GitHub tab while <code>gh</code> is signed in.</figcaption>
+        </figure>
         <dl class="controls">
-          <dt>Status</dt>
+          <dt><span class="n">1</span>Status</dt>
           <dd><span class="ui">Signed in as …</span> with your login when the
           last fetch worked; otherwise the problem, such as
           <span class="ui">Not logged in — run “gh auth login”</span> or
@@ -134,13 +143,13 @@ gh auth login</code></pre>
           <dt>Check Again</dt>
           <dd>Shown while GitHub is not connected. After <code>gh auth login</code>,
           click it to fetch right away.</dd>
-          <dt>Include team review requests</dt>
+          <dt><span class="n">2</span>Include team review requests</dt>
           <dd>Off by default. When on, <b>Review requests</b> also lists pull
           requests that ask one of your teams for a review, not only you.</dd>
-          <dt>Default repository</dt>
+          <dt><span class="n">3</span>Default repository</dt>
           <dd>The <code>owner/name</code> the <a href="#launcher">quick launcher</a>
-          uses for <code>gh &lt;number&gt;</code> when the number is not one of
-          your known pull requests. Empty means the repository of most of your
+          uses for <code>gh &lt;number&gt;</code> and a bare number when the
+          number is not one of your known pull requests. Empty means the repository of most of your
           pull requests; the field shows it in grey.</dd>
         </dl>
       </section>
@@ -148,30 +157,41 @@ gh auth login</code></pre>
       <section id="jira">
         <h2>Connecting Jira</h2>
         <p>DevPulse reads your open Jira Cloud tickets with an API token.</p>
+        <figure class="fig" style="max-width:34rem">
+          <div class="view" style="--iw:1040;--ih:900">
+            <img src="assets/manual/devpulse-settings-jira.png" alt="The Jira tab of Settings with site, e-mail, a saved token, the Test Connection and Save buttons and the default project">
+            <span class="mark" style="--x:3.8;--y:28.5;--w:92.3;--h:24.4"><b>1</b></span>
+            <span class="mark" style="--x:5.3;--y:54.8;--w:37.5;--h:3.6"><b>2</b></span>
+            <span class="mark" style="--x:58.4;--y:70.4;--w:24.4;--h:6"><b>3</b></span>
+            <span class="mark" style="--x:83.6;--y:70.4;--w:10.9;--h:6"><b>4</b></span>
+            <span class="mark" style="--x:3.8;--y:80.4;--w:92.3;--h:8.4"><b>5</b></span>
+          </div>
+          <figcaption>The Jira tab with a token saved in the Keychain.</figcaption>
+        </figure>
         <ol>
           <li>Create a token at
           <a href="https://id.atlassian.com/manage-profile/security/api-tokens">id.atlassian.com › Security › API tokens</a>
-          (the <span class="ui">Create an API token at id.atlassian.com</span>
+          (the <span class="n">2</span><span class="ui">Create an API token at id.atlassian.com</span>
           link in Settings opens the same page) and copy it.</li>
           <li>Open <span class="ui">Settings… › Jira</span>.</li>
-          <li>Fill in <span class="ui">Site</span> (for example
+          <li><span class="n">1</span>Fill in <span class="ui">Site</span> (for example
           <code>acme.atlassian.net</code>), <span class="ui">E-mail</span> (your
           Atlassian account) and <span class="ui">API token</span>. DevPulse
           always talks to the site over HTTPS, also when you type
           <code>http://</code>.</li>
-          <li>Click <span class="ui">Test Connection</span>. It answers
+          <li><span class="n">3</span>Click <span class="ui">Test Connection</span>. It answers
           <span class="ui">Connected — 5 open tickets</span> or says what went
           wrong, for example <span class="ui">Jira credentials rejected</span>.</li>
-          <li>Click <span class="ui">Save</span>.</li>
+          <li><span class="n">4</span>Click <span class="ui">Save</span>.</li>
         </ol>
         <p>The token is stored in your login Keychain, never in the settings
         file. Once saved, the token field reads <span class="ui">Saved in
         Keychain — leave empty to keep</span>: leave it empty to keep the token
         when you change the site or e-mail, or paste a new one to replace it.</p>
         <dl class="controls">
-          <dt>Default project</dt>
+          <dt><span class="n">5</span>Default project</dt>
           <dd>The project key the <a href="#launcher">quick launcher</a> puts in
-          front of <code>jira &lt;number&gt;</code>. Empty means the project of
+          front of <code>jira &lt;number&gt;</code> and a bare number. Empty means the project of
           most of your tickets; the field shows it in grey.</dd>
         </dl>
         <p>DevPulse lists the tickets assigned to you that are not done.</p>
@@ -179,21 +199,18 @@ gh auth login</code></pre>
 
       <section id="popover">
         <h2>The menu bar</h2>
-        <p>The DevPulse icon is a pulse line. When something needs you, a
-        number appears next to it: the review requests sent to you directly
-        plus the Claude Code sessions waiting for your input. Click the icon
-        to open the popover.</p>
+        <p>The DevPulse icon is a sonar dial: a ring with a dot and a short line. Click it to open the popover.</p>
         <figure class="fig" style="max-width:28rem">
-          <div class="view" style="--iw:760;--ih:1172">
-            <img src="assets/manual/devpulse-popover.png" alt="The DevPulse popover with pull requests, review requests, Jira tickets and a Claude Code session">
-            <span class="mark" style="--x:92.1;--y:1;--w:5.3;--h:3.4"><b>1</b></span>
-            <span class="mark" style="--x:83.7;--y:6.8;--w:13.7;--h:2.4"><b>2</b></span>
-            <span class="mark" style="--x:2.1;--y:9.7;--w:81.6;--h:5.5"><b>3</b></span>
-            <span class="mark" style="--x:2.1;--y:40.1;--w:5.8;--h:17.9"><b>4</b></span>
-            <span class="mark" style="--x:2.1;--y:63.5;--w:95.8;--h:3.2"><b>5</b></span>
-            <span class="mark" style="--x:2.1;--y:88.1;--w:62;--h:5.1"><b>6</b></span>
-            <span class="mark" style="--x:1.8;--y:95.1;--w:17.9;--h:3.8"><b>7</b></span>
-            <span class="mark" style="--x:73.4;--y:95.1;--w:25;--h:3.8"><b>8</b></span>
+          <div class="view" style="--iw:760;--ih:1330">
+            <img src="assets/manual/devpulse-popover.png" alt="The DevPulse popover with pull requests, review requests, Jira tickets and three Claude Code sessions">
+            <span class="mark" style="--x:92.1;--y:0.9;--w:5.3;--h:3"><b>1</b></span>
+            <span class="mark" style="--x:83.7;--y:6;--w:13.7;--h:2.1"><b>2</b></span>
+            <span class="mark" style="--x:2.1;--y:8.5;--w:81.6;--h:4.8"><b>3</b></span>
+            <span class="mark" style="--x:2.1;--y:35.3;--w:5.8;--h:15.8"><b>4</b></span>
+            <span class="mark" style="--x:2.1;--y:56;--w:95.8;--h:2.8"><b>5</b></span>
+            <span class="mark" style="--x:2.1;--y:77.6;--w:62;--h:4.5"><b>6</b></span>
+            <span class="mark" style="--x:1.8;--y:95.7;--w:17.9;--h:3.3"><b>7</b></span>
+            <span class="mark" style="--x:73.4;--y:95.7;--w:25;--h:3.3"><b>8</b></span>
           </div>
           <figcaption>The popover has four sections: My pull requests, Review
           requests, Jira and Claude Code. It scrolls when they are long.</figcaption>
@@ -261,9 +278,10 @@ gh auth login</code></pre>
             <span class="mark" style="--x:0.5;--y:61;--w:44;--h:19.2"><b>3</b></span>
             <span class="mark" style="--x:0.5;--y:81.3;--w:44;--h:13.3"><b>4</b></span>
             <span class="mark" style="--x:45.2;--y:8.6;--w:53.8;--h:86.2"><b>5</b></span>
-            <span class="mark" style="--x:9.8;--y:5.7;--w:31.5;--h:3.1"><b>6</b></span>
+            <span class="mark" style="--x:9.8;--y:5.7;--w:33;--h:3.1"><b>6</b></span>
             <span class="mark" style="--x:0.5;--y:95.7;--w:83.2;--h:3.4"><b>7</b></span>
             <span class="mark" style="--x:93;--y:95.7;--w:5.8;--h:3.4"><b>8</b></span>
+            <span class="mark" style="--x:46.3;--y:41.2;--w:52.2;--h:8.6"><b>9</b></span>
           </div>
           <figcaption><code>devpulse</code> in Ghostty. The colours follow your
           terminal's theme.</figcaption>
@@ -285,11 +303,12 @@ gh auth login</code></pre>
           with <span class="ui">→</span> and the linked Jira key.</dd>
           <dt><span class="n">5</span>Detail</dt>
           <dd>Everything about the selected item. For a pull request: the
-          linked ticket and its status, branch, checks, reviews, comments,
-          whether the review was requested from you or your team, the last
-          update and the three most recent comments. For a ticket: status,
-          priority, comments, and the pull requests and sessions linked to it.
-          For a session: state (and what it waits for), folder, Jira key and
+          linked ticket and its status (also when the ticket is not assigned
+          to you), branch, checks, reviews, comments, whether the review was
+          requested from you or your team, the last update, the ticket's
+          related tickets and the three most recent comments. For a ticket:
+          status, priority, comments, the pull requests and sessions linked to
+          it, and its related tickets. For a session: state (and what it waits for), folder, Jira key and
           process ID. The bottom lines name the keys that apply.</dd>
           <dt><span class="n">6</span>Sources</dt>
           <dd>Each source with its state and age: <span class="ui">✓ 2m</span>
@@ -301,6 +320,9 @@ gh auth login</code></pre>
           important ones are left out.</dd>
           <dt><span class="n">8</span>Position</dt>
           <dd>The selected row and the length of the focused list.</dd>
+          <dt><span class="n">9</span>Related</dt>
+          <dd>The Jira links of the ticket, here of the pull request's ticket;
+          see <b>Related tickets</b> below.</dd>
         </dl>
 
         <h3 id="tui-keys">Keys</h3>
@@ -318,6 +340,7 @@ gh auth login</code></pre>
               <tr><td><kbd>?</kbd></td><td>Show all keys; <kbd>Esc</kbd>, <kbd>?</kbd>, <kbd>q</kbd> or a click closes the list.</td></tr>
               <tr><td><kbd>q</kbd>, <kbd>Ctrl</kbd>-<kbd>C</kbd></td><td>Quit.</td></tr>
               <tr><td>Mouse</td><td>A click selects a row (and its panel); the wheel moves through the panel under the pointer.</td></tr>
+              <tr><td><kbd>⌘</kbd>-click</td><td>In Ghostty, open the link under the pointer in the detail (see <a href="#tui-links">Links</a>); if your terminal sends clicks to the app instead, hold <kbd>⇧</kbd> as well (<kbd>⇧</kbd><kbd>⌘</kbd>-click).</td></tr>
             </tbody>
           </table>
         </div>
@@ -328,6 +351,21 @@ gh auth login</code></pre>
         shows how many rows match, for example <span class="ui">2/4</span>.
         <kbd>Enter</kbd> keeps the filter and returns to the lists;
         <kbd>Esc</kbd> clears it.</p>
+        <p><b>Related tickets.</b> When a ticket has links in Jira, the detail
+        shows a <span class="ui">Related</span> section with one row per link:
+        how it relates in Jira's words (<span class="ui">blocks</span>,
+        <span class="ui">is blocked by</span>, <span class="ui">relates to</span>),
+        the key, the status in its colour and the summary. A pull request
+        shows the related tickets of its own ticket, even when that ticket is
+        not assigned to you. Without links there is no section.</p>
+        <p id="tui-links"><b>Links.</b> In Ghostty, <kbd>⌘</kbd>-click the
+        Jira key, the branch, the pull request's title or a row under
+        <span class="ui">Related</span> to open it: the ticket in Jira, the
+        branch on GitHub (in the fork, for a pull request from a fork) or the
+        pull request. The same works for a ticket's key and summary and a
+        session's Jira key. If your terminal sends clicks to the app instead,
+        hold <kbd>⇧</kbd> as well (<kbd>⇧</kbd><kbd>⌘</kbd>-click). A terminal
+        without hyperlinks shows the same text.</p>
 
         <h3 id="tui-states">States and messages</h3>
         <ul>
@@ -353,30 +391,42 @@ gh auth login</code></pre>
       <section id="launcher">
         <h2>The quick launcher</h2>
         <p>Press <kbd>⌥</kbd><kbd>Space</kbd> anywhere to open a search panel
-        in the middle of the screen. Type <code>gh</code> for pull requests or
-        <code>jira</code> for tickets; the shortcut can be changed in
+        in the middle of the screen. Type a number to find it everywhere,
+        <code>gh</code> for pull requests or <code>jira</code> for tickets; the
+        shortcut can be changed in
         <a href="#general">General settings</a>.</p>
-        <figure class="fig" hidden><!-- shown once devpulse-launcher.png exists -->
+        <figure class="fig">
           <div class="view" style="--iw:1280;--ih:774">
             <img src="assets/manual/devpulse-launcher.png" alt="The quick launcher listing pull requests for the query gh">
             <span class="mark" style="--x:1;--y:1;--w:98;--h:13"><b>1</b></span>
-            <span class="mark" style="--x:1;--y:15.5;--w:98;--h:11.9"><b>2</b></span>
+            <span class="mark" style="--x:1;--y:15.5;--w:98;--h:83.5"><b>2</b></span>
           </div>
           <figcaption>The launcher after typing <code>gh</code>.</figcaption>
         </figure>
         <dl class="controls">
           <dt><span class="n">1</span>Search field</dt>
-          <dd>Type a query from the table below.</dd>
+          <dd>Type a query from the table below. Until you do, it shows the
+          hint <span class="ui">Number, gh … or jira …</span> in light grey.</dd>
           <dt><span class="n">2</span>Results</dt>
-          <dd>Up to 20 rows, each with its title and, below it, the repository,
-          the ticket's status or, for a row that opens a number or key you have
-          no item for, the address it opens. The selected row is
+          <dd>Up to 20 rows. The icon says what a row is: a pull request (a
+          branching arrow), a review request (one or two people, as in the
+          popover), a Jira ticket, or a Claude Code session (its state, as in
+          the popover). Below the title: the repository, the ticket's status,
+          the session's state and folder or, for a row that opens a number or
+          key you have no item for, the address it opens. The selected row is
           highlighted.</dd>
         </dl>
+        <figure class="fig">
+          <div class="view" style="--iw:1280;--ih:498">
+            <img src="assets/manual/devpulse-launcher-number.png" alt="The quick launcher for the number 2290: a review request, a Jira ticket, a Claude Code session and a row for the default repository">
+          </div>
+          <figcaption>A bare number finds everything with it: here the review request #2290, the ticket STORE-2290, the session in <code>store-2290-statement</code> and, last, a row that opens 2290 in the default repository.</figcaption>
+        </figure>
         <div class="table">
           <table>
             <thead><tr><th>Type</th><th>Result</th></tr></thead>
             <tbody>
+              <tr><td><code>2474</code></td><td>Everything with that number: your pull requests and review requests numbered 2474 in any repository, then your tickets numbered 2474 in any project (<code>STORE-2474</code>, <code>WA-2474</code>), then the Claude Code sessions whose Jira key or folder name has that number (<code>store-2474-fix</code>, but not <code>store-24740</code>). Last, rows that open 2474 in the <a href="#github">default repository</a> and <code>STORE-2474</code> in the <a href="#jira">default project</a>, unless they are already in the list.</td></tr>
               <tr><td><code>gh</code></td><td>Your pull requests, then your review requests.</td></tr>
               <tr><td><code>gh invoice</code></td><td>Those whose title or repository contains the text.</td></tr>
               <tr><td><code>gh 812</code></td><td>Your pull request or review request with that number. If you have none, a row that opens <code>812</code> in the <a href="#github">default repository</a>.</td></tr>
@@ -393,7 +443,7 @@ gh auth login</code></pre>
             <thead><tr><th>Key</th><th>Action</th></tr></thead>
             <tbody>
               <tr><td><kbd>↑</kbd> <kbd>↓</kbd></td><td>Move the selection.</td></tr>
-              <tr><td><kbd>Enter</kbd> or a click</td><td>Open the selected row in the browser.</td></tr>
+              <tr><td><kbd>Enter</kbd> or a click</td><td>Open the selected row: a pull request or ticket in the browser; for a Claude Code session, bring its Ghostty window to the front.</td></tr>
               <tr><td><kbd>⌘</kbd><kbd>Enter</kbd></td><td>Open the Jira ticket linked to the selected pull request.</td></tr>
               <tr><td><kbd>Esc</kbd></td><td>Close the launcher.</td></tr>
             </tbody>
@@ -407,11 +457,19 @@ gh auth login</code></pre>
         Clicking it opens the pull request or ticket, or brings the Claude
         Code session's Ghostty window to the front. Choose what you get in
         <span class="ui">Settings… › Notifications</span>.</p>
-        <p>Each source has a master switch in its section heading
+        <figure class="fig" style="max-width:34rem">
+          <div class="view" style="--iw:1040;--ih:900">
+            <img src="assets/manual/devpulse-settings-notifications.png" alt="The Notifications tab of Settings with the GitHub master switch and its switches for each kind of notification">
+            <span class="mark" style="--x:5.2;--y:28;--w:14;--h:4.4"><b>1</b></span>
+            <span class="mark" style="--x:3.8;--y:34.3;--w:92.3;--h:49.8"><b>2</b></span>
+          </div>
+          <figcaption>The GitHub part of the Notifications tab; Jira and Claude Code follow below it.</figcaption>
+        </figure>
+        <p><span class="n">1</span>Each source has a master switch in its section heading
         (<span class="ui">GitHub</span>, <span class="ui">Jira</span>,
         <span class="ui">Claude Code</span>), on by default. Turning one off
         stops its notifications only; the data stays in the popover and the
-        dashboard. Below it, every kind of notification has its own switch;
+        dashboard. <span class="n">2</span>Below it, every kind of notification has its own switch;
         these are greyed out while their source's master switch is off:</p>
         <div class="table">
           <table>
@@ -456,17 +514,27 @@ gh auth login</code></pre>
       <section id="general">
         <h2>General settings</h2>
         <p><span class="ui">Settings… › General</span>:</p>
+        <figure class="fig" style="max-width:34rem">
+          <div class="view" style="--iw:1040;--ih:900;--zh:77">
+            <img src="assets/manual/devpulse-settings-general.png" alt="The General tab of Settings: refresh interval, launch at login, launcher shortcut and command line tool">
+            <span class="mark" style="--x:3.8;--y:28.5;--w:92.3;--h:9.2"><b>1</b></span>
+            <span class="mark" style="--x:3.8;--y:37.7;--w:92.3;--h:8"><b>2</b></span>
+            <span class="mark" style="--x:3.8;--y:48;--w:92.3;--h:8.8"><b>3</b></span>
+            <span class="mark" style="--x:3.8;--y:59.1;--w:92.3;--h:7.9"><b>4</b></span>
+          </div>
+          <figcaption>The General tab with the default settings and the command line tool installed.</figcaption>
+        </figure>
         <dl class="controls">
-          <dt>Refresh GitHub and Jira every</dt>
+          <dt><span class="n">1</span>Refresh GitHub and Jira every</dt>
           <dd>1 to 30 minutes, 2 by default; use the arrows. Fetching pauses
           while the Mac sleeps or the screen is locked and runs once right after
           it wakes or unlocks. Claude Code sessions are not fetched on a
           timer: DevPulse sees their changes as they happen.</dd>
-          <dt>Launch at login</dt>
+          <dt><span class="n">2</span>Launch at login</dt>
           <dd>Starts DevPulse when you log in; on by default. If macOS wants
           your approval, a line points to <span class="ui">System Settings ›
           General › Login Items</span>.</dd>
-          <dt>Quick launcher shortcut</dt>
+          <dt><span class="n">3</span>Quick launcher shortcut</dt>
           <dd>Shows the current shortcut, <span class="ui">⌥Space</span> by
           default. Click it, then press the new shortcut, or <kbd>Esc</kbd> to
           cancel. A shortcut without <kbd>⌘</kbd>, <kbd>⌥</kbd> or <kbd>⌃</kbd>
@@ -475,7 +543,7 @@ gh auth login</code></pre>
           which belong to Spotlight; the recorder then waits for another
           shortcut. If another app already uses it, a red line says so; pick a
           different one.</dd>
-          <dt>Command line tool</dt>
+          <dt><span class="n">4</span>Command line tool</dt>
           <dd><span class="ui">Install</span>, <span class="ui">Replace</span>
           or the installed path; see <a href="#cli">Command line tool</a>.</dd>
         </dl>

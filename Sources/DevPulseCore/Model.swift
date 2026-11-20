@@ -89,6 +89,9 @@ public struct PullRequest: Codable, Sendable, Equatable {
     public var id: String
     /// `owner/name`.
     public var repo: String
+    /// `owner/name` of the repository the branch lives in: another one for a PR from a fork. Nil
+    /// when GitHub does not say (a deleted fork); the branch is then looked up in `repo`.
+    public var headRepo: String?
     public var number: Int
     public var title: String
     public var url: String
@@ -106,7 +109,7 @@ public struct PullRequest: Codable, Sendable, Equatable {
     public var recentComments: [Comment]
 
     public init(
-        id: String, repo: String, number: Int, title: String, url: String,
+        id: String, repo: String, headRepo: String? = nil, number: Int, title: String, url: String,
         headBranch: String, headOid: String, jiraKey: String? = nil,
         checks: CheckState, reviewDecision: ReviewDecision,
         approvals: Int, pendingReviewers: Int, commentCount: Int,
@@ -115,6 +118,7 @@ public struct PullRequest: Codable, Sendable, Equatable {
     ) {
         self.id = id
         self.repo = repo
+        self.headRepo = headRepo
         self.number = number
         self.title = title
         self.url = url
@@ -133,6 +137,28 @@ public struct PullRequest: Codable, Sendable, Equatable {
     }
 }
 
+/// A ticket linked to another one in Jira ("blocks", "relates to", ...), as the other ticket's
+/// `issuelinks` field describes it.
+public struct RelatedTicket: Codable, Sendable, Equatable {
+    public var key: String
+    /// Empty when Jira leaves it out.
+    public var summary: String
+    /// The status name; empty, with the category `todo`, when Jira leaves it out.
+    public var status: String
+    public var statusCategory: StatusCategory
+    /// How the other ticket relates to this one, in Jira's words: "blocks", "is blocked by",
+    /// "relates to".
+    public var relation: String
+
+    public init(key: String, summary: String, status: String, statusCategory: StatusCategory, relation: String) {
+        self.key = key
+        self.summary = summary
+        self.status = status
+        self.statusCategory = statusCategory
+        self.relation = relation
+    }
+}
+
 public struct Ticket: Codable, Sendable, Equatable {
     public var key: String
     public var summary: String
@@ -144,11 +170,13 @@ public struct Ticket: Codable, Sendable, Equatable {
     public var commentCount: Int
     public var lastCommentAt: Date?
     public var recentComments: [Comment]
+    /// Its issue links. Added after protocol v1 shipped: missing in older JSON, read as empty.
+    public var related: [RelatedTicket]
 
     public init(
         key: String, summary: String, status: String, statusCategory: StatusCategory,
         priority: String? = nil, url: String, updatedAt: Date, commentCount: Int,
-        lastCommentAt: Date? = nil, recentComments: [Comment]
+        lastCommentAt: Date? = nil, recentComments: [Comment], related: [RelatedTicket] = []
     ) {
         self.key = key
         self.summary = summary
@@ -160,6 +188,22 @@ public struct Ticket: Codable, Sendable, Equatable {
         self.commentCount = commentCount
         self.lastCommentAt = lastCommentAt
         self.recentComments = recentComments
+        self.related = related
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        key = try c.decode(String.self, forKey: .key)
+        summary = try c.decode(String.self, forKey: .summary)
+        status = try c.decode(String.self, forKey: .status)
+        statusCategory = try c.decode(StatusCategory.self, forKey: .statusCategory)
+        priority = try c.decodeIfPresent(String.self, forKey: .priority)
+        url = try c.decode(String.self, forKey: .url)
+        updatedAt = try c.decode(Date.self, forKey: .updatedAt)
+        commentCount = try c.decode(Int.self, forKey: .commentCount)
+        lastCommentAt = try c.decodeIfPresent(Date.self, forKey: .lastCommentAt)
+        recentComments = try c.decode([Comment].self, forKey: .recentComments)
+        related = try c.decodeIfPresent([RelatedTicket].self, forKey: .related) ?? []
     }
 }
 
@@ -194,12 +238,16 @@ public struct Snapshot: Codable, Sendable, Equatable {
     public var myPullRequests: [PullRequest]
     public var reviewRequests: [PullRequest]
     public var tickets: [Ticket]
+    /// The Jira tickets of PRs that are not in `tickets` (not assigned to me), for the PR
+    /// detail. Never a reason for a notification. Added after protocol v1 shipped: missing in
+    /// older JSON, read as empty.
+    public var linkedTickets: [Ticket]
     public var sessions: [ClaudeSession]
 
     public init(
         appVersion: String, generatedAt: Date, jiraBaseURL: String? = nil, sources: Sources,
         myPullRequests: [PullRequest], reviewRequests: [PullRequest],
-        tickets: [Ticket], sessions: [ClaudeSession]
+        tickets: [Ticket], linkedTickets: [Ticket] = [], sessions: [ClaudeSession]
     ) {
         self.appVersion = appVersion
         self.generatedAt = generatedAt
@@ -208,7 +256,21 @@ public struct Snapshot: Codable, Sendable, Equatable {
         self.myPullRequests = myPullRequests
         self.reviewRequests = reviewRequests
         self.tickets = tickets
+        self.linkedTickets = linkedTickets
         self.sessions = sessions
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        appVersion = try c.decode(String.self, forKey: .appVersion)
+        generatedAt = try c.decode(Date.self, forKey: .generatedAt)
+        jiraBaseURL = try c.decodeIfPresent(String.self, forKey: .jiraBaseURL)
+        sources = try c.decode(Sources.self, forKey: .sources)
+        myPullRequests = try c.decode([PullRequest].self, forKey: .myPullRequests)
+        reviewRequests = try c.decode([PullRequest].self, forKey: .reviewRequests)
+        tickets = try c.decode([Ticket].self, forKey: .tickets)
+        linkedTickets = try c.decodeIfPresent([Ticket].self, forKey: .linkedTickets) ?? []
+        sessions = try c.decode([ClaudeSession].self, forKey: .sessions)
     }
 
     /// Encoder for the wire format: ISO 8601 dates, stable key order.

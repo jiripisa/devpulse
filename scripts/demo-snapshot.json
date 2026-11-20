@@ -132,11 +132,11 @@
       "recentComments": []
     },
     {
-      "id": "PR_demo_134",
+      "id": "PR_demo_2290",
       "repo": "acmecorp/mobile",
-      "number": 134,
+      "number": 2290,
       "title": "Push notification settings",
-      "url": "https://github.com/acmecorp/mobile/pull/134",
+      "url": "https://github.com/acmecorp/mobile/pull/2290",
       "headBranch": "feature/push-settings",
       "headOid": "ccddeeff00112233445566778899aabbccddeeff",
       "checks": "error",
@@ -165,6 +165,10 @@
       "lastCommentAt": "2026-11-19T08:15:00Z",
       "recentComments": [
         { "id": "10101", "author": "712020:demo-alice", "authorName": "Alice Nováková", "authorKind": "human", "createdAt": "2026-11-19T08:15:00Z" }
+      ],
+      "related": [
+        { "key": "STORE-2466", "summary": "Invoice numbers repeat after a cancellation", "status": "Done", "statusCategory": "done", "relation": "is blocked by" },
+        { "key": "STORE-2290", "summary": "Monthly statement shows the wrong opening balance", "status": "In Progress", "statusCategory": "inProgress", "relation": "relates to" }
       ]
     },
     {
@@ -176,7 +180,11 @@
       "url": "https://acmecorp.atlassian.net/browse/STORE-2481",
       "updatedAt": "2026-11-19T09:20:00Z",
       "commentCount": 0,
-      "recentComments": []
+      "recentComments": [],
+      "related": [
+        { "key": "STORE-2488", "summary": "Document the export limits in the API guide", "status": "To Do", "statusCategory": "todo", "relation": "blocks" },
+        { "key": "STORE-2302", "summary": "Export times out for large accounts", "status": "Done", "statusCategory": "done", "relation": "relates to" }
+      ]
     },
     {
       "key": "STORE-2290",
@@ -191,6 +199,10 @@
       "recentComments": [
         { "id": "10102", "author": "712020:demo-petr", "authorName": "Petr Dvořák", "authorKind": "human", "createdAt": "2026-11-19T07:00:00Z" },
         { "id": "10103", "author": "557058:automation", "authorName": "Automation for Jira", "authorKind": "bot", "createdAt": "2026-11-19T07:45:00Z" }
+      ],
+      "related": [
+        { "key": "STORE-2285", "summary": "Backfill closing balances for October", "status": "In Progress", "statusCategory": "inProgress", "relation": "is blocked by" },
+        { "key": "STORE-2474", "summary": "Replace invoice order on update", "status": "In Review", "statusCategory": "inProgress", "relation": "relates to" }
       ]
     },
     {
@@ -202,7 +214,10 @@
       "url": "https://acmecorp.atlassian.net/browse/STORE-2399",
       "updatedAt": "2026-11-17T13:00:00Z",
       "commentCount": 0,
-      "recentComments": []
+      "recentComments": [],
+      "related": [
+        { "key": "STORE-2412", "summary": "Move the remaining customers to the new importer", "status": "In Progress", "statusCategory": "inProgress", "relation": "is blocked by" }
+      ]
     },
     {
       "key": "STORE-2510",
@@ -213,7 +228,26 @@
       "url": "https://acmecorp.atlassian.net/browse/STORE-2510",
       "updatedAt": "2026-11-16T10:30:00Z",
       "commentCount": 0,
-      "recentComments": []
+      "recentComments": [],
+      "related": [
+        { "key": "STORE-2501", "summary": "Welcome e-mail for new customers", "status": "To Do", "statusCategory": "todo", "relation": "relates to" }
+      ]
+    }
+  ],
+  "linkedTickets": [
+    {
+      "key": "STORE-2502",
+      "summary": "Cache customer lookups",
+      "status": "In Review",
+      "statusCategory": "inProgress",
+      "priority": "Medium",
+      "url": "https://acmecorp.atlassian.net/browse/STORE-2502",
+      "updatedAt": "2026-11-19T09:05:00Z",
+      "commentCount": 0,
+      "recentComments": [],
+      "related": [
+        { "key": "STORE-2498", "summary": "Customer API answers slower than 500 ms", "status": "In Progress", "statusCategory": "inProgress", "relation": "relates to" }
+      ]
     }
   ],
   "sessions": [

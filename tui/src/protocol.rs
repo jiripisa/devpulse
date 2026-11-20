@@ -119,6 +119,8 @@ pub struct PullRequest {
     pub id: String,
     /// `owner/name`.
     pub repo: String,
+    /// `owner/name` of the repository the branch lives in (a fork); `None` when unknown.
+    pub head_repo: Option<String>,
     pub number: u64,
     pub title: String,
     pub url: String,
@@ -137,6 +139,20 @@ pub struct PullRequest {
     pub recent_comments: Vec<Comment>,
 }
 
+/// A ticket linked to another one in Jira ("blocks", "relates to", ...).
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RelatedTicket {
+    pub key: String,
+    #[serde(default)]
+    pub summary: String,
+    #[serde(default)]
+    pub status: String,
+    pub status_category: StatusCategory,
+    /// In Jira's words: "blocks", "is blocked by", "relates to".
+    pub relation: String,
+}
+
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Ticket {
@@ -151,6 +167,9 @@ pub struct Ticket {
     pub last_comment_at: Option<String>,
     #[serde(default)]
     pub recent_comments: Vec<Comment>,
+    /// Added after v1 shipped; an older app leaves it out.
+    #[serde(default)]
+    pub related: Vec<RelatedTicket>,
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
@@ -176,6 +195,10 @@ pub struct Snapshot {
     pub my_pull_requests: Vec<PullRequest>,
     pub review_requests: Vec<PullRequest>,
     pub tickets: Vec<Ticket>,
+    /// The tickets of PRs that are not in `tickets` (not assigned to me). Added after v1
+    /// shipped; an older app leaves it out.
+    #[serde(default)]
+    pub linked_tickets: Vec<Ticket>,
     pub sessions: Vec<ClaudeSession>,
 }
 

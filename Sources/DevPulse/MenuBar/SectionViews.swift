@@ -100,9 +100,7 @@ struct PullRequestRow: View {
     @ViewBuilder
     private var leadingIcon: some View {
         if isReviewRequest {
-            Image(systemName: pr.requestedDirectly ? "person.fill" : "person.2")
-                .foregroundStyle(pr.requestedDirectly ? AnyShapeStyle(.orange) : AnyShapeStyle(.secondary))
-                .help(pr.requestedDirectly ? "Requested from you" : "Requested from your team")
+            ReviewRequestIcon(direct: pr.requestedDirectly)
         } else {
             switch pr.checks {
             case .success: Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
@@ -155,7 +153,7 @@ struct SessionRow: View {
     var body: some View {
         RowButton(action: action) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
-                statusIcon.frame(width: 14)
+                SessionStatusIcon(status: session.status).frame(width: 14)
                 VStack(alignment: .leading, spacing: 1) {
                     HStack(spacing: 6) {
                         Text(session.name).lineLimit(1)
@@ -170,24 +168,33 @@ struct SessionRow: View {
         .help(session.cwd)
     }
 
-    @ViewBuilder
-    private var statusIcon: some View {
-        switch session.status {
+    private var details: String {
+        let cwd = (session.cwd as NSString).abbreviatingWithTildeInPath
+        return "\(session.stateText) · \(cwd)"
+    }
+}
+
+/// One person: requested from me; two people: from one of my teams. The launcher uses it too.
+struct ReviewRequestIcon: View {
+    let direct: Bool
+
+    var body: some View {
+        Image(systemName: direct ? "person.fill" : "person.2")
+            .foregroundStyle(direct ? AnyShapeStyle(.orange) : AnyShapeStyle(.secondary))
+            .help(direct ? "Requested from you" : "Requested from your team")
+    }
+}
+
+/// A Claude Code session's state; the launcher uses it too.
+struct SessionStatusIcon: View {
+    let status: SessionStatus
+
+    var body: some View {
+        switch status {
         case .waiting: Image(systemName: "circle.fill").foregroundStyle(.orange)
         case .busy: Image(systemName: "circle.lefthalf.filled").foregroundStyle(.blue)
         case .idle: Image(systemName: "circle").foregroundStyle(.secondary)
         case .unknown: Image(systemName: "questionmark.circle").foregroundStyle(.tertiary)
         }
-    }
-
-    private var details: String {
-        let state = switch session.status {
-        case .waiting: session.waitingFor.map { "waiting: \($0)" } ?? "waiting for input"
-        case .busy: "busy"
-        case .idle: "idle"
-        case .unknown: "unknown"
-        }
-        let cwd = (session.cwd as NSString).abbreviatingWithTildeInPath
-        return "\(state) · \(cwd)"
     }
 }

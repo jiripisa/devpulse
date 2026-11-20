@@ -155,6 +155,8 @@ public final class GitHubSource: Sendable {
         var headRefOid: String
         var updatedAt: String
         var repository: Repository
+        /// Null when the fork was deleted.
+        var headRepository: Repository?
         var reviewDecision: String?
         var commits: Nodes<CommitNode>
         var latestOpinionatedReviews: Nodes<ReviewState>
@@ -171,7 +173,8 @@ public final class GitHubSource: Sendable {
                 .map { try $0.comment() }
                 .sorted { $0.createdAt > $1.createdAt }
             return PullRequest(
-                id: id, repo: repository.nameWithOwner, number: number, title: title, url: url,
+                id: id, repo: repository.nameWithOwner, headRepo: headRepository?.nameWithOwner,
+                number: number, title: title, url: url,
                 headBranch: headRefName, headOid: headRefOid,
                 jiraKey: JiraKey.find(inAny: [title, headRefName]),
                 checks: checks,

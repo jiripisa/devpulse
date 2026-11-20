@@ -7,6 +7,42 @@
         "status": { "name": "To Do", "statusCategory": { "key": "new" } },
         "priority": { "name": "High" },
         "updated": "2026-11-19T10:15:30.123+0100",
+        "issuelinks": [
+          {
+            "id": "20001",
+            "type": { "id": "10000", "name": "Blocks", "inward": "is blocked by", "outward": "blocks" },
+            "outwardIssue": {
+              "id": "30009", "key": "SYN-9",
+              "fields": {
+                "summary": "Ninth synthetic ticket",
+                "status": { "name": "In Review", "statusCategory": { "key": "indeterminate" } },
+                "priority": { "name": "Medium" },
+                "issuetype": { "name": "Task" }
+              }
+            }
+          },
+          {
+            "id": "20002",
+            "type": { "id": "10000", "name": "Blocks", "inward": "is blocked by", "outward": "blocks" },
+            "inwardIssue": {
+              "id": "40005", "key": "OTHER-5",
+              "fields": {
+                "summary": "A ticket in another project",
+                "status": { "name": "Done", "statusCategory": { "key": "done" } }
+              }
+            }
+          },
+          {
+            "id": "20003",
+            "type": { "id": "10003", "name": "Relates", "inward": "relates to", "outward": "relates to" },
+            "outwardIssue": { "id": "40006", "key": "OTHER-6", "fields": {} }
+          },
+          {
+            "id": "20004",
+            "type": { "id": "10004", "name": "Cloners" },
+            "inwardIssue": { "id": "40007", "key": "OTHER-7" }
+          }
+        ],
         "comment": {
           "total": 3,
           "comments": [
@@ -24,6 +60,7 @@
         "status": { "name": "In Progress", "statusCategory": { "key": "indeterminate" } },
         "priority": null,
         "updated": "2026-11-19T11:00:00.000+0000",
+        "issuelinks": [],
         "comment": { "total": 0, "comments": [] }
       }
     },

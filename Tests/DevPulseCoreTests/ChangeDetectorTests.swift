@@ -171,6 +171,21 @@ private func run(
         #expect(events.map(\.trigger) == [.jiraHumanComment])
     }
 
+    @Test func linkedTicketsNeverNotify() {
+        var seen = SeenState()
+        _ = run(nil, snap(tickets: [ticket()]), &seen)
+        // Someone else's ticket that a PR links to: a new human comment there stays silent,
+        // and its ticket and comment are not remembered.
+        var s = snap(tickets: [ticket()])
+        s.linkedTickets = [ticket("OTHER-1", comments: [comment("1"), comment("2", kind: .bot)])]
+        let before = seen
+        #expect(run(nil, s, &seen).isEmpty)
+        #expect(seen.comments == before.comments)
+        // The same ticket becoming mine notifies as usual.
+        let mine = snap(tickets: [ticket("OTHER-1", comments: [comment("1"), comment("3")])])
+        #expect(run(nil, mine, &seen).map(\.trigger) == [.jiraHumanComment, .jiraHumanComment])
+    }
+
     @Test func unknownIdentitySilencesSourceAndDoesNotBaseline() {
         var seen = SeenState()
         let s = snap(mine: [pr(comments: [comment("1")])], reviews: [pr(2)], tickets: [ticket(comments: [comment("9")])])

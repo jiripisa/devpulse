@@ -16,6 +16,9 @@
           "repository": {
             "nameWithOwner": "acme/widgets"
           },
+          "headRepository": {
+            "nameWithOwner": "fork-owner/widgets"
+          },
           "reviewDecision": "APPROVED",
           "commits": {
             "nodes": [
@@ -110,6 +113,7 @@
           "repository": {
             "nameWithOwner": "acme/widgets"
           },
+          "headRepository": null,
           "reviewDecision": "REVIEW_REQUIRED",
           "commits": {
             "nodes": [

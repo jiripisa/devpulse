@@ -125,8 +125,17 @@ gh auth login</code></pre>
         <p>DevPulse si token od <code>gh</code> vyžádá jednou, při startu,
         a drží ho jen v paměti; znovu se ptá, jen když ho GitHub odmítne. Záložka <span class="ui">Settings… › GitHub</span> má
         tyto prvky:</p>
+        <figure class="fig" style="max-width:34rem">
+          <div class="view" style="--iw:1040;--ih:900;--zh:77">
+            <img src="../assets/manual/devpulse-settings-github.png" alt="Záložka GitHub v nastavení: stav, týmové žádosti o review a výchozí repozitář">
+            <span class="mark" style="--x:3.8;--y:28.5;--w:92.3;--h:7.9"><b>1</b></span>
+            <span class="mark" style="--x:3.8;--y:38.7;--w:92.3;--h:8"><b>2</b></span>
+            <span class="mark" style="--x:3.8;--y:58.6;--w:92.3;--h:8"><b>3</b></span>
+          </div>
+          <figcaption>Záložka GitHub, když je <code>gh</code> přihlášené.</figcaption>
+        </figure>
         <dl class="controls">
-          <dt>Status</dt>
+          <dt><span class="n">1</span>Status</dt>
           <dd>Když poslední načtení vyšlo, <span class="ui">Signed in as …</span>
           s vaším loginem; jinak popis problému, například
           <span class="ui">Not logged in — run “gh auth login”</span> nebo
@@ -134,13 +143,13 @@ gh auth login</code></pre>
           <dt>Check Again</dt>
           <dd>Ukáže se, dokud GitHub není připojený. Po <code>gh auth login</code>
           na něj klikněte a data se načtou hned.</dd>
-          <dt>Include team review requests</dt>
+          <dt><span class="n">2</span>Include team review requests</dt>
           <dd>Ve výchozím stavu vypnuto. Zapnuté přidá do <b>Review requests</b>
           i pull requesty, které o review žádají některý z vašich týmů, ne jen
           vás.</dd>
-          <dt>Default repository</dt>
+          <dt><span class="n">3</span>Default repository</dt>
           <dd><code>owner/name</code>, které <a href="#launcher">rychlé hledání</a>
-          použije pro <code>gh &lt;číslo&gt;</code>, když číslo nepatří žádnému
+          použije pro <code>gh &lt;číslo&gt;</code> a samotné číslo, když číslo nepatří žádnému
           z vašich známých pull requestů. Prázdné pole znamená repozitář, ve
           kterém máte nejvíc pull requestů; pole ho ukazuje šedě.</dd>
         </dl>
@@ -149,29 +158,40 @@ gh auth login</code></pre>
       <section id="jira">
         <h2>Připojení Jiry</h2>
         <p>Otevřené tikety z Jira Cloud čte DevPulse pomocí API tokenu.</p>
+        <figure class="fig" style="max-width:34rem">
+          <div class="view" style="--iw:1040;--ih:900">
+            <img src="../assets/manual/devpulse-settings-jira.png" alt="Záložka Jira v nastavení s webem, e-mailem, uloženým tokenem, tlačítky Test Connection a Save a výchozím projektem">
+            <span class="mark" style="--x:3.8;--y:28.5;--w:92.3;--h:24.4"><b>1</b></span>
+            <span class="mark" style="--x:5.3;--y:54.8;--w:37.5;--h:3.6"><b>2</b></span>
+            <span class="mark" style="--x:58.4;--y:70.4;--w:24.4;--h:6"><b>3</b></span>
+            <span class="mark" style="--x:83.6;--y:70.4;--w:10.9;--h:6"><b>4</b></span>
+            <span class="mark" style="--x:3.8;--y:80.4;--w:92.3;--h:8.4"><b>5</b></span>
+          </div>
+          <figcaption>Záložka Jira s tokenem uloženým v Klíčence.</figcaption>
+        </figure>
         <ol>
           <li>Vytvořte token na
           <a href="https://id.atlassian.com/manage-profile/security/api-tokens">id.atlassian.com › Security › API tokens</a>
-          (stejnou stránku otevře odkaz <span class="ui">Create an API token at
+          (stejnou stránku otevře odkaz <span class="n">2</span><span class="ui">Create an API token at
           id.atlassian.com</span> v nastavení) a zkopírujte ho.</li>
           <li>Otevřete <span class="ui">Settings… › Jira</span>.</li>
-          <li>Vyplňte <span class="ui">Site</span> (třeba
+          <li><span class="n">1</span>Vyplňte <span class="ui">Site</span> (třeba
           <code>acme.atlassian.net</code>), <span class="ui">E-mail</span> (váš
           účet Atlassian) a <span class="ui">API token</span>. DevPulse se
           k webu vždy připojuje přes HTTPS, i když zadáte <code>http://</code>.</li>
-          <li>Klikněte na <span class="ui">Test Connection</span>. Odpoví
+          <li><span class="n">3</span>Klikněte na <span class="ui">Test Connection</span>. Odpoví
           <span class="ui">Connected — 5 open tickets</span>, nebo řekne, co je
           špatně, například <span class="ui">Jira credentials rejected</span>.</li>
-          <li>Klikněte na <span class="ui">Save</span>.</li>
+          <li><span class="n">4</span>Klikněte na <span class="ui">Save</span>.</li>
         </ol>
         <p>Token se ukládá do vaší přihlašovací Klíčenky, nikdy do souboru
         s nastavením. Po uložení pole tokenu ukazuje <span class="ui">Saved in
         Keychain — leave empty to keep</span>: když měníte <span class="ui">Site</span> nebo e-mail,
         nechte ho prázdné a token zůstane, nebo vložte nový a nahradíte ho.</p>
         <dl class="controls">
-          <dt>Default project</dt>
+          <dt><span class="n">5</span>Default project</dt>
           <dd>Klíč projektu, který <a href="#launcher">rychlé hledání</a> doplní
-          před <code>jira &lt;číslo&gt;</code>. Prázdné pole znamená projekt,
+          před <code>jira &lt;číslo&gt;</code> a samotné číslo. Prázdné pole znamená projekt,
           ve kterém máte nejvíc tiketů; pole ho ukazuje šedě.</dd>
         </dl>
         <p>DevPulse ukazuje tikety, které máte přiřazené a které ještě nejsou
@@ -180,20 +200,18 @@ gh auth login</code></pre>
 
       <section id="popover">
         <h2>Menu bar</h2>
-        <p>Ikona DevPulse je křivka pulsu. Když vás něco potřebuje, objeví se
-        vedle ní číslo: žádosti o review poslané přímo vám plus sessions Claude
-        Code, které čekají na váš vstup. Kliknutím na ikonu otevřete okénko.</p>
+        <p>Ikona DevPulse je ciferník sonaru: kroužek s tečkou a krátkou čárkou. Kliknutím na ni otevřete okénko.</p>
         <figure class="fig" style="max-width:28rem">
-          <div class="view" style="--iw:760;--ih:1172">
-            <img src="../assets/manual/devpulse-popover.png" alt="Okénko DevPulse s pull requesty, žádostmi o review, tikety z Jiry a session Claude Code">
-            <span class="mark" style="--x:92.1;--y:1;--w:5.3;--h:3.4"><b>1</b></span>
-            <span class="mark" style="--x:83.7;--y:6.8;--w:13.7;--h:2.4"><b>2</b></span>
-            <span class="mark" style="--x:2.1;--y:9.7;--w:81.6;--h:5.5"><b>3</b></span>
-            <span class="mark" style="--x:2.1;--y:40.1;--w:5.8;--h:17.9"><b>4</b></span>
-            <span class="mark" style="--x:2.1;--y:63.5;--w:95.8;--h:3.2"><b>5</b></span>
-            <span class="mark" style="--x:2.1;--y:88.1;--w:62;--h:5.1"><b>6</b></span>
-            <span class="mark" style="--x:1.8;--y:95.1;--w:17.9;--h:3.8"><b>7</b></span>
-            <span class="mark" style="--x:73.4;--y:95.1;--w:25;--h:3.8"><b>8</b></span>
+          <div class="view" style="--iw:760;--ih:1330">
+            <img src="../assets/manual/devpulse-popover.png" alt="Okénko DevPulse s pull requesty, žádostmi o review, tikety z Jiry a třemi sessions Claude Code">
+            <span class="mark" style="--x:92.1;--y:0.9;--w:5.3;--h:3"><b>1</b></span>
+            <span class="mark" style="--x:83.7;--y:6;--w:13.7;--h:2.1"><b>2</b></span>
+            <span class="mark" style="--x:2.1;--y:8.5;--w:81.6;--h:4.8"><b>3</b></span>
+            <span class="mark" style="--x:2.1;--y:35.3;--w:5.8;--h:15.8"><b>4</b></span>
+            <span class="mark" style="--x:2.1;--y:56;--w:95.8;--h:2.8"><b>5</b></span>
+            <span class="mark" style="--x:2.1;--y:77.6;--w:62;--h:4.5"><b>6</b></span>
+            <span class="mark" style="--x:1.8;--y:95.7;--w:17.9;--h:3.3"><b>7</b></span>
+            <span class="mark" style="--x:73.4;--y:95.7;--w:25;--h:3.3"><b>8</b></span>
           </div>
           <figcaption>Okénko má čtyři části: My pull requests, Review requests,
           Jira a Claude Code. Když se nevejdou, dá se v nich posouvat.</figcaption>
@@ -262,9 +280,10 @@ gh auth login</code></pre>
             <span class="mark" style="--x:0.5;--y:61;--w:44;--h:19.2"><b>3</b></span>
             <span class="mark" style="--x:0.5;--y:81.3;--w:44;--h:13.3"><b>4</b></span>
             <span class="mark" style="--x:45.2;--y:8.6;--w:53.8;--h:86.2"><b>5</b></span>
-            <span class="mark" style="--x:9.8;--y:5.7;--w:31.5;--h:3.1"><b>6</b></span>
+            <span class="mark" style="--x:9.8;--y:5.7;--w:33;--h:3.1"><b>6</b></span>
             <span class="mark" style="--x:0.5;--y:95.7;--w:83.2;--h:3.4"><b>7</b></span>
             <span class="mark" style="--x:93;--y:95.7;--w:5.8;--h:3.4"><b>8</b></span>
+            <span class="mark" style="--x:46.3;--y:41.2;--w:52.2;--h:8.6"><b>9</b></span>
           </div>
           <figcaption><code>devpulse</code> v Ghostty. Barvy se řídí motivem
           vašeho terminálu.</figcaption>
@@ -286,10 +305,11 @@ gh auth login</code></pre>
           za <span class="ui">→</span> navázaný klíč z Jiry.</dd>
           <dt><span class="n">5</span>Detail</dt>
           <dd>Všechno o vybrané položce. U pull requestu navázaný tiket a jeho
-          stav, větev, kontroly, review, komentáře, jestli review chtějí po vás
-          nebo po týmu, poslední změna a tři nejnovější komentáře. U tiketu
-          stav, priorita, komentáře a navázané pull requesty a sessions.
-          U session stav (a na co čeká), složka, klíč z Jiry a ID procesu.
+          stav (i když tiket není přiřazený vám), větev, kontroly, review,
+          komentáře, jestli review chtějí po vás nebo po týmu, poslední změna,
+          související tikety a tři nejnovější komentáře. U tiketu stav,
+          priorita, komentáře, navázané pull requesty a sessions a související
+          tikety. U session stav (a na co čeká), složka, klíč z Jiry a ID procesu.
           Spodní řádky říkají, které klávesy tu platí.</dd>
           <dt><span class="n">6</span>Zdroje</dt>
           <dd>Každý zdroj se stavem a stářím dat: <span class="ui">✓ 2m</span>,
@@ -301,6 +321,9 @@ gh auth login</code></pre>
           důležité vynechají.</dd>
           <dt><span class="n">8</span>Pozice</dt>
           <dd>Vybraný řádek a délka seznamu v aktivním panelu.</dd>
+          <dt><span class="n">9</span>Related</dt>
+          <dd>Vazby tiketu v Jiře, tady tiketu daného pull requestu; viz
+          <b>Související tikety</b> níže.</dd>
         </dl>
 
         <h3 id="tui-keys">Klávesy</h3>
@@ -318,6 +341,7 @@ gh auth login</code></pre>
               <tr><td><kbd>?</kbd></td><td>Seznam všech kláves; zavře ho <kbd>Esc</kbd>, <kbd>?</kbd>, <kbd>q</kbd> nebo kliknutí.</td></tr>
               <tr><td><kbd>q</kbd>, <kbd>Ctrl</kbd>-<kbd>C</kbd></td><td>Konec.</td></tr>
               <tr><td>Myš</td><td>Kliknutí vybere řádek (i jeho panel), kolečko posouvá panel pod ukazatelem.</td></tr>
+              <tr><td><kbd>⌘</kbd>-kliknutí</td><td>V Ghostty otevře odkaz pod ukazatelem v detailu (viz <a href="#tui-links">Odkazy</a>); pokud váš terminál posílá kliknutí aplikaci, držte k tomu i <kbd>⇧</kbd> (<kbd>⇧</kbd><kbd>⌘</kbd>-kliknutí).</td></tr>
             </tbody>
           </table>
         </div>
@@ -328,6 +352,21 @@ gh auth login</code></pre>
         panelu ukazuje, kolik řádků vyhovuje, třeba <span class="ui">2/4</span>.
         <kbd>Enter</kbd> filtr ponechá a vrátí vás do seznamů, <kbd>Esc</kbd>
         ho zruší.</p>
+        <p><b>Související tikety.</b> Když má tiket v Jiře vazby, detail ukáže
+        oddíl <span class="ui">Related</span> s řádkem pro každou vazbu: jak
+        spolu tikety souvisí, slovy Jiry (<span class="ui">blocks</span>,
+        <span class="ui">is blocked by</span>, <span class="ui">relates to</span>),
+        klíč, stav v jeho barvě a název. Pull request ukazuje související
+        tikety svého tiketu, i když ten tiket není přiřazený vám. Bez vazeb se
+        oddíl neukáže.</p>
+        <p id="tui-links"><b>Odkazy.</b> V Ghostty otevřete kliknutím
+        s <kbd>⌘</kbd> klíč z Jiry, větev, název pull requestu nebo řádek
+        v oddílu <span class="ui">Related</span>: tiket v Jiře, větev na
+        GitHubu (u pull requestu z forku ve forku) nebo pull request. Stejně
+        funguje klíč a název tiketu a klíč z Jiry u session. Pokud váš
+        terminál posílá kliknutí aplikaci, držte k tomu i <kbd>⇧</kbd>
+        (<kbd>⇧</kbd><kbd>⌘</kbd>-kliknutí). Terminál bez podpory odkazů
+        ukáže stejný text.</p>
 
         <h3 id="tui-states">Stavy a hlášky</h3>
         <ul>
@@ -354,30 +393,43 @@ gh auth login</code></pre>
       <section id="launcher">
         <h2>Rychlé hledání</h2>
         <p>Stiskněte kdekoli <kbd>⌥</kbd><kbd>Space</kbd> a uprostřed obrazovky
-        se otevře vyhledávací panel. Napište <code>gh</code> pro pull requesty
-        nebo <code>jira</code> pro tikety; zkratku změníte v
+        se otevře vyhledávací panel. Napište číslo, které se pak hledá všude,
+        <code>gh</code> pro pull requesty nebo <code>jira</code> pro tikety;
+        zkratku změníte v
         <a href="#general">obecných nastaveních</a>.</p>
-        <figure class="fig" hidden><!-- shown once devpulse-launcher.png exists -->
+        <figure class="fig">
           <div class="view" style="--iw:1280;--ih:774">
             <img src="../assets/manual/devpulse-launcher.png" alt="Rychlé hledání se seznamem pull requestů pro dotaz gh">
             <span class="mark" style="--x:1;--y:1;--w:98;--h:13"><b>1</b></span>
-            <span class="mark" style="--x:1;--y:15.5;--w:98;--h:11.9"><b>2</b></span>
+            <span class="mark" style="--x:1;--y:15.5;--w:98;--h:83.5"><b>2</b></span>
           </div>
           <figcaption>Rychlé hledání po napsání <code>gh</code>.</figcaption>
         </figure>
         <dl class="controls">
           <dt><span class="n">1</span>Vyhledávací pole</dt>
-          <dd>Sem napište dotaz podle tabulky níže.</dd>
+          <dd>Sem napište dotaz podle tabulky níže. Dokud nic nenapíšete,
+          ukazuje světle šedou nápovědu <span class="ui">Number, gh … or
+          jira …</span>.</dd>
           <dt><span class="n">2</span>Výsledky</dt>
-          <dd>Nejvýš 20 řádků, každý s názvem a pod ním repozitářem, stavem
-          tiketu nebo, u řádku, který otevře číslo či klíč, pro který žádnou
-          položku nemáte, adresou, kterou otevře. Vybraný řádek je
+          <dd>Nejvýš 20 řádků. Ikona říká, co řádek je: pull request
+          (rozvětvená šipka), žádost o review (jedna nebo dvě postavy jako
+          v okénku), tiket z Jiry, nebo session Claude Code (její stav jako
+          v okénku). Pod názvem je repozitář, stav tiketu, stav a složka
+          session nebo, u řádku, který otevře číslo či klíč, pro který žádnou
+          položku nemáte, adresa, kterou otevře. Vybraný řádek je
           zvýrazněný.</dd>
         </dl>
+        <figure class="fig">
+          <div class="view" style="--iw:1280;--ih:498">
+            <img src="../assets/manual/devpulse-launcher-number.png" alt="Rychlé hledání pro číslo 2290: žádost o review, tiket z Jiry, session Claude Code a řádek pro výchozí repozitář">
+          </div>
+          <figcaption>Samotné číslo najde všechno, co ho nese: tady žádost o review #2290, tiket STORE-2290, session ve složce <code>store-2290-statement</code> a nakonec řádek, který otevře 2290 ve výchozím repozitáři.</figcaption>
+        </figure>
         <div class="table">
           <table>
             <thead><tr><th>Napíšete</th><th>Výsledek</th></tr></thead>
             <tbody>
+              <tr><td><code>2474</code></td><td>Všechno s tímto číslem: vaše pull requesty a žádosti o review s číslem 2474 v libovolném repozitáři, za nimi vaše tikety s číslem 2474 v libovolném projektu (<code>STORE-2474</code>, <code>WA-2474</code>) a sessions Claude Code, jejichž klíč z Jiry nebo název složky toto číslo obsahuje (<code>store-2474-fix</code>, ale ne <code>store-24740</code>). Nakonec řádky, které otevřou 2474 ve <a href="#github">výchozím repozitáři</a> a <code>STORE-2474</code> ve <a href="#jira">výchozím projektu</a>, pokud už v seznamu nejsou.</td></tr>
               <tr><td><code>gh</code></td><td>Vaše pull requesty, za nimi žádosti o review.</td></tr>
               <tr><td><code>gh invoice</code></td><td>Ty, jejichž název nebo repozitář text obsahuje.</td></tr>
               <tr><td><code>gh 812</code></td><td>Váš pull request nebo žádost o review s tímto číslem. Když takový nemáte, řádek, který otevře <code>812</code> ve <a href="#github">výchozím repozitáři</a>.</td></tr>
@@ -394,7 +446,7 @@ gh auth login</code></pre>
             <thead><tr><th>Klávesa</th><th>Akce</th></tr></thead>
             <tbody>
               <tr><td><kbd>↑</kbd> <kbd>↓</kbd></td><td>Posun výběru.</td></tr>
-              <tr><td><kbd>Enter</kbd> nebo kliknutí</td><td>Otevřít vybraný řádek v prohlížeči.</td></tr>
+              <tr><td><kbd>Enter</kbd> nebo kliknutí</td><td>Otevřít vybraný řádek: pull request nebo tiket v prohlížeči, u session Claude Code přenést dopředu její okno Ghostty.</td></tr>
               <tr><td><kbd>⌘</kbd><kbd>Enter</kbd></td><td>Otevřít tiket z Jiry navázaný na vybraný pull request.</td></tr>
               <tr><td><kbd>Esc</kbd></td><td>Zavřít panel.</td></tr>
             </tbody>
@@ -408,11 +460,19 @@ gh auth login</code></pre>
         Kliknutím na ni otevřete pull request nebo tiket, případně přenesete
         dopředu okno Ghostty se session Claude Code. Co chcete dostávat,
         nastavíte v <span class="ui">Settings… › Notifications</span>.</p>
-        <p>Každý zdroj má hlavní vypínač v nadpisu své části
+        <figure class="fig" style="max-width:34rem">
+          <div class="view" style="--iw:1040;--ih:900">
+            <img src="../assets/manual/devpulse-settings-notifications.png" alt="Záložka Notifications v nastavení s hlavním vypínačem GitHubu a vypínači pro jednotlivé druhy notifikací">
+            <span class="mark" style="--x:5.2;--y:28;--w:14;--h:4.4"><b>1</b></span>
+            <span class="mark" style="--x:3.8;--y:34.3;--w:92.3;--h:49.8"><b>2</b></span>
+          </div>
+          <figcaption>Část GitHub záložky Notifications; Jira a Claude Code následují pod ní.</figcaption>
+        </figure>
+        <p><span class="n">1</span>Každý zdroj má hlavní vypínač v nadpisu své části
         (<span class="ui">GitHub</span>, <span class="ui">Jira</span>,
         <span class="ui">Claude Code</span>), ve výchozím stavu zapnutý. Jeho
         vypnutím zastavíte jen notifikace; data v okénku i v terminálu
-        zůstanou. Pod ním má vlastní vypínač každý druh notifikace; tyto
+        zůstanou. <span class="n">2</span>Pod ním má vlastní vypínač každý druh notifikace; tyto
         vypínače jsou zašedlé, dokud je hlavní vypínač jejich zdroje vypnutý:</p>
         <div class="table">
           <table>
@@ -458,17 +518,27 @@ gh auth login</code></pre>
       <section id="general">
         <h2>Obecná nastavení</h2>
         <p><span class="ui">Settings… › General</span>:</p>
+        <figure class="fig" style="max-width:34rem">
+          <div class="view" style="--iw:1040;--ih:900;--zh:77">
+            <img src="../assets/manual/devpulse-settings-general.png" alt="Záložka General v nastavení: interval načítání, spuštění po přihlášení, zkratka rychlého hledání a nástroj pro příkazovou řádku">
+            <span class="mark" style="--x:3.8;--y:28.5;--w:92.3;--h:9.2"><b>1</b></span>
+            <span class="mark" style="--x:3.8;--y:37.7;--w:92.3;--h:8"><b>2</b></span>
+            <span class="mark" style="--x:3.8;--y:48;--w:92.3;--h:8.8"><b>3</b></span>
+            <span class="mark" style="--x:3.8;--y:59.1;--w:92.3;--h:7.9"><b>4</b></span>
+          </div>
+          <figcaption>Záložka General s výchozím nastavením a nainstalovaným nástrojem pro příkazovou řádku.</figcaption>
+        </figure>
         <dl class="controls">
-          <dt>Refresh GitHub and Jira every</dt>
+          <dt><span class="n">1</span>Refresh GitHub and Jira every</dt>
           <dd>1 až 30 minut, výchozí jsou 2; nastavuje se šipkami. Když Mac
           spí nebo je zamčená obrazovka, načítání stojí a po probuzení či
           odemčení proběhne hned jednou. Sessions Claude Code se podle časovače
           nenačítají: DevPulse vidí jejich změny, jakmile nastanou.</dd>
-          <dt>Launch at login</dt>
+          <dt><span class="n">2</span>Launch at login</dt>
           <dd>Spustí DevPulse po přihlášení; ve výchozím stavu zapnuto. Pokud
           macOS chce vaše schválení, řádek vás pošle do <span class="ui">System
           Settings › General › Login Items</span>.</dd>
-          <dt>Quick launcher shortcut</dt>
+          <dt><span class="n">3</span>Quick launcher shortcut</dt>
           <dd>Ukazuje aktuální zkratku, výchozí je <span class="ui">⌥Space</span>.
           Klikněte na ni a stiskněte novou, nebo <kbd>Esc</kbd> pro zrušení.
           Zkratku bez <kbd>⌘</kbd>, <kbd>⌥</kbd> nebo <kbd>⌃</kbd> odmítne
@@ -476,7 +546,7 @@ gh auth login</code></pre>
           <span class="ui">⌘Space</span> a <span class="ui">⌥⌘Space</span>, které
           patří Spotlightu; pak čeká na jinou zkratku. Když ji už používá jiná
           aplikace, ohlásí to červený řádek; zvolte jinou.</dd>
-          <dt>Command line tool</dt>
+          <dt><span class="n">4</span>Command line tool</dt>
           <dd><span class="ui">Install</span>, <span class="ui">Replace</span>
           nebo cesta k nainstalovanému nástroji; viz
           <a href="#cli">Nástroj pro příkazovou řádku</a>.</dd>

@@ -1,5 +1,28 @@
 # Changelog
 
+## Unreleased
+
+- `,` in the `devpulse` terminal UI opens Settings in front of the terminal; before, the window
+  could open behind it.
+- The quick launcher's hint reads "Number, gh … or jira …" in a lighter grey, so it no longer
+  looks like typed text.
+- Type just a number in the quick launcher to find it everywhere: your pull requests and review
+  requests with that number in any repository, your Jira tickets with it in any project, and
+  Claude Code sessions whose Jira key or folder has it, plus rows for the default repository and
+  project. Each row shows an icon for what it is.
+- No more number next to the menu bar icon.
+- A new app icon, a radar, and a new menu bar icon, a sonar dial. The app icon fills the macOS
+  icon shape; before, it sat small on a light tile.
+- In the `devpulse` terminal UI, ⌘-click the Jira key, the branch, the pull request's title or a
+  related ticket in the detail to open it in Jira or on GitHub (in Ghostty and other terminals
+  with hyperlinks).
+- The terminal UI's detail shows a ticket's related Jira tickets (blocks, is blocked by, relates
+  to …) with key, status and summary.
+- A pull request's detail in the terminal UI shows the status and the related tickets of its
+  Jira ticket also when that ticket is not assigned to you.
+- The website shows real screenshots of the app.
+- Building from source now needs Xcode; the Command Line Tools alone are no longer enough.
+
 ## 0.1.0 — 2026-11-20
 
 - First version.

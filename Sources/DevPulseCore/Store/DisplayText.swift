@@ -1,9 +1,14 @@
 import Foundation
 
-extension Snapshot {
-    /// What the menu bar icon counts: direct review requests plus Claude sessions waiting for me.
-    public var attentionCount: Int {
-        reviewRequests.count(where: \.requestedDirectly) + sessions.count { $0.status == .waiting }
+extension ClaudeSession {
+    /// The state as the rows show it: "waiting: <what>", "waiting for input", "busy", "idle".
+    public var stateText: String {
+        switch status {
+        case .waiting: waitingFor.map { "waiting: \($0)" } ?? "waiting for input"
+        case .busy: "busy"
+        case .idle: "idle"
+        case .unknown: "unknown"
+        }
     }
 }
 

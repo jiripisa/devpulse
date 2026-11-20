@@ -99,9 +99,10 @@ pub fn pad(s: &str, cols: usize) -> String {
 }
 
 /// Joins spans into a line of at most `max` columns; the span that overflows is cut with `…`
-/// and the rest are dropped.
+/// and the rest are dropped. A cut that falls between two spans ends the last kept one with `…`,
+/// so it is never invisible.
 pub fn fit(spans: Vec<Span<'static>>, max: usize) -> Line<'static> {
-    let mut out = Vec::with_capacity(spans.len());
+    let mut out: Vec<Span<'static>> = Vec::with_capacity(spans.len());
     let mut used = 0;
     for span in spans {
         let w = width(&span.content);
@@ -113,6 +114,10 @@ pub fn fit(spans: Vec<Span<'static>>, max: usize) -> Line<'static> {
         let rest = max - used;
         if rest > 0 {
             out.push(Span::styled(truncate(&span.content, rest), span.style));
+        } else if let Some(last) = out.iter_mut().rev().find(|s| width(&s.content) > 0) {
+            // Cut one column more, so the `…` fits in the last kept span.
+            let keep = width(&last.content);
+            last.content = truncate(&format!("{}{ELLIPSIS}", last.content), keep).into();
         }
         break;
     }
@@ -162,5 +167,11 @@ mod tests {
         let line = fit(vec![Span::raw("12345"), Span::raw("67890"), Span::raw("x")], 8);
         assert_eq!(line.to_string(), "1234567…");
         assert_eq!(fit(vec![Span::raw("ab")], 2).to_string(), "ab");
+        // Cut exactly between two spans: the last kept one ends with `…`.
+        assert_eq!(fit(vec![Span::raw("abc"), Span::raw("de")], 3).to_string(), "ab…");
+        assert_eq!(fit(vec![Span::raw("ab"), Span::raw(""), Span::raw("cd")], 2).to_string(), "a…");
+        assert_eq!(fit(vec![Span::raw("日本"), Span::raw("x")], 4).to_string(), "日…");
+        // Nothing left out, no `…`.
+        assert_eq!(fit(vec![Span::raw("ab"), Span::raw("")], 2).to_string(), "ab");
     }
 }

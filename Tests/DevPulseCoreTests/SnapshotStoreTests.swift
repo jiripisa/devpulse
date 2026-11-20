@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 import Synchronization
 import Testing
 @testable import DevPulseCore
@@ -14,7 +15,37 @@ private final class FakeGitHub: GitHubFetching {
 
 private final class FakeJira: JiraFetching {
     let result = Mutex<Result<JiraResult, Error>>(.success(JiraResult(myAccountId: "acc", tickets: [])))
+    /// The answer to the linked-tickets search, and the keys of every such search.
+    let linked = Mutex<Result<[Ticket], Error>>(.success([]))
+    let linkedSearches = Mutex<[[String]]>([])
     func fetch() async throws -> JiraResult { try result.withLock { $0 }.get() }
+    func fetchTickets(keys: [String]) async throws -> [Ticket] {
+        linkedSearches.withLock { $0.append(keys) }
+        return try linked.withLock { $0 }.get()
+    }
+}
+
+/// A Jira whose linked-tickets search waits until released.
+private final class GatedLinkedJira: JiraFetching {
+    let searches = Mutex(0)
+    private let continuation = Mutex<CheckedContinuation<Void, Never>?>(nil)
+    func fetch() async throws -> JiraResult { JiraResult(myAccountId: "acc", tickets: []) }
+    func fetchTickets(keys: [String]) async throws -> [Ticket] {
+        await withCheckedContinuation { c in
+            continuation.withLock { $0 = c }
+            searches.withLock { $0 += 1 }
+        }
+        return keys.map(makeTicket(key:))
+    }
+    func release() { continuation.withLock { $0 }?.resume() }
+}
+
+/// A PR whose title carries `key`, as GitHub and the store map it.
+private func makePR(number: Int, key: String) -> PullRequest {
+    var pr = makePR(number: number)
+    pr.title = "\(key) Change \(number)"
+    pr.jiraKey = key
+    return pr
 }
 
 private final class FakeClaude: ClaudeSessionProviding {
@@ -296,6 +327,149 @@ private final class FakeClock: Sendable {
         rig.jira.result.withLock { $0 = .success(JiraResult(myAccountId: "a", tickets: [])) }
         await rig.store.refresh([.github, .jira])
         #expect(rig.store.snapshot.myPullRequests.map(\.jiraKey) == ["SHOP-9"])
+    }
+
+    // MARK: Linked tickets
+
+    @Test func prTicketsThatAreNotMineComeFromOneExtraSearch() async {
+        let rig = Rig()
+        rig.github.results.withLock {
+            $0 = [.success(GitHubResult(
+                viewerLogin: "me",
+                mine: [makePR(number: 1, key: "OTHER-1"), makePR(number: 2, key: "MINE-1")],
+                reviewRequests: [makePR(number: 3, key: "OTHER-2"), makePR(number: 4, key: "OTHER-1")]))]
+        }
+        rig.jira.result.withLock { $0 = .success(JiraResult(myAccountId: "a", tickets: [makeTicket(key: "MINE-1")])) }
+        rig.jira.linked.withLock { $0 = .success([makeTicket(key: "OTHER-1"), makeTicket(key: "OTHER-2")]) }
+        await rig.store.refresh([.github, .jira])
+        // One search, for the keys missing from my tickets, each once, in PR order.
+        #expect(rig.jira.linkedSearches.withLock { $0 } == [["OTHER-1", "OTHER-2"]])
+        #expect(rig.store.snapshot.linkedTickets.map(\.key) == ["OTHER-1", "OTHER-2"])
+        #expect(rig.store.snapshot.tickets.map(\.key) == ["MINE-1"])
+    }
+
+    @Test func noMissingKeysMeansNoSearch() async {
+        let rig = Rig()
+        rig.github.results.withLock {
+            $0 = [.success(GitHubResult(viewerLogin: "me", mine: [makePR(number: 1, key: "MINE-1"), makePR(number: 2)],
+                                        reviewRequests: []))]
+        }
+        rig.jira.result.withLock { $0 = .success(JiraResult(myAccountId: "a", tickets: [makeTicket(key: "MINE-1")])) }
+        await rig.store.refresh([.github, .jira])
+        #expect(rig.jira.linkedSearches.withLock { $0 }.isEmpty)
+        #expect(rig.store.snapshot.linkedTickets.isEmpty)
+    }
+
+    @Test func theLinkedKeysAreCappedAtFifty() {
+        let prs = (1...60).map { makePR(number: $0, key: "MANY-\($0)") }
+        var snapshot = Rig().store.snapshot
+        snapshot.myPullRequests = prs
+        let keys = LinkedTickets.keys(for: snapshot)
+        #expect(keys == (1...50).map { "MANY-\($0)" })
+    }
+
+    @Test func aFailedLinkedFetchLeavesNoLinkedTicketsAndTheJiraStateOk() async {
+        let rig = Rig()
+        rig.github.results.withLock {
+            $0 = [.success(GitHubResult(viewerLogin: "me", mine: [makePR(number: 1, key: "OTHER-1")], reviewRequests: []))]
+        }
+        rig.jira.result.withLock { $0 = .success(JiraResult(myAccountId: "a", tickets: [makeTicket(key: "MINE-1")])) }
+        rig.jira.linked.withLock { $0 = .success([makeTicket(key: "OTHER-1")]) }
+        await rig.store.refresh([.github, .jira])
+        #expect(rig.store.snapshot.linkedTickets.map(\.key) == ["OTHER-1"])
+        // A site without the bulk fetch (404) or one that rejects it (400): nothing linked,
+        // my own tickets and the Jira state as usual.
+        rig.jira.linked.withLock { $0 = .failure(JiraError.http(404)) }
+        await rig.store.refresh([.github, .jira])
+        #expect(rig.store.snapshot.linkedTickets.isEmpty)
+        #expect(rig.store.snapshot.tickets.map(\.key) == ["MINE-1"])
+        #expect(rig.store.snapshot.sources.jira.state == .ok)
+        #expect(rig.store.snapshot.sources.jira.message == nil)
+    }
+
+    @Test func aFailedLinkedFetchIsLoggedAsAnErrorWithoutTheKeys() async throws {
+        let start = Date()
+        let rig = Rig()
+        rig.github.results.withLock {
+            $0 = [.success(GitHubResult(viewerLogin: "me", mine: [makePR(number: 1, key: "LOGGED-7")], reviewRequests: []))]
+        }
+        rig.jira.linked.withLock { $0 = .failure(JiraError.http(418)) }
+        await rig.store.refresh([.github, .jira])
+        let log = try OSLogStore(scope: .currentProcessIdentifier)
+        let messages = try log.getEntries(
+            at: log.position(date: start),
+            matching: NSPredicate(format: "subsystem == %@ AND category == %@", "io.jp4.devpulse", "jira"))
+            .compactMap { $0 as? OSLogEntryLog }
+            .filter { $0.level == .error }
+            .map(\.composedMessage)
+        #expect(messages.contains { $0.contains("HTTP 418") }, "\(messages)")
+        #expect(!messages.contains { $0.contains("LOGGED-7") })
+    }
+
+    @Test func aFailedMainJiraFetchSkipsTheLinkedFetchAndKeepsTheLinkedTickets() async {
+        let rig = Rig()
+        rig.github.results.withLock {
+            $0 = [.success(GitHubResult(viewerLogin: "me", mine: [makePR(number: 1, key: "OTHER-1")], reviewRequests: []))]
+        }
+        rig.jira.linked.withLock { $0 = .success([makeTicket(key: "OTHER-1")]) }
+        await rig.store.refresh([.github, .jira])
+        #expect(rig.jira.linkedSearches.withLock { $0 }.count == 1)
+        // Credentials rejected, an outage or a cancelled fetch: no second request that would
+        // fail too, and the linked tickets stay like my own tickets do.
+        for failure in [JiraError.unauthorized, JiraError.http(503)] as [any Error] + [CancellationError()] {
+            rig.jira.result.withLock { $0 = .failure(failure) }
+            await rig.store.refresh([.github, .jira])
+            #expect(rig.jira.linkedSearches.withLock { $0 }.count == 1)
+            #expect(rig.store.snapshot.linkedTickets.map(\.key) == ["OTHER-1"])
+        }
+    }
+
+    @Test func jiraOffOrUnconfiguredDropsTheLinkedTickets() async {
+        let rig = Rig()
+        rig.github.results.withLock {
+            $0 = [.success(GitHubResult(viewerLogin: "me", mine: [makePR(number: 1, key: "OTHER-1")], reviewRequests: []))]
+        }
+        rig.jira.linked.withLock { $0 = .success([makeTicket(key: "OTHER-1")]) }
+        await rig.store.refresh([.github, .jira])
+        #expect(rig.store.snapshot.linkedTickets.count == 1)
+        var settings = rig.store.settings
+        settings.sourceEnabled[.jira] = false
+        rig.store.settings = settings
+        await rig.store.refresh([.github, .jira])
+        #expect(rig.store.snapshot.linkedTickets.isEmpty)
+        #expect(rig.jira.linkedSearches.withLock { $0 }.count == 1)
+
+        let unconfigured = Rig(credentials: nil)
+        unconfigured.github.results.withLock {
+            $0 = [.success(GitHubResult(viewerLogin: "me", mine: [makePR(number: 1, key: "OTHER-1")], reviewRequests: []))]
+        }
+        await unconfigured.store.refresh([.github, .jira])
+        #expect(unconfigured.store.snapshot.linkedTickets.isEmpty)
+        #expect(unconfigured.jira.linkedSearches.withLock { $0 }.isEmpty)
+    }
+
+    @Test func sessionsThatArriveDuringTheLinkedSearchAreKept() async {
+        let github = FakeGitHub()
+        github.results.withLock {
+            $0 = [.success(GitHubResult(viewerLogin: "me", mine: [makePR(number: 1, key: "OTHER-1")], reviewRequests: []))]
+        }
+        let jira = GatedLinkedJira()
+        let claude = FakeClaude()
+        let store = SnapshotStore(
+            github: github, jiraFactory: { _ in jira }, claude: claude,
+            jiraCredentials: { creds }, appVersion: "1.0", now: { t0 })
+        store.startWatchingClaude()
+        let refresh = Task { await store.refresh([.github, .jira]) }
+        while jira.searches.withLock({ $0 }) == 0 { await Task.yield() }
+        let session = ClaudeSession(pid: 1, name: "n", cwd: "/", status: .busy, updatedAt: t0)
+        claude.handler.withLock { $0 }?([session])
+        for _ in 0..<50 where store.snapshot.sessions.isEmpty { await Task.yield() }
+        #expect(store.snapshot.sessions == [session])
+        jira.release()
+        await refresh.value
+        #expect(store.snapshot.sessions == [session])
+        #expect(store.snapshot.linkedTickets.map(\.key) == ["OTHER-1"])
+        #expect(store.snapshot.myPullRequests.count == 1)
     }
 
     @Test func claudeSwitchedOffAtLaunchIsDisabledWithoutARefresh() async {

@@ -8,10 +8,25 @@ struct LauncherView: View {
     let onClose: () -> Void
     let onHeight: (CGFloat) -> Void
 
+    /// Typed in once the field has focus, so the caret follows it as after typing.
+    private let initialQuery: String
+
     @State private var query = ""
     @State private var selection = 0
     @FocusState private var focused: Bool
 
+    init(
+        model: AppModel, query: String = "", onOpen: @escaping (OpenTarget) -> Void,
+        onClose: @escaping () -> Void, onHeight: @escaping (CGFloat) -> Void
+    ) {
+        self.model = model
+        self.onOpen = onOpen
+        self.onClose = onClose
+        self.onHeight = onHeight
+        initialQuery = query
+    }
+
+    private static let placeholder = "Number, gh … or jira …"
     private static let headerHeight: CGFloat = 56
     private static let rowHeight: CGFloat = 46
     private static let maxVisibleRows = 8
@@ -31,10 +46,20 @@ struct LauncherView: View {
         VStack(spacing: 0) {
             HStack(spacing: 10) {
                 Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                TextField("gh … or jira …", text: $query)
+                TextField(Self.placeholder, text: $query, prompt: Text(""))
                     .textFieldStyle(.plain)
                     .font(.system(size: 20))
                     .focused($focused)
+                    // Its own lighter text: the field's placeholder looked like typed input.
+                    .overlay(alignment: .leading) {
+                        if query.isEmpty {
+                            Text(Self.placeholder)
+                                .font(.system(size: 20, weight: .light))
+                                .foregroundStyle(.tertiary)
+                                .allowsHitTesting(false)
+                                .accessibilityHidden(true)
+                        }
+                    }
                     .onKeyPress(.upArrow) { move(-1, in: items.count) }
                     .onKeyPress(.downArrow) { move(1, in: items.count) }
                     .onKeyPress(.return, phases: .down) { press in
@@ -68,20 +93,37 @@ struct LauncherView: View {
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .onAppear { focused = true }
+        // Not before: a field that takes focus with text in it selects all of it.
+        .onChange(of: focused) { if focused, query.isEmpty { query = initialQuery } }
         .onChange(of: query) { selection = 0 }
         .onChange(of: items.count, initial: true) { onHeight(Self.height(rows: items.count)) }
     }
 
     private func row(_ item: LauncherItem, selected: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(item.title).lineLimit(1)
-            Text(item.subtitle).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+        HStack(spacing: 10) {
+            icon(item.kind).frame(width: 18)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.title).lineLimit(1)
+                Text(item.subtitle).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+            }
         }
         .frame(maxWidth: .infinity, minHeight: Self.rowHeight, alignment: .leading)
         .padding(.horizontal, 12)
         .background(selected ? Color.accentColor.opacity(0.25) : .clear, in: RoundedRectangle(cornerRadius: 8))
         .padding(.horizontal, 6)
         .contentShape(Rectangle())
+    }
+
+    /// What the row is, so a bare number's mixed results read apart; the popover's icons
+    /// where it has one.
+    @ViewBuilder
+    private func icon(_ kind: LauncherItem.Kind) -> some View {
+        switch kind {
+        case .pullRequest: Image(systemName: "arrow.triangle.pull").foregroundStyle(.secondary).help("Pull request")
+        case .reviewRequest(let direct): ReviewRequestIcon(direct: direct)
+        case .ticket: Image(systemName: "ticket").foregroundStyle(.secondary).help("Jira ticket")
+        case .session(let status): SessionStatusIcon(status: status).help("Claude Code session")
+        }
     }
 
     private func move(_ delta: Int, in count: Int) -> KeyPress.Result {

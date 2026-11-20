@@ -17,12 +17,14 @@ final class LauncherPanelController {
         panel == nil ? show() : close()
     }
 
-    func show() {
+    /// Opens the panel with `query` typed in (the demo's screenshots; empty otherwise).
+    func show(query: String = "") {
         guard panel == nil else { return }
         let panel = LauncherPanel()
         panel.onClose = { [weak self] in self?.close() }
         panel.contentView = NSHostingView(rootView: LauncherView(
             model: model,
+            query: query,
             onOpen: { [weak self] target in
                 self?.close()
                 self?.model.open(target)
