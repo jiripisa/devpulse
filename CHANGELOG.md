@@ -1,9 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.1.0 — 2026-11-20
 
 - First version.
-- "Install command line tool" in Settings › General puts `devpulse` on your PATH.
 - Menu bar dashboard: your pull requests, review requests, Jira tickets and Claude Code sessions
   in one popover, with each source's last update or error; the icon counts direct review
   requests and sessions waiting for you.
@@ -26,3 +25,4 @@
 - GitHub and Jira refresh every 2 minutes (1–30 in Settings), pause while the Mac sleeps or the
   screen is locked, and refresh right after waking or unlocking.
 - Website and manual in English and Czech.
+- "Install command line tool" in Settings › General puts `devpulse` on your PATH.

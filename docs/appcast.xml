@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+  <channel>
+    <title>DevPulse</title>
+    <link>https://jiripisa.github.io/devpulse/</link>
+    <description>DevPulse updates</description>
+    <item>
+      <title>DevPulse 0.1.0</title>
+      <sparkle:version>0.1.0</sparkle:version>
+      <sparkle:shortVersionString>0.1.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>27.0</sparkle:minimumSystemVersion>
+      <pubDate>Fri, 20 Nov 2026 01:07:25 +0000</pubDate>
+      <description><![CDATA[<ul><li>First version.</li><li>Menu bar dashboard: your pull requests, review requests, Jira tickets and Claude Code sessions in one popover, with each source&#x27;s last update or error; the icon counts direct review requests and sessions waiting for you.</li><li>Notifications for new review requests, comments on your pull requests and tickets, finished CI runs, and Claude Code sessions that wait for you or finish; clicking one opens the page or the session. Each source and each kind of notification can be switched off in Settings.</li><li>Settings window: refresh interval, launch at login, the quick launcher shortcut, GitHub status and team review requests, Jira site, e-mail and API token (kept in the Keychain) with a connection test, default repository and project, notifications and updates.</li><li>Quick launcher on a global shortcut (⌥Space by default): type <code>gh</code> or <code>jira</code> to list, filter or open pull requests and tickets by title, number or key; ⌘Enter opens a pull request&#x27;s Jira ticket.</li><li>Clicking a Claude Code session brings its Ghostty window to the front.</li><li><code>devpulse</code> terminal UI, lazygit-style: numbered panels for pull requests, review requests, Jira tickets and Claude Code sessions with a detail pane, live updates, <code>/</code> filter, <code>?</code> help, mouse clicks and wheel, and automatic reconnect when the app restarts; <code>J</code> opens the Jira ticket of a pull request or session, and review requests are marked as direct or team ones.</li><li><code>devpulse upgrade</code> installs the latest version from the terminal.</li><li>Updates: DevPulse asks at every launch whether a newer version exists and installs it only after you agree; Settings › Updates has &quot;Check Now&quot; and turns the automatic check off.</li><li>GitHub and Jira refresh every 2 minutes (1–30 in Settings), pause while the Mac sleeps or the screen is locked, and refresh right after waking or unlocking.</li><li>Website and manual in English and Czech.</li><li>&quot;Install command line tool&quot; in Settings › General puts <code>devpulse</code> on your PATH.</li></ul>]]></description>
+      <enclosure url="https://github.com/jiripisa/devpulse/releases/download/v0.1.0/DevPulse-0.1.0.dmg" type="application/octet-stream" sparkle:edSignature="z0cLdQSAFCMxolv19no47faRvr4/kmVqh7O2Z8yDNkI/tbgv1h1yAzqnVHnENYp5LR9ZWUBo7Vl8uCusSkHBBQ==" length="4262729"/>
+    </item>
+  </channel>
+</rss>
