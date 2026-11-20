@@ -36,7 +36,7 @@ final class AppModel {
     }
 
     @ObservationIgnored let store: SnapshotStore
-    @ObservationIgnored let server = SocketServer(path: SocketServer.defaultPath)
+    @ObservationIgnored let server: SocketServer
     @ObservationIgnored let updates: UpdateService
     let notifier = Notifier()
     @ObservationIgnored private(set) var opener: Opener!
@@ -66,13 +66,15 @@ final class AppModel {
     init() {
         let demo = Self.loadDemoSnapshot()
         demoSnapshot = demo
+        server = SocketServer(path: demo == nil ? SocketServer.defaultPath : Self.demoSocketPath)
         // A demo never checks for updates, neither at launch nor on Sparkle's schedule.
         updates = UpdateService(disabledReason: demo == nil ? nil : DemoSnapshot.upgradeReport.message)
         let seen = SeenState.load(from: SeenState.defaultURL)
         self.seen = seen
         savedSeen = seen
-        // The demo never reads the real settings (a Jira site would show in the launcher).
-        let settings = demo == nil ? AppSettings.load(from: .standard) : AppSettings()
+        // The demo never reads the real settings (a Jira site would show in the launcher); it
+        // shows example ones from its own defaults suite.
+        let settings = demo == nil ? AppSettings.load(from: .standard) : Self.loadDemoSettings()
         self.settings = settings
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0"
         // The credentials closure reads the store's current settings; the store does not exist
@@ -113,12 +115,63 @@ final class AppModel {
         #endif
     }
 
+    private static var demoSocketPath: String {
+        #if DEBUG
+        SocketServer.demoPath
+        #else
+        SocketServer.defaultPath
+        #endif
+    }
+
+    #if DEBUG
+    private static let demoDefaults = UserDefaults(suiteName: DemoSnapshot.defaultsSuite)
+    #endif
+
+    /// The demo's example settings, written to and read from their own defaults suite.
+    private static func loadDemoSettings() -> AppSettings {
+        #if DEBUG
+        guard let suite = demoDefaults else { return DemoSnapshot.settings }
+        DemoSnapshot.settings.save(to: suite)
+        return AppSettings.load(from: suite)
+        #else
+        return AppSettings()
+        #endif
+    }
+
+    private static func saveDemoSettings(_ settings: AppSettings) {
+        #if DEBUG
+        if let suite = demoDefaults { settings.save(to: suite) }
+        #endif
+    }
+
+    /// `-DevPulseDemoOpen <what>`: the window a demo shows right after launch, for screenshots
+    /// without the hotkey or a click on the menu bar. Something not understood stops the app.
+    private func openDemoWindow() {
+        #if DEBUG
+        guard let argument = UserDefaults.standard.string(forKey: "DevPulseDemoOpen") else { return }
+        switch DemoOpen(argument: argument) {
+        case .launcher(let query):
+            launcher?.show(query: query)
+        case .popover:
+            DemoPopoverWindow.show(model: self)
+        case .settings(let name):
+            guard let tab = SettingsTab(rawValue: name) else { fatalError("No Settings tab \(name)") }
+            openSettings(tab)
+        case nil:
+            fatalError("-DevPulseDemoOpen \(argument) not understood: launcher:<query>, popover or settings:<tab>")
+        }
+        #endif
+    }
+
     // MARK: Lifecycle
 
     private func start() {
         if demoSnapshot != nil {
-            startLauncher()
+            // No hotkey: it belongs to the DevPulse that may run next to the demo.
+            launcher = LauncherPanelController(model: self)
             startServer()
+            // Once the app has finished launching.
+            DispatchQueue.main.async { [weak self] in self?.openDemoWindow() }
             return
         }
         store.onChange = { [weak self] old, new in
@@ -247,7 +300,8 @@ final class AppModel {
     }
 
     private func settingsChanged(from old: AppSettings) {
-        guard settings != old, demoSnapshot == nil else { return }
+        guard settings != old else { return }
+        guard demoSnapshot == nil else { return Self.saveDemoSettings(settings) }
         store.settings = settings
         settings.save(to: .standard)
         if settings.hotkey != old.hotkey, let hotkeyMonitor {
@@ -274,6 +328,7 @@ final class AppModel {
     /// Saves the Jira fields of Settings: the token goes to the Keychain (an empty token keeps
     /// the stored one), site and e-mail to the settings.
     func saveJira(site siteText: String, email emailText: String, token: String) throws {
+        try refuseInDemo()
         let (site, email) = try validatedJira(site: siteText, email: emailText)
         do {
             try JiraCredentials.storeToken(
@@ -295,6 +350,7 @@ final class AppModel {
     /// Fetches once with the entered values (the stored token when `token` is empty); returns
     /// the number of open tickets or throws with the message the popover would show.
     func testJira(site siteText: String, email emailText: String, token: String) async throws -> Int {
+        try refuseInDemo()
         let (site, email) = try validatedJira(site: siteText, email: emailText)
         let typed = token.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let token = typed.isEmpty
@@ -310,7 +366,14 @@ final class AppModel {
 
     func storedJiraToken(for email: String?) -> Bool {
         guard let email, !email.isEmpty else { return false }
+        // The demo shows a saved token without ever reading or writing the Keychain.
+        if demoSnapshot != nil { return true }
         return Keychain.read(service: JiraCredentials.keychainService, account: email) != nil
+    }
+
+    /// The demo neither saves to the Keychain nor talks to Jira.
+    private func refuseInDemo() throws {
+        if demoSnapshot != nil { throw JiraSetupError(errorDescription: DemoSnapshot.upgradeReport.message) }
     }
 
     private func validatedJira(site: String, email: String) throws -> (URL, String) {
@@ -342,6 +405,11 @@ final class AppModel {
     /// Registers or unregisters the login item; the setting changes only when that worked.
     @discardableResult
     func setLaunchAtLogin(_ on: Bool) -> Bool {
+        // The demo is no login item; it only shows the switch.
+        if demoSnapshot != nil {
+            launchesAtLogin = on
+            return true
+        }
         defer { updateLaunchAtLoginStatus() }
         do {
             if on {
@@ -360,6 +428,11 @@ final class AppModel {
     }
 
     func updateLaunchAtLoginStatus() {
+        // The demo shows the default (on) instead of the state of the build it runs from.
+        if demoSnapshot != nil {
+            launchesAtLogin = settings.launchAtLogin
+            return
+        }
         let status = SMAppService.mainApp.status
         launchesAtLogin = status == .enabled || status == .requiresApproval
         loginItemNeedsApproval = status == .requiresApproval
@@ -368,11 +441,13 @@ final class AppModel {
     // MARK: Command line tool
 
     func updateCLIStatus() {
-        cliStatus = CommandLineInstaller.status
+        // The demo shows the tool installed instead of the state of the build it runs from.
+        cliStatus = demoSnapshot == nil ? CommandLineInstaller.status : .installed
     }
 
     /// Why the tool cannot be installed from where the app runs, or nil when it can.
     var cliInstallBlocker: String? {
+        if demoSnapshot != nil { return nil }
         if case .failure(let error) = CLIInstall.canInstall(bundleURL: CommandLineInstaller.bundleURL) {
             return error.localizedDescription
         }
@@ -380,6 +455,7 @@ final class AppModel {
     }
 
     func installCommandLineTool() {
+        guard demoSnapshot == nil else { return }
         defer { updateCLIStatus() }
         switch CommandLineInstaller.install() {
         case .installed, .canceled: cliInstallError = nil

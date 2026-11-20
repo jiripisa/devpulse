@@ -3,7 +3,8 @@ import DevPulseCore
 import SwiftUI
 import UserNotifications
 
-enum SettingsTab: Hashable {
+/// The raw value names the tab for the demo's `-DevPulseDemoOpen settings:<tab>`.
+enum SettingsTab: String, Hashable {
     case general, github, jira, notifications, updates
 }
 

@@ -8,9 +8,23 @@ struct LauncherView: View {
     let onClose: () -> Void
     let onHeight: (CGFloat) -> Void
 
+    /// Typed in once the field has focus, so the caret follows it as after typing.
+    private let initialQuery: String
+
     @State private var query = ""
     @State private var selection = 0
     @FocusState private var focused: Bool
+
+    init(
+        model: AppModel, query: String = "", onOpen: @escaping (OpenTarget) -> Void,
+        onClose: @escaping () -> Void, onHeight: @escaping (CGFloat) -> Void
+    ) {
+        self.model = model
+        self.onOpen = onOpen
+        self.onClose = onClose
+        self.onHeight = onHeight
+        initialQuery = query
+    }
 
     private static let placeholder = "Number, gh … or jira …"
     private static let headerHeight: CGFloat = 56
@@ -79,6 +93,8 @@ struct LauncherView: View {
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .onAppear { focused = true }
+        // Not before: a field that takes focus with text in it selects all of it.
+        .onChange(of: focused) { if focused, query.isEmpty { query = initialQuery } }
         .onChange(of: query) { selection = 0 }
         .onChange(of: items.count, initial: true) { onHeight(Self.height(rows: items.count)) }
     }

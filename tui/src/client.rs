@@ -4,7 +4,8 @@ use crate::protocol::{ClientMessage, PROTOCOL_VERSION, ServerMessage};
 use std::io::{self, BufRead, BufReader, Write};
 use std::net::Shutdown;
 use std::os::unix::net::UnixStream;
-use std::path::PathBuf;
+use std::ffi::OsString;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::mpsc;
 use std::thread;
@@ -21,16 +22,42 @@ pub enum Event {
     Disconnected,
 }
 
-/// `~/Library/Application Support/DevPulse/devpulse.sock`.
+/// `~/Library/Application Support/DevPulse/devpulse.sock`, or in debug builds the path in
+/// `DEVPULSE_SOCKET` (a demo app's socket, see development_workflow.md §3).
 pub fn socket_path() -> PathBuf {
-    let home = std::env::var_os("HOME").map(PathBuf::from).unwrap_or_default();
-    home.join("Library/Application Support/DevPulse/devpulse.sock")
+    socket_path_for(socket_override(), std::env::var_os("HOME"))
 }
 
-/// Launches the app in the background (`open -g -b`) and waits up to 5 s for the socket.
+/// The socket path for a `DEVPULSE_SOCKET` value (ignored when empty) and a home folder.
+pub fn socket_path_for(socket: Option<OsString>, home: Option<OsString>) -> PathBuf {
+    match socket.filter(|s| !s.is_empty()) {
+        Some(socket) => PathBuf::from(socket),
+        None => PathBuf::from(home.unwrap_or_default())
+            .join("Library/Application Support/DevPulse/devpulse.sock"),
+    }
+}
+
+/// `DEVPULSE_SOCKET`, read in debug builds only: a release never talks to another socket.
+fn socket_override() -> Option<OsString> {
+    if cfg!(debug_assertions) { std::env::var_os("DEVPULSE_SOCKET") } else { None }
+}
+
+/// Launches the app in the background (`open -g -b`) and waits up to 5 s for the socket. With
+/// `DEVPULSE_SOCKET` set it launches nothing: the app behind that socket must already run.
 pub fn ensure_app_running() -> io::Result<()> {
-    if UnixStream::connect(socket_path()).is_ok() {
+    let may_launch = socket_override().is_none_or(|s| s.is_empty());
+    ensure_running_at(&socket_path(), may_launch)
+}
+
+fn ensure_running_at(path: &Path, may_launch: bool) -> io::Result<()> {
+    if UnixStream::connect(path).is_ok() {
         return Ok(());
+    }
+    if !may_launch {
+        return Err(io::Error::new(
+            io::ErrorKind::NotFound,
+            format!("nothing listens on {}", path.display()),
+        ));
     }
     let status = Command::new("open")
         .args(["-g", "-b", BUNDLE_ID])
@@ -42,7 +69,7 @@ pub fn ensure_app_running() -> io::Result<()> {
     }
     let deadline = Instant::now() + Duration::from_secs(5);
     while Instant::now() < deadline {
-        if UnixStream::connect(socket_path()).is_ok() {
+        if UnixStream::connect(path).is_ok() {
             return Ok(());
         }
         thread::sleep(Duration::from_millis(100));
@@ -134,8 +161,27 @@ mod tests {
 
     #[test]
     fn socket_path_is_under_application_support() {
-        let p = socket_path();
-        assert!(p.ends_with("Library/Application Support/DevPulse/devpulse.sock"));
+        let p = socket_path_for(None, Some("/Users/a".into()));
+        assert_eq!(p, PathBuf::from("/Users/a/Library/Application Support/DevPulse/devpulse.sock"));
+    }
+
+    #[test]
+    fn devpulse_socket_replaces_the_path() {
+        let p = socket_path_for(Some("/tmp/demo.sock".into()), Some("/Users/a".into()));
+        assert_eq!(p, PathBuf::from("/tmp/demo.sock"));
+        let empty = socket_path_for(Some("".into()), Some("/Users/a".into()));
+        assert!(empty.ends_with("DevPulse/devpulse.sock"), "{empty:?}");
+    }
+
+    #[test]
+    fn a_given_socket_with_nobody_listening_fails_without_launching() {
+        let dir = std::env::temp_dir().join(format!("devpulse-test-{}", std::process::id()));
+        let path = dir.join("nobody.sock");
+        let started = Instant::now();
+        let err = ensure_running_at(&path, false).unwrap_err();
+        assert_eq!(err.kind(), io::ErrorKind::NotFound);
+        assert!(err.to_string().contains("nobody.sock"), "{err}");
+        assert!(started.elapsed() < Duration::from_secs(1));
     }
 
     #[test]

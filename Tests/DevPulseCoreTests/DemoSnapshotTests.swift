@@ -59,5 +59,18 @@ struct DemoSnapshotTests {
         #expect(!demo.reviewRequests.isEmpty)
         #expect(!demo.tickets.isEmpty)
         #expect(demo.sessions.map(\.status) == [.busy, .waiting, .idle])
+        #expect(demo.tickets.count == 5)
+        #expect(demo.tickets.allSatisfy { !$0.related.isEmpty })
+        #expect(demo.linkedTickets.map(\.key) == LinkedTickets.keys(for: demo))
+        #expect(!demo.linkedTickets.isEmpty)
+    }
+
+    @Test("A bare number in the demo finds a pull request, a ticket and a session")
+    func demoNumberFindsEveryKind() throws {
+        let demo = try DemoSnapshot.load(from: Self.demoURL, now: Date())
+        let kinds = LauncherResolver.items(for: .parse("2290"), snapshot: demo, settings: AppSettings()).map(\.kind)
+        #expect(kinds.contains { if case .reviewRequest = $0 { true } else { false } })
+        #expect(kinds.contains(.ticket))
+        #expect(kinds.contains { if case .session = $0 { true } else { false } })
     }
 }

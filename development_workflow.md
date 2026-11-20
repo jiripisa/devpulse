@@ -129,18 +129,38 @@ hardened runtime and notarization. Add entitlements to
 Debug builds take `-DevPulseDemoSnapshot <path>`: the app shows that snapshot (protocol v1
 JSON, like `protocol/fixtures/snapshot-v1.json`) in the popover, the launcher and on the
 socket, so the TUI shows it too. It fetches nothing, does not watch Claude Code sessions,
-posts no notifications and neither reads nor saves the settings. Sparkle does not start, so
+posts no notifications and never reads or saves the real settings. Sparkle does not start, so
 it never checks for updates, and `devpulse upgrade` fails with "Not available in demo
-mode.". Every date is moved so that
-`generatedAt` is the launch time. Release builds ignore the argument.
+mode.". Every date is moved so that `generatedAt` is the launch time. Release builds ignore
+the argument.
+
+A demo runs next to an installed DevPulse without touching it:
+
+- It serves its own socket, `~/Library/Application Support/DevPulse/devpulse-demo.sock`, and
+  registers no launcher hotkey.
+- Its settings live in the defaults suite `io.jp4.devpulse.demo`, filled at every launch with
+  example values (Jira site `acme.atlassian.net`, e-mail `alice@acme.example`, default
+  repository `acmecorp/webapp`). The Jira tab shows a saved token without touching the
+  Keychain; Save and Test Connection refuse. General shows launch at login on and the command
+  line tool installed. Remove the suite afterwards: `defaults delete io.jp4.devpulse.demo`.
+- `-DevPulseDemoOpen <what>` opens a window right after launch, so no hotkey or menu bar click
+  is needed: `launcher:<query>` (the launcher with the query typed in), `popover` (the popover's
+  content in a plain window at its real size) or `settings:<tab>` (`general`, `github`,
+  `jira`, `notifications`, `updates`).
+- The terminal client of a debug build connects to the socket in `DEVPULSE_SOCKET` and then
+  never launches the app. Release builds ignore the variable.
 
 ```
 ./build.sh debug
-build/debug/DevPulse.app/Contents/MacOS/DevPulse -DevPulseDemoSnapshot "$PWD/scripts/demo-snapshot.json"
+build/debug/DevPulse.app/Contents/MacOS/DevPulse -DevPulseDemoSnapshot "$PWD/scripts/demo-snapshot.json" \
+  -DevPulseDemoOpen launcher:gh
+DEVPULSE_SOCKET="$HOME/Library/Application Support/DevPulse/devpulse-demo.sock" \
+  build/debug/DevPulse.app/Contents/Helpers/devpulse
 ```
 
 `scripts/demo-snapshot.json` holds neutral example data for the website; never put real PRs,
-tickets or sessions in it. Quit any other DevPulse first: both would use the same socket.
+tickets or sessions in it. Capture screenshots by window ID of the demo's own process
+(`screencapture -l <id>`), never the whole screen.
 
 ## 4. Development Methodology
 
