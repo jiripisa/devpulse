@@ -215,9 +215,13 @@ state and sends notifications.
   into the Keychain.
 - **Query:** REST v3 JQL search, `assignee = currentUser() AND statusCategory != Done ORDER BY
   updated DESC`.
-- **Fields:** key, summary, status, priority, updated, and the latest comment's author/time/ID.
-  Whether the comment fields are enough to detect new comments by others is left to the builder
-  (6).
+- **Fields:** key, summary, status, priority, updated, `issuelinks` (the related tickets), and the
+  latest comment's author/time/ID. Whether the comment fields are enough to detect new comments by
+  others is left to the builder (6).
+- **Tickets of PRs that are not mine:** the keys of my PRs and review requests that are not among
+  my tickets go into one bulk fetch (`POST /rest/api/3/issue/bulkfetch`), capped at 50 keys, with
+  the same fields but no comments. It is skipped when my own search failed; when it fails itself,
+  the PR shows just the key and the error is logged.
 - The current user's account ID is fetched once, to filter out my own comments.
 
 **Linking PRs to tickets:**
@@ -239,8 +243,7 @@ state and sends notifications.
 ### 5.4 Menu bar app
 
 - **Icon:** a SwiftUI `MenuBarExtra` (window style) with `LSUIElement`, so there is no Dock icon.
-  The icon gets a badge or count when something needs me: a pending review request, or a Claude
-  session in `waiting`.
+  The icon shows no badge or count.
 - **Popover:** the same four sections as the TUI, as compact lists, plus each source's last fetch
   time and any error. Rows open their page.
 - **Settings window:**
@@ -324,6 +327,7 @@ configurable in Settings and must not collide with the system Spotlight shortcut
 
 | Typed | Result |
 |---|---|
+| `<number>` | everything with that number: my PRs and review requests in any repo, my tickets in any project, sessions whose key or folder has it; then rows that open it in the default repo and the default project |
 | `gh` | my PRs and review requests; arrows select, `Enter` opens |
 | `gh <text>` | filters by title or repo |
 | `gh <number>` | filters known PRs to that number. If exactly one matches, `Enter` opens it. If none matches, `Enter` opens `<default repo>/pull/<number>`. The default repo is set in Settings and pre-filled with the repo of most of my PRs. |
