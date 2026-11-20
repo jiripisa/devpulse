@@ -37,6 +37,47 @@ struct ModelTests {
         #expect(snapshot.generatedAt == Date(timeIntervalSince1970: 1_795_082_400))
     }
 
+    @Test("Fixture holds head repositories, related tickets and linked tickets")
+    func fixtureLinks() throws {
+        let snapshot = try Self.loadFixture()
+        #expect(snapshot.myPullRequests.map(\.headRepo) == ["acmecorp/store", "jiripisa/devpulse"])
+        #expect(snapshot.reviewRequests[0].headRepo == "alice-dev/store")  // from a fork
+        #expect(snapshot.tickets[0].related == [
+            RelatedTicket(
+                key: "STORE-2474", summary: "Replace invoice order", status: "To Do",
+                statusCategory: .todo, relation: "blocks"),
+            RelatedTicket(
+                key: "PAY-310", summary: "Payment gateway returns stale invoice totals", status: "In Review",
+                statusCategory: .inProgress, relation: "is blocked by"),
+        ])
+        #expect(snapshot.linkedTickets.map(\.key) == ["WEB-77"])
+        #expect(snapshot.linkedTickets[0].related.map(\.relation) == ["is caused by"])
+        #expect(snapshot.reviewRequests[1].jiraKey == "WEB-77")
+    }
+
+    @Test("A snapshot without head repositories, related or linked tickets still decodes")
+    func olderSnapshotDecodes() throws {
+        var json = try #require(
+            try JSONSerialization.jsonObject(with: Data(contentsOf: Self.fixtureURL)) as? [String: Any])
+        func strip(_ key: String, from list: String) {
+            json[list] = (json[list] as? [[String: Any]])?.map { item in
+                var item = item
+                item[key] = nil
+                return item
+            }
+        }
+        json["linkedTickets"] = nil
+        strip("related", from: "tickets")
+        strip("headRepo", from: "myPullRequests")
+        strip("headRepo", from: "reviewRequests")
+        let data = try JSONSerialization.data(withJSONObject: json)
+        let snapshot = try Snapshot.decoder.decode(Snapshot.self, from: data)
+        #expect(snapshot.linkedTickets.isEmpty)
+        #expect(snapshot.tickets.count == 2)
+        #expect(snapshot.tickets.allSatisfy { $0.related.isEmpty })
+        #expect((snapshot.myPullRequests + snapshot.reviewRequests).allSatisfy { $0.headRepo == nil })
+    }
+
     @Test("Absent optionals are not encoded")
     func absentOptionalsAreOmitted() throws {
         let session = ClaudeSession(pid: 1, name: "n", cwd: "/", status: .idle, updatedAt: Date(timeIntervalSince1970: 0))

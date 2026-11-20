@@ -20,7 +20,7 @@ public struct JiraResult: Sendable, Equatable {
 /// Fetches the user's open Jira Cloud tickets and their recent comments (REST v3).
 public final class JiraSource: Sendable {
     static let jql = "assignee = currentUser() AND statusCategory != Done ORDER BY updated DESC"
-    static let fields = ["summary", "status", "priority", "updated", "comment"]
+    static let fields = ["summary", "status", "priority", "updated", "comment", "issuelinks"]
     static let maxResults = 50
     static let recentCommentLimit = 10
 
@@ -43,11 +43,7 @@ public final class JiraSource: Sendable {
 
     public func fetch() async throws -> JiraResult {
         let me = try await myAccountId()
-        let body = try JSONSerialization.data(withJSONObject: [
-            "jql": Self.jql, "fields": Self.fields, "maxResults": Self.maxResults,
-        ] as [String: Any])
-        let data = try await send(path: "/rest/api/3/search/jql", method: "POST", body: body)
-        let issues = try decode(data)
+        let issues = try await search(Self.jql)
         var tickets: [Ticket] = []
         for issue in issues {
             var ticket = try mapped { try issue.ticket(site: credentials.site) }
@@ -60,6 +56,28 @@ public final class JiraSource: Sendable {
         let keys = Set(issues.map(\.key))
         newestComments.withLock { $0 = $0.filter { keys.contains($0.key) } }
         return JiraResult(myAccountId: me, tickets: tickets)
+    }
+
+    /// The tickets with these keys, e.g. those of PRs that are not mine, in one search with the
+    /// same fields: at most the first `maxResults` keys, and no request at all without keys.
+    /// Their comments are left as the search returns them; they never notify.
+    public func fetchTickets(keys: [String]) async throws -> [Ticket] {
+        guard let jql = Self.jql(forKeys: keys) else { return [] }
+        return try await search(jql).map { issue in try mapped { try issue.ticket(site: credentials.site) } }
+    }
+
+    /// `key in (A-1, B-2)` for the first `maxResults` keys; nil without keys.
+    static func jql(forKeys keys: [String]) -> String? {
+        let keys = keys.prefix(maxResults)
+        guard !keys.isEmpty else { return nil }
+        return "key in (\(keys.joined(separator: ", ")))"
+    }
+
+    private func search(_ jql: String) async throws -> [Issue] {
+        let body = try JSONSerialization.data(withJSONObject: [
+            "jql": jql, "fields": Self.fields, "maxResults": Self.maxResults,
+        ] as [String: Any])
+        return try decode(try await send(path: "/rest/api/3/search/jql", method: "POST", body: body))
     }
 
     /// The newest comments of a busy ticket whose search result left some out: fetched once per
@@ -154,6 +172,47 @@ public final class JiraSource: Sendable {
             var priority: Priority?
             var updated: String
             var comment: Comments?
+            var issuelinks: [Link]?
+        }
+        /// One entry of `issuelinks`: the other ticket is the `outwardIssue` (this one "blocks"
+        /// it) or the `inwardIssue` (this one "is blocked by" it). Everything is optional, so an
+        /// odd link never fails the search; a link without a key is left out.
+        struct Link: Decodable {
+            struct LinkType: Decodable {
+                var name: String?
+                var inward: String?
+                var outward: String?
+            }
+            struct LinkedIssue: Decodable {
+                struct Fields: Decodable {
+                    struct Status: Decodable {
+                        var name: String?
+                        var statusCategory: Issue.Fields.Status.Category?
+                    }
+                    var summary: String?
+                    var status: Status?
+                }
+                var key: String?
+                var fields: Fields?
+            }
+            var type: LinkType?
+            var inwardIssue: LinkedIssue?
+            var outwardIssue: LinkedIssue?
+
+            var related: RelatedTicket? {
+                let other: LinkedIssue?, relation: String?
+                if let outwardIssue {
+                    (other, relation) = (outwardIssue, type?.outward)
+                } else {
+                    (other, relation) = (inwardIssue, type?.inward)
+                }
+                guard let other, let key = other.key else { return nil }
+                let status = other.fields?.status
+                return RelatedTicket(
+                    key: key, summary: other.fields?.summary ?? "", status: status?.name ?? "",
+                    statusCategory: status?.statusCategory.map { Issue.category($0.key) } ?? .todo,
+                    relation: relation ?? type?.name ?? "")
+            }
         }
         struct CommentNode: Decodable {
             struct Author: Decodable {
@@ -193,7 +252,8 @@ public final class JiraSource: Sendable {
                 updatedAt: try JiraDate.parse(fields.updated),
                 commentCount: fields.comment?.total ?? nodes.count,
                 lastCommentAt: recent.first?.createdAt,
-                recentComments: recent)
+                recentComments: recent,
+                related: (fields.issuelinks ?? []).compactMap(\.related))
         }
 
         /// The newest `recentCommentLimit` comments, newest first.

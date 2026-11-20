@@ -6,6 +6,8 @@ public protocol GitHubFetching: Sendable {
 
 public protocol JiraFetching: Sendable {
     func fetch() async throws -> JiraResult
+    /// The tickets with these keys, whoever they are assigned to, in one search.
+    func fetchTickets(keys: [String]) async throws -> [Ticket]
 }
 
 /// The Claude Code session watcher. The store never scans the session files itself: the
@@ -97,7 +99,6 @@ public final class SnapshotStore {
         let runJira = sources.contains(.jira) && isEnabled(.jira)
         // A switched-off Jira does not touch the Keychain; its site comes from the settings.
         let credentials = runJira ? jiraCredentials() : nil
-        let site = credentials?.site.absoluteString
         var fetched = Set<Source>()
         if runGitHub { fetched.insert(.github) }
         if runJira && credentials != nil { fetched.insert(.jira) }
@@ -108,9 +109,61 @@ public final class SnapshotStore {
         async let githubOutcome = fetchGitHub(github, includeTeam: includeTeam, run: runGitHub)
         async let jiraOutcome = fetchJira(jiraSource, run: runJira)
         let (githubResult, jiraResult) = await (githubOutcome, jiraOutcome)
+        let results = Results(github: githubResult, jira: jiraResult, credentials: credentials, moment: moment)
+
+        // The tickets of PRs that are not mine: one more search, which needs both results.
+        var linkedResult: Result<[Ticket], any Error>?
+        if runJira, let jiraSource {
+            let keys = LinkedTickets.keys(for: merged(results, for: sources, into: snapshot))
+            linkedResult = keys.isEmpty ? .success([]) : await fetchLinked(jiraSource, keys: keys)
+        }
         inFlight.subtract(fetched)
 
-        var next = snapshot
+        // Built on the snapshot as it is now, so Claude Code reports that came in meanwhile stay.
+        var next = merged(results, for: sources, into: snapshot)
+        if case .success(let result)? = githubResult { githubLogin = result.viewerLogin }
+        if case .success(let result)? = jiraResult { jiraAccountId = result.myAccountId }
+        if sources.contains(.jira) {
+            if !isEnabled(.jira) || credentials == nil {
+                next.linkedTickets = []
+            } else if case .success(let tickets)? = linkedResult {
+                next.linkedTickets = tickets
+            }
+            // A failed search keeps the last linked tickets and leaves the Jira state alone: they
+            // are extra detail, and my own tickets came through.
+        }
+
+        // Only applies the switch: the sessions are the watcher's, never a new scan.
+        if sources.contains(.claude) {
+            if isEnabled(.claude) {
+                if let watchedSessions, next.sources.claude.state != .ok {
+                    next.sessions = watchedSessions
+                    next.sources.claude = SourceStatus(state: .ok, lastSuccess: moment)
+                }
+            } else {
+                next.sources.claude = SourceStatus(state: .disabled, lastSuccess: next.sources.claude.lastSuccess)
+                next.sessions = []
+            }
+        }
+
+        publish(next)
+    }
+
+    /// What one refresh fetched from GitHub and Jira.
+    private struct Results {
+        var github: Result<GitHubResult, any Error>?
+        var jira: Result<JiraResult, any Error>?
+        var credentials: JiraCredentials?
+        var moment: Date
+    }
+
+    /// `base` with the GitHub and Jira results of a refresh of `sources` applied and the PRs
+    /// linked to their tickets. A failing source keeps its data and only changes its status.
+    private func merged(_ results: Results, for sources: Set<Source>, into base: Snapshot) -> Snapshot {
+        var next = base
+        let moment = results.moment
+        let site = results.credentials?.site.absoluteString
+        let githubResult = results.github, jiraResult = results.jira, credentials = results.credentials
 
         if sources.contains(.github) {
             if !isEnabled(.github) {
@@ -120,7 +173,6 @@ public final class SnapshotStore {
             } else if let githubResult {
                 switch githubResult {
                 case .success(let result):
-                    githubLogin = result.viewerLogin
                     next.myPullRequests = result.mine
                     next.reviewRequests = result.reviewRequests
                     next.sources.github = SourceStatus(
@@ -146,7 +198,6 @@ public final class SnapshotStore {
                 next.jiraBaseURL = site
                 switch jiraResult {
                 case .success(let result):
-                    jiraAccountId = result.myAccountId
                     next.tickets = result.tickets
                     next.sources.jira = SourceStatus(state: .ok, lastSuccess: moment)
                 case .failure(let error):
@@ -159,21 +210,7 @@ public final class SnapshotStore {
         if sources.contains(.github) || sources.contains(.jira) {
             linkTickets(&next)
         }
-
-        // Only applies the switch: the sessions are the watcher's, never a new scan.
-        if sources.contains(.claude) {
-            if isEnabled(.claude) {
-                if let watchedSessions, next.sources.claude.state != .ok {
-                    next.sessions = watchedSessions
-                    next.sources.claude = SourceStatus(state: .ok, lastSuccess: moment)
-                }
-            } else {
-                next.sources.claude = SourceStatus(state: .disabled, lastSuccess: next.sources.claude.lastSuccess)
-                next.sessions = []
-            }
-        }
-
-        publish(next)
+        return next
     }
 
     /// Starts taking Claude Code session changes straight into the snapshot.
@@ -242,6 +279,12 @@ private func fetchGitHub(
 private func fetchJira(_ source: (any JiraFetching)?, run: Bool) async -> Result<JiraResult, any Error>? {
     guard run, let source else { return nil }
     do { return .success(try await source.fetch()) } catch { return isCancellation(error) ? nil : .failure(error) }
+}
+
+private func fetchLinked(_ source: any JiraFetching, keys: [String]) async -> Result<[Ticket], any Error>? {
+    do { return .success(try await source.fetchTickets(keys: keys)) } catch {
+        return isCancellation(error) ? nil : .failure(error)
+    }
 }
 
 /// A cancelled refresh drops its result instead of reporting an error.

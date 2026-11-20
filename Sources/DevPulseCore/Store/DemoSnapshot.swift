@@ -32,18 +32,20 @@ extension Snapshot {
             pr.recentComments = move(pr.recentComments)
             return pr
         }
+        func move(_ ticket: Ticket) -> Ticket {
+            var ticket = ticket
+            ticket.updatedAt = move(ticket.updatedAt)
+            ticket.lastCommentAt = ticket.lastCommentAt.map(move)
+            ticket.recentComments = move(ticket.recentComments)
+            return ticket
+        }
         var next = self
         next.generatedAt = move(generatedAt)
         next.sources = Sources(github: move(sources.github), jira: move(sources.jira), claude: move(sources.claude))
         next.myPullRequests = myPullRequests.map(move)
         next.reviewRequests = reviewRequests.map(move)
-        next.tickets = tickets.map {
-            var t = $0
-            t.updatedAt = move(t.updatedAt)
-            t.lastCommentAt = t.lastCommentAt.map(move)
-            t.recentComments = move(t.recentComments)
-            return t
-        }
+        next.tickets = tickets.map(move)
+        next.linkedTickets = linkedTickets.map(move)
         next.sessions = sessions.map { var s = $0; s.updatedAt = move(s.updatedAt); return s }
         return next
     }

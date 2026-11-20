@@ -15,6 +15,7 @@
       "title": "STORE-2474 Replace invoice order",
       "url": "https://github.com/acmecorp/store/pull/1234",
       "headBranch": "feature/STORE-2474-replace-invoice",
+      "headRepo": "acmecorp/store",
       "headOid": "9f2c1d7e4b6a8c0d3e5f71829a4b6c8d0e1f2a3b",
       "jiraKey": "STORE-2474",
       "checks": "pending",
@@ -37,6 +38,7 @@
       "title": "Tidy up the build script",
       "url": "https://github.com/jiripisa/devpulse/pull/7",
       "headBranch": "chore/build-script",
+      "headRepo": "jiripisa/devpulse",
       "headOid": "1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d",
       "checks": "success",
       "reviewDecision": "approved",
@@ -56,6 +58,7 @@
       "title": "STORE-2290 Přehled příliš žluťoučkých koní",
       "url": "https://github.com/acmecorp/store/pull/1250",
       "headBranch": "feature/STORE-2290-prehled",
+      "headRepo": "alice-dev/store",
       "headOid": "aabbccddeeff00112233445566778899aabbccdd",
       "jiraKey": "STORE-2290",
       "checks": "failure",
@@ -76,8 +79,10 @@
       "number": 88,
       "title": "Fix column sorting",
       "url": "https://github.com/acmecorp/webapp/pull/88",
-      "headBranch": "fix/column-sorting",
+      "headBranch": "fix/WEB-77-column-sorting",
+      "headRepo": "acmecorp/webapp",
       "headOid": "0011223344556677889900aabbccddeeff001122",
+      "jiraKey": "WEB-77",
       "checks": "error",
       "reviewDecision": "none",
       "approvals": 0,
@@ -102,6 +107,10 @@
       "recentComments": [
         { "id": "10042", "author": "712020:abc-123", "authorName": "Petr Dvořák", "authorKind": "human", "createdAt": "2026-11-19T07:00:00Z" },
         { "id": "10043", "author": "557058:automation", "authorName": "Automation for Jira", "authorKind": "bot", "createdAt": "2026-11-19T07:45:00Z" }
+      ],
+      "related": [
+        { "key": "STORE-2474", "summary": "Replace invoice order", "status": "To Do", "statusCategory": "todo", "relation": "blocks" },
+        { "key": "PAY-310", "summary": "Payment gateway returns stale invoice totals", "status": "In Review", "statusCategory": "inProgress", "relation": "is blocked by" }
       ]
     },
     {
@@ -112,7 +121,30 @@
       "url": "https://example.atlassian.net/browse/STORE-2474",
       "updatedAt": "2026-11-18T09:00:00Z",
       "commentCount": 0,
-      "recentComments": []
+      "recentComments": [],
+      "related": [
+        { "key": "STORE-2290", "summary": "Přehled příliš žluťoučkých koní úpějících ďábelské ódy na nádvoří", "status": "In Progress", "statusCategory": "inProgress", "relation": "is blocked by" },
+        { "key": "STORE-2101", "summary": "Invoice numbering after a cancellation", "status": "Done", "statusCategory": "done", "relation": "relates to" }
+      ]
+    }
+  ],
+  "linkedTickets": [
+    {
+      "key": "WEB-77",
+      "summary": "Sort the order table by date",
+      "status": "In Review",
+      "statusCategory": "inProgress",
+      "priority": "Medium",
+      "url": "https://example.atlassian.net/browse/WEB-77",
+      "updatedAt": "2026-11-18T14:00:00Z",
+      "commentCount": 1,
+      "lastCommentAt": "2026-11-18T14:00:00Z",
+      "recentComments": [
+        { "id": "10077", "author": "712020:def-456", "authorName": "Jana Malá", "authorKind": "human", "createdAt": "2026-11-18T14:00:00Z" }
+      ],
+      "related": [
+        { "key": "WEB-70", "summary": "Column sorting ignores the locale", "status": "Done", "statusCategory": "done", "relation": "is caused by" }
+      ]
     }
   ],
   "sessions": [

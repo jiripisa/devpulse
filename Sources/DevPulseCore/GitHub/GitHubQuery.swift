@@ -8,6 +8,7 @@ enum GitHubQuery {
     private static let pullRequestFields = """
         id number title url headRefName headRefOid updatedAt
         repository { nameWithOwner }
+        headRepository { nameWithOwner }
         reviewDecision
         commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }
         latestOpinionatedReviews(first: 50) { nodes { state } }

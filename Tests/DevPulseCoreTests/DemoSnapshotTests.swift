@@ -40,6 +40,10 @@ struct DemoSnapshotTests {
         #expect(ticket.lastCommentAt == originalTicket.lastCommentAt?.addingTimeInterval(hour))
         #expect(ticket.recentComments.map(\.createdAt) == originalTicket.recentComments.map { $0.createdAt.addingTimeInterval(hour) })
         #expect(demo.sessions.map(\.updatedAt) == original.sessions.map { $0.updatedAt.addingTimeInterval(hour) })
+        let linked = demo.linkedTickets[0], originalLinked = original.linkedTickets[0]
+        #expect(linked.updatedAt == originalLinked.updatedAt.addingTimeInterval(hour))
+        #expect(linked.lastCommentAt == originalLinked.lastCommentAt?.addingTimeInterval(hour))
+        #expect(linked.recentComments.map(\.createdAt) == originalLinked.recentComments.map { $0.createdAt.addingTimeInterval(hour) })
     }
 
     @Test("Moving by zero changes nothing")

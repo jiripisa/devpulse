@@ -65,6 +65,16 @@ struct GitHubTests {
         #expect(result.mine[2].reviewDecision == .changesRequested)
     }
 
+    @Test("Maps the head repository, which differs for a PR from a fork")
+    func headRepository() async throws {
+        let mine = try await Self.fetch(team: false).mine
+        #expect(mine[0].headRepo == "fork-owner/widgets")
+        #expect(mine[0].repo == "acme/widgets")
+        // A deleted fork comes back as null, an older answer without the field as missing.
+        #expect(mine[1].headRepo == nil)
+        #expect(mine[2].headRepo == nil)
+    }
+
     @Test("Classifies the author kind")
     func authorKind() async throws {
         let comments = try await Self.fetch(team: false).mine[0].recentComments
@@ -122,6 +132,7 @@ struct GitHubTests {
         #expect(query.contains("is:open is:pr user-review-requested:@me"))
         #expect(query.contains("is:open is:pr review-requested:@me"))
         #expect(query.contains("first: 50"))
+        #expect(query.contains("headRepository { nameWithOwner }"))
 
         let noTeam = FakeTransport(body: try Self.fixture())
         _ = try await GitHubSource(tokens: tokens, transport: noTeam).fetch(includeTeamRequests: false)

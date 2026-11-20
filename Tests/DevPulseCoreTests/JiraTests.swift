@@ -89,7 +89,7 @@ struct JiraTests {
         let body = try #require(search.httpBody)
         let json = try #require(try JSONSerialization.jsonObject(with: body) as? [String: Any])
         #expect(json["jql"] as? String == "assignee = currentUser() AND statusCategory != Done ORDER BY updated DESC")
-        #expect(json["fields"] as? [String] == ["summary", "status", "priority", "updated", "comment"])
+        #expect(json["fields"] as? [String] == ["summary", "status", "priority", "updated", "comment", "issuelinks"])
         #expect(json["maxResults"] as? Int == 50)
     }
 
@@ -145,6 +145,72 @@ struct JiraTests {
         #expect(second.commentCount == 0)
         #expect(second.lastCommentAt == nil)
         #expect(second.recentComments.isEmpty)
+    }
+
+    @Test("Maps issue links in both directions, in Jira's words")
+    func relatedTickets() async throws {
+        let (source, _) = try Self.make()
+        let tickets = try await source.fetch().tickets
+        #expect(Array(tickets[0].related.prefix(2)) == [
+            // An outward link: this ticket blocks SYN-9.
+            RelatedTicket(
+                key: "SYN-9", summary: "Ninth synthetic ticket", status: "In Review",
+                statusCategory: .inProgress, relation: "blocks"),
+            // An inward link: OTHER-5 blocks this ticket.
+            RelatedTicket(
+                key: "OTHER-5", summary: "A ticket in another project", status: "Done",
+                statusCategory: .done, relation: "is blocked by"),
+        ])
+        #expect(tickets[1].related.isEmpty)  // an empty list
+        #expect(tickets[2].related.isEmpty)  // no `issuelinks` field at all
+    }
+
+    @Test("A link without summary, status or link texts still maps")
+    func relatedTicketWithMissingFields() async throws {
+        let (source, _) = try Self.make()
+        let related = try await source.fetch().tickets[0].related
+        #expect(related.count == 4)
+        #expect(related[2] == RelatedTicket(
+            key: "OTHER-6", summary: "", status: "", statusCategory: .todo, relation: "relates to"))
+        // No inward/outward texts: the link type's name stands in; no fields at all.
+        #expect(related[3] == RelatedTicket(
+            key: "OTHER-7", summary: "", status: "", statusCategory: .todo, relation: "Cloners"))
+    }
+
+    @Test("The linked-tickets search asks for the keys with the same fields")
+    func linkedTicketsRequest() async throws {
+        let (source, transport) = try Self.make()
+        let tickets = try await source.fetchTickets(keys: ["SYN-1", "OTHER-9"])
+        let searches = transport.requests(to: "/rest/api/3/search/jql")
+        #expect(searches.count == 1)
+        let body = try #require(searches.first?.httpBody)
+        let json = try #require(try JSONSerialization.jsonObject(with: body) as? [String: Any])
+        #expect(json["jql"] as? String == "key in (SYN-1, OTHER-9)")
+        #expect(json["fields"] as? [String] == ["summary", "status", "priority", "updated", "comment", "issuelinks"])
+        #expect(json["maxResults"] as? Int == 50)
+        // Mapped like my own tickets, links included; no account lookup, no comment fetches.
+        #expect(tickets.map(\.key) == ["SYN-1", "SYN-2", "SYN-3"])
+        #expect(tickets[0].related.count == 4)
+        #expect(transport.requests(to: "/rest/api/3/myself").isEmpty)
+        #expect(transport.requests.withLock { $0 }.count == 1)
+    }
+
+    @Test("No keys, no request; more than 50 keys are cut to the first 50")
+    func linkedTicketsOnlyWhenNeeded() async throws {
+        let (source, transport) = try Self.make()
+        #expect(try await source.fetchTickets(keys: []).isEmpty)
+        #expect(transport.requests.withLock { $0 }.isEmpty)
+        let keys = (1...60).map { "MANY-\($0)" }
+        _ = try await source.fetchTickets(keys: keys)
+        let body = try #require(transport.requests(to: "/rest/api/3/search/jql").first?.httpBody)
+        let json = try #require(try JSONSerialization.jsonObject(with: body) as? [String: Any])
+        #expect(json["jql"] as? String == "key in (\(keys.prefix(50).joined(separator: ", ")))")
+    }
+
+    @Test("The linked-tickets search reports failures like the main search")
+    func linkedTicketsFailure() async throws {
+        let (source, _) = try Self.make(status: 400)
+        await #expect(throws: JiraError.http(400)) { try await source.fetchTickets(keys: ["SYN-1"]) }
     }
 
     @Test("Calls /myself on the first fetch only")
