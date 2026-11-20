@@ -5,7 +5,7 @@ import os
 /// activate the app (see `SettingsPresenter`). SwiftUI shows a new window a moment after placing
 /// its view, so this waits for the window to report that it became visible (an update,
 /// occlusion change or becoming key) for up to 2 s, and logs when it gives up. A window closed
-/// in the meantime is not brought back.
+/// in the meantime is neither brought back nor logged.
 @MainActor
 final class WindowFronter {
     private static let log = Logger(subsystem: "io.jp4.devpulse", category: "app")
@@ -38,6 +38,13 @@ final class WindowFronter {
                 MainActor.assumeIsolated { self.check() }
             }
         }
+        // Closed before it showed (by the user, or SwiftUI replaced it): nothing to do.
+        observers.append(
+            NotificationCenter.default.addObserver(
+                forName: NSWindow.willCloseNotification, object: window, queue: .main
+            ) { _ in
+                MainActor.assumeIsolated { self.finish() }
+            })
         timeout = Task {
             try? await Task.sleep(for: Self.limit)
             guard !Task.isCancelled else { return }
@@ -53,7 +60,9 @@ final class WindowFronter {
 
     private func giveUp() {
         finish()
-        if let window {
+        // Only a window that is still there and was never shown is worth an error; one that was
+        // closed, or is gone from the app's windows, is not.
+        if let window, NSApp.windows.contains(window) {
             Self.log.error(
                 "Settings window did not become visible within 2 s, not brought to front (\(window.title, privacy: .public))")
         }
