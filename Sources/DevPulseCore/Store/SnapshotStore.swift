@@ -111,9 +111,11 @@ public final class SnapshotStore {
         let (githubResult, jiraResult) = await (githubOutcome, jiraOutcome)
         let results = Results(github: githubResult, jira: jiraResult, credentials: credentials, moment: moment)
 
-        // The tickets of PRs that are not mine: one more request, which needs both results.
+        // The tickets of PRs that are not mine: one more request, which needs both results. Only
+        // after my own tickets came through: with rejected credentials, an outage or a cancel it
+        // would fail too, and the linked tickets stay as they are, like my own.
         var linkedResult: Result<[Ticket], any Error>?
-        if runJira, let jiraSource {
+        if let jiraSource, case .success? = jiraResult {
             let keys = LinkedTickets.keys(for: merged(results, for: sources, into: snapshot))
             linkedResult = keys.isEmpty ? .success([]) : await fetchLinked(jiraSource, keys: keys)
         }
@@ -129,7 +131,7 @@ public final class SnapshotStore {
             // A failed fetch (a site without the bulk fetch, say) leaves nothing linked and the
             // Jira state alone: the PR detail then shows just the key.
             case .failure?: next.linkedTickets = []
-            // Jira off, not set up, or the refresh was cancelled.
+            // Not fetched: Jira off, not set up, or its own fetch failed or was cancelled.
             case nil: if !isEnabled(.jira) || credentials == nil { next.linkedTickets = [] }
             }
         }

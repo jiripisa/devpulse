@@ -386,6 +386,24 @@ private final class FakeClock: Sendable {
         #expect(rig.store.snapshot.sources.jira.message == nil)
     }
 
+    @Test func aFailedMainJiraFetchSkipsTheLinkedFetchAndKeepsTheLinkedTickets() async {
+        let rig = Rig()
+        rig.github.results.withLock {
+            $0 = [.success(GitHubResult(viewerLogin: "me", mine: [makePR(number: 1, key: "OTHER-1")], reviewRequests: []))]
+        }
+        rig.jira.linked.withLock { $0 = .success([makeTicket(key: "OTHER-1")]) }
+        await rig.store.refresh([.github, .jira])
+        #expect(rig.jira.linkedSearches.withLock { $0 }.count == 1)
+        // Credentials rejected, an outage or a cancelled fetch: no second request that would
+        // fail too, and the linked tickets stay like my own tickets do.
+        for failure in [JiraError.unauthorized, JiraError.http(503)] as [any Error] + [CancellationError()] {
+            rig.jira.result.withLock { $0 = .failure(failure) }
+            await rig.store.refresh([.github, .jira])
+            #expect(rig.jira.linkedSearches.withLock { $0 }.count == 1)
+            #expect(rig.store.snapshot.linkedTickets.map(\.key) == ["OTHER-1"])
+        }
+    }
+
     @Test func jiraOffOrUnconfiguredDropsTheLinkedTickets() async {
         let rig = Rig()
         rig.github.results.withLock {
