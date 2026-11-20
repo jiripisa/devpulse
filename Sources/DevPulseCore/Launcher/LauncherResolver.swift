@@ -2,16 +2,26 @@ import Foundation
 
 /// One row of the launcher's result list.
 public struct LauncherItem: Equatable, Sendable {
+    /// What the row is, for its icon: a bare number mixes all kinds in one list.
+    public enum Kind: Equatable, Sendable {
+        case pullRequest
+        case reviewRequest(direct: Bool)
+        case ticket
+        case session(SessionStatus)
+    }
+
     public var title: String
     public var subtitle: String
+    public var kind: Kind
     /// What Enter opens.
     public var target: OpenTarget
     /// What ⌘Enter opens (a PR's linked Jira ticket).
     public var secondary: OpenTarget?
 
-    public init(title: String, subtitle: String, target: OpenTarget, secondary: OpenTarget? = nil) {
+    public init(title: String, subtitle: String, kind: Kind, target: OpenTarget, secondary: OpenTarget? = nil) {
         self.title = title
         self.subtitle = subtitle
+        self.kind = kind
         self.target = target
         self.secondary = secondary
     }
@@ -30,6 +40,8 @@ public enum LauncherResolver {
             items = github(repo: repo, number: number, text: text, snapshot: snapshot, settings: settings)
         case .jira(let key, let number, let text):
             items = jira(key: key, number: number, text: text, snapshot: snapshot, settings: settings)
+        case .number(let number):
+            items = everything(number: number, snapshot: snapshot, settings: settings)
         }
         return Array(items.prefix(maxItems))
     }
@@ -39,9 +51,7 @@ public enum LauncherResolver {
     private static func github(
         repo: String?, number: Int?, text: String, snapshot: Snapshot, settings: AppSettings
     ) -> [LauncherItem] {
-        // My PRs first, then the review requests; a PR in both lists shows once.
-        var seen = Set<String>()
-        let known = (snapshot.myPullRequests + snapshot.reviewRequests).filter { seen.insert($0.id).inserted }
+        let known = knownPullRequests(snapshot)
         guard let number else {
             let needle = text.lowercased()
             return known
@@ -55,15 +65,31 @@ public enum LauncherResolver {
         } else {
             let matches = known.filter { $0.number == number }
             if !matches.isEmpty { return matches.compactMap { item($0, snapshot: snapshot) } }
-            guard let fallback = settings.defaultRepo ?? AppSettings.mostFrequentRepo(snapshot.myPullRequests)
-            else { return [] }
+            guard let fallback = defaultRepo(snapshot: snapshot, settings: settings) else { return [] }
             fullRepo = fallback
         }
         if let pr = known.first(where: { $0.repo.lowercased() == fullRepo.lowercased() && $0.number == number }) {
             return item(pr, snapshot: snapshot).map { [$0] } ?? []
         }
-        guard let url = URL(string: "https://github.com/\(fullRepo)/pull/\(number)") else { return [] }
-        return [LauncherItem(title: "Open \(fullRepo)#\(number)", subtitle: url.absoluteString, target: .url(url))]
+        return pullRequestLink(repo: fullRepo, number: number).map { [$0] } ?? []
+    }
+
+    /// My PRs first, then the review requests; a PR in both lists shows once, as mine.
+    private static func knownPullRequests(_ snapshot: Snapshot) -> [PullRequest] {
+        var seen = Set<String>()
+        return (snapshot.myPullRequests + snapshot.reviewRequests).filter { seen.insert($0.id).inserted }
+    }
+
+    /// The configured default repository, else the one most of my PRs are in.
+    private static func defaultRepo(snapshot: Snapshot, settings: AppSettings) -> String? {
+        settings.defaultRepo ?? AppSettings.mostFrequentRepo(snapshot.myPullRequests)
+    }
+
+    /// A row that opens a PR by number, for one not in my lists.
+    private static func pullRequestLink(repo: String, number: Int) -> LauncherItem? {
+        guard let url = URL(string: "https://github.com/\(repo)/pull/\(number)") else { return nil }
+        return LauncherItem(
+            title: "Open \(repo)#\(number)", subtitle: url.absoluteString, kind: .pullRequest, target: .url(url))
     }
 
     /// A full `owner/name` as typed, or the owner of a known PR in a repo of that name.
@@ -74,8 +100,10 @@ public enum LauncherResolver {
 
     private static func item(_ pr: PullRequest, snapshot: Snapshot) -> LauncherItem? {
         guard let url = URL(string: pr.url) else { return nil }
+        let isMine = snapshot.myPullRequests.contains { $0.id == pr.id }
         return LauncherItem(
-            title: "#\(pr.number) \(pr.title)", subtitle: pr.repo, target: .url(url),
+            title: "#\(pr.number) \(pr.title)", subtitle: pr.repo,
+            kind: isMine ? .pullRequest : .reviewRequest(direct: pr.requestedDirectly), target: .url(url),
             secondary: pr.jiraKey.flatMap { jiraURL($0, snapshot: snapshot, site: nil) }.map { .url($0) })
     }
 
@@ -87,8 +115,7 @@ public enum LauncherResolver {
         let site = settings.jiraSite
         var key = key
         if key == nil, let number {
-            guard let project = settings.defaultJiraProject ?? AppSettings.mostFrequentProject(snapshot.tickets)
-            else { return [] }
+            guard let project = defaultProject(snapshot: snapshot, settings: settings) else { return [] }
             key = "\(project)-\(number)"
         }
         guard let key else {
@@ -100,14 +127,24 @@ public enum LauncherResolver {
         if let ticket = snapshot.tickets.first(where: { $0.key == key }) {
             return item(ticket).map { [$0] } ?? []
         }
-        // Not in my list: open it by the site's URL; without a site there is nothing to build.
-        guard let url = jiraURL(key, snapshot: snapshot, site: site) else { return [] }
-        return [LauncherItem(title: "Open \(key)", subtitle: url.absoluteString, target: .url(url))]
+        return ticketLink(key, snapshot: snapshot, site: site).map { [$0] } ?? []
+    }
+
+    /// The configured default project, else the one most of my tickets are in.
+    private static func defaultProject(snapshot: Snapshot, settings: AppSettings) -> String? {
+        settings.defaultJiraProject ?? AppSettings.mostFrequentProject(snapshot.tickets)
+    }
+
+    /// A row that opens a ticket not in my list by the site's URL; without a site there is
+    /// nothing to build.
+    private static func ticketLink(_ key: String, snapshot: Snapshot, site: URL?) -> LauncherItem? {
+        guard let url = jiraURL(key, snapshot: snapshot, site: site) else { return nil }
+        return LauncherItem(title: "Open \(key)", subtitle: url.absoluteString, kind: .ticket, target: .url(url))
     }
 
     private static func item(_ ticket: Ticket) -> LauncherItem? {
         URL(string: ticket.url).map {
-            LauncherItem(title: "\(ticket.key) \(ticket.summary)", subtitle: ticket.status, target: .url($0))
+            LauncherItem(title: "\(ticket.key) \(ticket.summary)", subtitle: ticket.status, kind: .ticket, target: .url($0))
         }
     }
 
@@ -115,5 +152,54 @@ public enum LauncherResolver {
     private static func jiraURL(_ key: String, snapshot: Snapshot, site: URL?) -> URL? {
         guard let base = site ?? snapshot.jiraBaseURL.flatMap({ URL(string: $0) }) else { return nil }
         return base.appending(path: "browse/\(key)")
+    }
+
+    // MARK: Bare number
+
+    /// Everything the number can be: my PRs and review requests with that number in any repo,
+    /// my tickets with that issue number in any project, the Claude Code sessions whose Jira key
+    /// or folder has it, then a row for the default repo's PR and the default project's ticket
+    /// when the rows above do not already show them.
+    private static func everything(number: Int, snapshot: Snapshot, settings: AppSettings) -> [LauncherItem] {
+        let prs = knownPullRequests(snapshot).filter { $0.number == number }
+        let tickets = snapshot.tickets.filter { issueNumber(of: $0.key) == number }
+        let sessions = snapshot.sessions.filter { session in
+            session.jiraKey.flatMap(issueNumber) == number || folderNumbers(session.cwd).contains(number)
+        }
+        var items = prs.compactMap { item($0, snapshot: snapshot) }
+            + tickets.compactMap(item)
+            + sessions.map(item)
+        if let repo = defaultRepo(snapshot: snapshot, settings: settings),
+           !prs.contains(where: { $0.repo.lowercased() == repo.lowercased() }),
+           let link = pullRequestLink(repo: repo, number: number) {
+            items.append(link)
+        }
+        if let project = defaultProject(snapshot: snapshot, settings: settings) {
+            let key = "\(project)-\(number)"
+            if !tickets.contains(where: { $0.key == key }),
+               let link = ticketLink(key, snapshot: snapshot, site: settings.jiraSite) {
+                items.append(link)
+            }
+        }
+        return items
+    }
+
+    /// `2474` of `STORE-2474`.
+    private static func issueNumber(of key: String) -> Int? {
+        key.lastIndex(of: "-").flatMap { Int(key[key.index(after: $0)...]) }
+    }
+
+    /// The whole numbers in the folder's own name: `store-2474-fix` has 2474, never 247.
+    private static func folderNumbers(_ cwd: String) -> [Int] {
+        let name = URL(fileURLWithPath: cwd).lastPathComponent
+        return name.matches(of: /\d+/).compactMap { Int($0.output) }
+    }
+
+    private static func item(_ session: ClaudeSession) -> LauncherItem {
+        let cwd = (session.cwd as NSString).abbreviatingWithTildeInPath
+        return LauncherItem(
+            title: [session.name, session.jiraKey].compactMap { $0 }.joined(separator: " "),
+            subtitle: "Claude Code session · \(session.stateText) · \(cwd)",
+            kind: .session(session.status), target: .session(pid: session.pid))
     }
 }

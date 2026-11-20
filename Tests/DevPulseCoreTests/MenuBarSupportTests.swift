@@ -38,6 +38,18 @@ private func makeSnapshot(
     }
 }
 
+@Suite struct SessionStateTextTests {
+    @Test func saysWhatTheSessionDoes() {
+        var waiting = makeSession(pid: 1, status: .waiting)
+        #expect(waiting.stateText == "waiting for input")
+        waiting.waitingFor = "permission"
+        #expect(waiting.stateText == "waiting: permission")
+        #expect(makeSession(pid: 2, status: .busy).stateText == "busy")
+        #expect(makeSession(pid: 3, status: .idle).stateText == "idle")
+        #expect(makeSession(pid: 4, status: .unknown).stateText == "unknown")
+    }
+}
+
 @Suite struct RelativeAgeTests {
     @Test func formatsMinutesHoursAndDays() {
         let text = { (seconds: TimeInterval) in RelativeAge.text(since: now.addingTimeInterval(-seconds), now: now) }

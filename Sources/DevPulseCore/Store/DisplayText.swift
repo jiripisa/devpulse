@@ -7,6 +7,18 @@ extension Snapshot {
     }
 }
 
+extension ClaudeSession {
+    /// The state as the rows show it: "waiting: <what>", "waiting for input", "busy", "idle".
+    public var stateText: String {
+        switch status {
+        case .waiting: waitingFor.map { "waiting: \($0)" } ?? "waiting for input"
+        case .busy: "busy"
+        case .idle: "idle"
+        case .unknown: "unknown"
+        }
+    }
+}
+
 /// Short relative times for the UI: "just now", "2 min ago", "3 h ago", "1 d ago".
 public enum RelativeAge {
     public static func text(since date: Date, now: Date) -> String {
