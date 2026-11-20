@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.9.0 — 2026-11-20
 
 - `,` in the `devpulse` terminal UI opens Settings in front of the terminal; before, the window
   could open behind it.
