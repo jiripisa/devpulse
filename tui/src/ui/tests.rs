@@ -675,11 +675,13 @@ fn the_terminal_receives_osc8_around_the_text() {
     let mut terminal = Terminal::with_options(CrosstermBackend::new(written.clone()), options).unwrap();
     terminal.draw(|f| draw(f, &st, now())).unwrap();
     let out = String::from_utf8(written.0.borrow().clone()).unwrap();
-    let open = "\x1b]8;;https://example.atlassian.net/browse/STORE-2474\x1b\\";
+    let jira = "https://example.atlassian.net/browse/STORE-2474";
+    let start = out.find(&format!(";{jira}\x1b\\S")).expect("no OSC 8 for the Jira key");
+    let open = &out[out[..start].rfind("\x1b]8;id=").unwrap()..start + jira.len() + 3];
     let close = "\x1b]8;;\x1b\\";
-    // Each cell of the key is wrapped on its own: open, one character, close.
-    assert!(out.contains(&format!("{open}S{close}{open}T{close}")), "no OSC 8 for the Jira key");
-    assert!(out.contains("\x1b]8;;https://github.com/acmecorp/store/pull/1234\x1b\\"));
+    // Each cell of the key is wrapped on its own: open with the row's id, one character, close.
+    assert!(out.contains(&format!("{open}S{close}{open}T{close}")), "{open:?}");
+    assert!(out.contains(";https://github.com/acmecorp/store/pull/1234\x1b\\"));
 }
 
 #[test]

@@ -1,16 +1,21 @@
-//! Terminal hyperlinks (OSC 8: `ESC ] 8 ;; URL ESC \ text ESC ] 8 ;; ESC \`), ⌘-click in Ghostty.
+//! Terminal hyperlinks (OSC 8: `ESC ] 8 ; id=ID ; URL ESC \ text ESC ] 8 ;; ESC \`), ⌘-click in
+//! Ghostty.
 //!
 //! Ratatui has no hyperlinks, and the text it renders drops control characters, so links go
 //! onto the buffer after rendering: each cell of the linked text gets its symbol wrapped in the
 //! sequence and keeps the width of that symbol (`CellDiffOption::ForcedWidth`), because the
 //! sequences take no columns on screen. Layout, truncation and colours stay as rendered, and a
 //! terminal without OSC 8 ignores the sequences and shows the same text.
+//!
+//! The `id` is the same for every cell of one link on one row (a hash of the URL and the row),
+//! so a terminal treats the cells, each wrapped on its own, as one link and underlines all of
+//! it on hover.
 
 use ratatui::buffer::{Buffer, CellDiffOption, CellWidth};
 use ratatui::layout::Rect;
 use std::num::NonZeroU16;
 
-const OPEN: &str = "\x1b]8;;";
+const OPEN: &str = "\x1b]8;";
 const END: &str = "\x1b\\";
 const CLOSE: &str = "\x1b]8;;\x1b\\";
 
@@ -22,13 +27,14 @@ pub fn apply(buf: &mut Buffer, row: Rect, url: &str) {
     if url.is_empty() || row.is_empty() {
         return;
     }
+    let open = format!("{OPEN}id={:08x};{url}{END}", link_id(&url, row.y));
     let mut x = row.x;
     while x < row.right() {
         let cell = &mut buf[(x, row.y)];
         let shown = cell.symbol().to_string();
         let width = shown.as_str().cell_width().max(1);
         if target(&shown).is_none() {
-            cell.set_symbol(&format!("{OPEN}{url}{END}{shown}{CLOSE}"));
+            cell.set_symbol(&format!("{open}{shown}{CLOSE}"));
             // `width` is at least 1. The trailing cells of a wide character stay as rendered.
             cell.set_diff_option(CellDiffOption::ForcedWidth(NonZeroU16::new(width).unwrap_or(NonZeroU16::MIN)));
         }
@@ -39,17 +45,31 @@ pub fn apply(buf: &mut Buffer, row: Rect, url: &str) {
 /// What a cell shows: its symbol without the link around it (for tests of the rendering).
 #[cfg(test)]
 pub fn visible(symbol: &str) -> String {
-    split(symbol).map_or(symbol, |(_, text)| text).to_string()
+    split(symbol).map_or(symbol, |(_, _, text)| text).to_string()
 }
 
 /// The link target of a cell's symbol, if it has one.
 pub fn target(symbol: &str) -> Option<&str> {
-    split(symbol).map(|(url, _)| url)
+    split(symbol).map(|(_, url, _)| url)
 }
 
-fn split(symbol: &str) -> Option<(&str, &str)> {
-    let (url, rest) = symbol.strip_prefix(OPEN)?.split_once(END)?;
-    Some((url, rest.strip_suffix(CLOSE)?))
+/// The `id` parameter of a cell's link, if it has one.
+#[cfg(test)]
+pub fn id(symbol: &str) -> Option<&str> {
+    let (params, _, _) = split(symbol)?;
+    params.split(':').find_map(|p| p.strip_prefix("id="))
+}
+
+/// The parameters, target and text of a linked symbol.
+fn split(symbol: &str) -> Option<(&str, &str, &str)> {
+    let (link, rest) = symbol.strip_prefix(OPEN)?.split_once(END)?;
+    let (params, url) = link.split_once(';')?;
+    Some((params, url, rest.strip_suffix(CLOSE)?))
+}
+
+/// A stable id for the link to `url` on row `y`: 32-bit FNV-1a over both.
+fn link_id(url: &str, y: u16) -> u32 {
+    url.bytes().chain(y.to_be_bytes()).fold(0x811c_9dc5, |hash, b| (hash ^ u32::from(b)).wrapping_mul(0x0100_0193))
 }
 
 /// `url` as OSC 8 allows it: printable ASCII only, every other byte percent-encoded, so no
@@ -89,7 +109,8 @@ mod tests {
         let mut buf = Buffer::empty(Rect::new(0, 0, 8, 1));
         buf.set_string(0, 0, "a日b", ratatui::style::Style::new());
         apply(&mut buf, Rect::new(0, 0, 4, 1), "https://x.test/a");
-        assert_eq!(buf[(0, 0)].symbol(), "\x1b]8;;https://x.test/a\x1b\\a\x1b]8;;\x1b\\");
+        let id = format!("{:08x}", link_id("https://x.test/a", 0));
+        assert_eq!(buf[(0, 0)].symbol(), format!("\x1b]8;id={id};https://x.test/a\x1b\\a\x1b]8;;\x1b\\"));
         assert_eq!(visible(buf[(1, 0)].symbol()), "日");
         assert_eq!(buf[(1, 0)].cell_width(), 2);
         // The wide character's trailing cell is not wrapped on its own.
@@ -99,6 +120,27 @@ mod tests {
         // Outside the row: untouched.
         assert_eq!(buf[(4, 0)].symbol(), " ");
         assert_eq!(target(buf[(4, 0)].symbol()), None);
+    }
+
+    #[test]
+    fn one_link_has_one_id_per_row() {
+        let mut buf = Buffer::empty(Rect::new(0, 0, 6, 3));
+        buf.set_string(0, 0, "abc", ratatui::style::Style::new());
+        buf.set_string(0, 1, "abc", ratatui::style::Style::new());
+        apply(&mut buf, Rect::new(0, 0, 3, 1), "https://x.test/a");
+        apply(&mut buf, Rect::new(0, 1, 3, 1), "https://x.test/a");
+        apply(&mut buf, Rect::new(3, 0, 3, 1), "https://x.test/b");
+        let ids = |y: u16, xs: std::ops::Range<u16>| xs.map(|x| id(buf[(x, y)].symbol()).unwrap().to_string()).collect::<Vec<_>>();
+        // Every cell of a row's link shares the id, so the terminal underlines all of it.
+        let first = ids(0, 0..3);
+        assert!(first.iter().all(|i| *i == first[0]) && first[0].len() == 8, "{first:?}");
+        // The same URL on another row, and another URL on the same row, get other ids.
+        assert_ne!(ids(1, 0..1)[0], first[0]);
+        assert_ne!(ids(0, 3..4)[0], first[0]);
+        // Stable: the same URL and row always give the same id.
+        assert_eq!(first[0], format!("{:08x}", link_id("https://x.test/a", 0)));
+        assert_eq!(target(buf[(1, 1)].symbol()), Some("https://x.test/a"));
+        assert_eq!(visible(buf[(1, 1)].symbol()), "b");
     }
 
     #[test]
@@ -119,6 +161,9 @@ mod tests {
         assert_eq!(target("x"), None);
         assert_eq!(visible("\x1b]8;;u\x1b\\ř\x1b]8;;\x1b\\"), "ř");
         assert_eq!(target("\x1b]8;;u\x1b\\ř\x1b]8;;\x1b\\"), Some("u"));
+        assert_eq!(id("\x1b]8;;u\x1b\\ř\x1b]8;;\x1b\\"), None);
+        let with_id = "\x1b]8;id=0a1b2c3d;u\x1b\\ř\x1b]8;;\x1b\\";
+        assert_eq!((visible(with_id).as_str(), target(with_id), id(with_id)), ("ř", Some("u"), Some("0a1b2c3d")));
     }
 
     #[test]
