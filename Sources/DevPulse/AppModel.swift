@@ -46,7 +46,7 @@ final class AppModel {
     /// SwiftUI's `openSettings` action (actions only exist inside views), the Settings view its
     /// window.
     @ObservationIgnored let settingsPresenter = SettingsPresenter<NSWindow>(
-        activate: { NSApp.activate() }, bringToFront: AppModel.bringToFront)
+        activate: { NSApp.activate() }, bringToFront: WindowFronter.bringToFront)
 
     @ObservationIgnored private let log = Logger(subsystem: "io.jp4.devpulse", category: "app")
     @ObservationIgnored private let policy = RefreshPolicy()
@@ -429,22 +429,6 @@ final class AppModel {
     func openSettings() {
         log.info("Opening Settings, app active: \(NSApp.isActive, privacy: .public)")
         settingsPresenter.request()
-    }
-
-    /// Puts the window in front even when macOS did not activate the app (see
-    /// `SettingsPresenter`). SwiftUI shows a new window a moment after placing its view, so this
-    /// waits for it briefly; a window closed in the meantime is not brought back.
-    private static func bringToFront(_ window: NSWindow) {
-        Task { @MainActor in
-            for _ in 0..<10 {
-                if window.isVisible {
-                    window.orderFrontRegardless()
-                    window.makeKey()
-                    return
-                }
-                try? await Task.sleep(for: .milliseconds(50))
-            }
-        }
     }
 
     func openSettings(_ tab: SettingsTab) {
