@@ -150,6 +150,17 @@ mod tests {
     }
 
     #[test]
+    fn open_settings_goes_out_as_the_app_decodes_it() {
+        let (client, mut server) = UnixStream::pair().unwrap();
+        let mut conn = Connection::from_stream(client).unwrap();
+        conn.send(&ClientMessage::OpenSettings).unwrap();
+        drop(conn);
+        let mut got = String::new();
+        server.read_to_string(&mut got).unwrap();
+        assert!(got.ends_with("\n{\"type\":\"openSettings\"}\n"), "{got}");
+    }
+
+    #[test]
     fn malformed_and_truncated_lines_are_skipped_and_eof_disconnects() {
         let (client, mut server) = UnixStream::pair().unwrap();
         let rx = Connection::from_stream(client).unwrap().lines();
