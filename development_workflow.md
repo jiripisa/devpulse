@@ -20,6 +20,7 @@ devpulse/
 │                            # AppIcon.icon, Assets.xcassets (menu bar icon)
 ├── scripts/make_appcast.py  # Sparkle feed, called by build.sh dist
 ├── scripts/artwork/generate.swift  # draws the icon and menu bar glyph: swift … <dir>, by hand only
+├── scripts/artwork/compose.swift   # website hero + og-image from the screenshots, by hand only
 ├── docs/                    # GitHub Pages website + manual
 ├── build.sh                 # debug | release | dist | clean
 └── run.sh                   # debug (logs in terminal) | release (open .app)
@@ -161,6 +162,8 @@ DEVPULSE_SOCKET="$HOME/Library/Application Support/DevPulse/devpulse-demo.sock" 
 `scripts/demo-snapshot.json` holds neutral example data for the website; never put real PRs,
 tickets or sessions in it. Capture screenshots by window ID of the demo's own process
 (`screencapture -l <id>`), never the whole screen.
+After new screenshots in `docs/assets/manual/`, `swift scripts/artwork/compose.swift` (from the
+repository root) redraws `docs/assets/hero.png` and `docs/assets/og-image.png`.
 
 ## 4. Development Methodology
 
