@@ -8,13 +8,16 @@ mod link;
 mod panels;
 mod text;
 
-use crate::state::{AppState, Panel};
+use crate::state::{Action, AppState, Panel};
 use crate::theme;
+use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
 use ratatui::Frame;
 use ratatui::layout::{Alignment, Rect};
 use ratatui::text::Line;
 use ratatui::widgets::Paragraph;
 use std::time::SystemTime;
+
+pub use link::Links;
 
 /// Below this size the layout does not fit and a message is shown instead.
 pub const MIN_WIDTH: u16 = 60;
@@ -100,18 +103,31 @@ pub fn hit_test(area: Rect, state: &AppState, x: u16, y: u16) -> Option<(Panel, 
     Some((panel, Some(offset + usize::from(y - r.y - 1))))
 }
 
-/// Draws the whole screen for `state`; relative ages are computed against `now`.
-pub fn draw(frame: &mut Frame, state: &AppState, now: SystemTime) {
+/// A left press of the mouse on the screen last drawn (`area`, with its `links`): opens the link
+/// under the pointer, or else focuses and selects what `hit_test` finds. The modifier bits do
+/// not matter: Ghostty sends ⌘-click as a plain click (SGR has no bit for ⌘), and sometimes
+/// with the alt or ctrl bit set. Any other mouse event does nothing.
+pub fn click(area: Rect, state: &mut AppState, links: &Links, mouse: MouseEvent) -> Option<Action> {
+    if mouse.kind != MouseEventKind::Down(MouseButton::Left) {
+        return None;
+    }
+    let hit = hit_test(area, state, mouse.column, mouse.row);
+    state.left_click(links.at(mouse.column, mouse.row), hit)
+}
+
+/// Draws the whole screen for `state`; relative ages are computed against `now`. Returns where
+/// its clickable links are.
+pub fn draw(frame: &mut Frame, state: &AppState, now: SystemTime) -> Links {
     let area = frame.area();
     let Some(a) = areas(area, state) else {
         too_small(frame, area);
-        return;
+        return Links::default();
     };
     header::render(frame, a.header, state, now);
     for panel in Panel::ALL {
         panels::render(frame, a.panels[panel.index()], state, panel);
     }
-    detail::render(frame, a.detail, state, now);
+    let links = detail::render(frame, a.detail, state, now);
     if state.reconnecting {
         frame.buffer_mut().set_style(a.body, theme::dim());
     }
@@ -119,6 +135,7 @@ pub fn draw(frame: &mut Frame, state: &AppState, now: SystemTime) {
     if state.show_help {
         help::render(frame, area);
     }
+    links
 }
 
 fn too_small(frame: &mut Frame, area: Rect) {

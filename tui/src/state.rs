@@ -43,6 +43,8 @@ impl Panel {
 pub enum Action {
     Quit,
     Send(ClientMessage),
+    /// Open this web link in the browser: a click on a link in the detail.
+    OpenUrl(String),
 }
 
 /// The last `upgrade` message from the app, for the status line.
@@ -284,6 +286,23 @@ impl AppState {
         {
             self.selected[panel.index()] = row;
         }
+    }
+
+    /// A left click: closes the help when it is open; else opens `link`, the web link under the
+    /// pointer, and selects nothing; else focuses and selects what `hit_test` found (`hit`).
+    pub fn left_click(&mut self, link: Option<&str>, hit: Option<(Panel, Option<usize>)>) -> Option<Action> {
+        if self.show_help {
+            self.show_help = false;
+            return None;
+        }
+        if let Some(url) = link {
+            self.clear_notice();
+            return Some(Action::OpenUrl(url.to_string()));
+        }
+        if let Some((panel, row)) = hit {
+            self.click(panel, row);
+        }
+        None
     }
 
     /// The mouse wheel over `panel`: moves that panel's selection; the focus stays.
@@ -783,6 +802,36 @@ mod tests {
             press(&mut st, 'J'),
             Some(Action::Send(ClientMessage::Open { kind: OpenKind::Ticket, id: "STORE-2290".into() }))
         );
+    }
+
+    #[test]
+    fn a_left_click_on_a_link_opens_it_and_selects_nothing() {
+        let mut st = state();
+        st.show_notice("could not open link", Instant::now() + NOTICE);
+        let before = (st.focus, st.selected);
+        let url = "https://example.atlassian.net/browse/STORE-2290";
+        assert_eq!(st.left_click(Some(url), None), Some(Action::OpenUrl(url.into())));
+        assert_eq!((st.focus, st.selected), before);
+        assert_eq!(st.notice, None);
+    }
+
+    #[test]
+    fn a_left_click_beside_a_link_focuses_and_selects() {
+        let mut st = state();
+        assert_eq!(st.left_click(None, Some((Panel::Claude, Some(1)))), None);
+        assert_eq!((st.focus, st.selected[3]), (Panel::Claude, 1));
+        // On the detail pane outside a link, the header or the footer: nothing changes.
+        assert_eq!(st.left_click(None, None), None);
+        assert_eq!((st.focus, st.selected[3]), (Panel::Claude, 1));
+    }
+
+    #[test]
+    fn a_left_click_with_the_help_open_only_closes_it() {
+        let mut st = state();
+        press(&mut st, '?');
+        assert_eq!(st.left_click(Some("https://example.test/STORE-1"), Some((Panel::Jira, Some(1)))), None);
+        assert!(!st.show_help);
+        assert_eq!(st.focus, Panel::MyPrs);
     }
 
     #[test]

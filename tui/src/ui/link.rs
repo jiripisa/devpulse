@@ -1,5 +1,5 @@
-//! Terminal hyperlinks (OSC 8: `ESC ] 8 ; id=ID ; URL ESC \ text ESC ] 8 ;; ESC \`), ⌘-click in
-//! Ghostty.
+//! Terminal hyperlinks (OSC 8: `ESC ] 8 ; id=ID ; URL ESC \ text ESC ] 8 ;; ESC \`), ⇧⌘-click in
+//! Ghostty, and where they are on screen (`Links`), so the TUI opens them on a plain click.
 //!
 //! Ratatui has no hyperlinks, and the text it renders drops control characters, so links go
 //! onto the buffer after rendering: each cell of the linked text gets its symbol wrapped in the
@@ -12,7 +12,7 @@
 //! it on hover.
 
 use ratatui::buffer::{Buffer, CellDiffOption, CellWidth};
-use ratatui::layout::Rect;
+use ratatui::layout::{Position, Rect};
 use std::num::NonZeroU16;
 
 const OPEN: &str = "\x1b]8;";
@@ -39,6 +39,32 @@ pub fn apply(buf: &mut Buffer, row: Rect, url: &str) {
             cell.set_diff_option(CellDiffOption::ForcedWidth(NonZeroU16::new(width).unwrap_or(NonZeroU16::MIN)));
         }
         x = x.saturating_add(width);
+    }
+}
+
+/// Where the clickable links of a drawn frame are: one row part per link, with its target as
+/// the terminal gets it. Every draw builds them anew.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Links(Vec<(Rect, String)>);
+
+impl Links {
+    /// Records that `row` links to `url`; an empty row or URL is left out, as `apply` does.
+    pub fn push(&mut self, row: Rect, url: &str) {
+        if !row.is_empty() && !url.is_empty() {
+            self.0.push((row, uri(url)));
+        }
+    }
+
+    /// The link under (`x`, `y`), if there is one.
+    pub fn at(&self, x: u16, y: u16) -> Option<&str> {
+        let pos = Position { x, y };
+        self.0.iter().find(|(r, _)| r.contains(pos)).map(|(_, url)| url.as_str())
+    }
+
+    /// Every recorded row part and its target (for tests).
+    #[cfg(test)]
+    pub fn iter(&self) -> impl Iterator<Item = (Rect, &str)> {
+        self.0.iter().map(|(r, url)| (*r, url.as_str()))
     }
 }
 
