@@ -103,11 +103,9 @@ private func withFreshDefaults(_ body: (UserDefaults) throws -> Void) rethrows {
         let old = Data(#"{"defaultJiraProject":"STORE","refreshInterval":300}"#.utf8)
         let settings = try JSONDecoder().decode(AppSettings.self, from: old)
         #expect(settings.jiraProjects == ["STORE"])
-        #expect(settings.defaultJiraProject == "STORE")
         let both = Data(#"{"defaultJiraProject":"STORE","jiraProjects":["WA","OPS"]}"#.utf8)
         #expect(try JSONDecoder().decode(AppSettings.self, from: both).jiraProjects == ["WA", "OPS"])
         #expect(AppSettings().jiraProjects.isEmpty)
-        #expect(AppSettings().defaultJiraProject == nil)
     }
 
     @Test func parsesTheProjectListAsTyped() {
@@ -128,12 +126,6 @@ private func withFreshDefaults(_ body: (UserDefaults) throws -> Void) rethrows {
         #expect(AppSettings.projectsByFrequency(tickets) == ["STORE", "AB", "OPS", "WA"])
     }
 
-    @Test func mostFrequentProjectUsesTheKeyPrefix() {
-        #expect(AppSettings.mostFrequentProject([]) == nil)
-        let tickets = ["WA-1", "STORE-2", "STORE-3", "WA-4"].map { makeTicket(key: $0) }
-        #expect(AppSettings.mostFrequentProject(tickets) == "STORE")
-        #expect(AppSettings.mostFrequentProject([makeTicket(key: "WA-1"), makeTicket(key: "A-1")]) == "A")
-    }
 }
 
 @Suite struct KeychainTests {

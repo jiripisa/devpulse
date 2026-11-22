@@ -3,9 +3,8 @@
 ## Unreleased
 
 - Settings › Jira › Projects: list the Jira projects (`STORE, WA`) in which the quick launcher
-  looks up a bare number; it shows a row for each of them. It replaces the single default
-  project, and your earlier choice is kept as the first entry. The first project is the one
-  `jira <number>` uses.
+  looks up a bare number and `jira <number>`; it shows a row for each of them. It replaces the
+  single default project, and your earlier choice is kept as the first entry.
 - The quick launcher shows the title and state of tickets and pull requests that are not in your
   lists: once you stop typing, it asks Jira and GitHub about them (one request each). Tickets or
   pull requests that do not exist disappear from a bare number's results, and `jira <key>` or

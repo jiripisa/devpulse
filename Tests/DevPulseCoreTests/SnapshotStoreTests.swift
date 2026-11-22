@@ -115,7 +115,7 @@ private final class FakeClock: Sendable {
     @Test func launcherLookupsUseTheSourcesWhileTheyAreOn() async throws {
         let rig = Rig()
         rig.jira.linked.withLock { $0 = .success([makeTicket(key: "WA-7")]) }
-        #expect(try await rig.store.lookUpTickets(keys: ["WA-7"]).map(\.key) == ["WA-7"])
+        #expect(try await rig.store.lookUpTickets(keys: ["WA-7"]).tickets.map(\.key) == ["WA-7"])
         #expect(rig.jira.linkedSearches.withLock { $0 } == [["WA-7"]])
         let pr = try await rig.store.lookUpPullRequest(PullRequestRef(repo: "acme/store", number: 7))
         #expect(pr?.title == "T")

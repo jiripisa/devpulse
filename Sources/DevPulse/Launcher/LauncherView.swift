@@ -13,6 +13,9 @@ struct LauncherView: View {
 
     @State private var query = ""
     @State private var selection = 0
+    /// The query the rows were last listed for: new rows for the same query (a lookup's
+    /// answer) keep the selected row, a new query starts at the top.
+    @State private var rowsQuery = ""
     @FocusState private var focused: Bool
 
     init(
@@ -109,12 +112,15 @@ struct LauncherView: View {
         .onAppear { focused = true }
         // Not before: a field that takes focus with text in it selects all of it.
         .onChange(of: focused) { if focused, query.isEmpty { query = initialQuery } }
-        .onChange(of: query) { selection = 0 }
         .task(id: query) { await lookUp() }
-        .onChange(of: items.count, initial: true) {
-            // A lookup can drop rows (tickets that do not exist) under the selection.
-            selection = min(selection, max(items.count - 1, 0))
-            onHeight(Self.height(rows: items.count))
+        .onChange(of: items.map(\.target), initial: true) { old, new in
+            if rowsQuery == query {
+                selection = LauncherSelection.index(keeping: selection, from: old, to: new)
+            } else {
+                rowsQuery = query
+                selection = 0
+            }
+            onHeight(Self.height(rows: new.count))
         }
     }
 

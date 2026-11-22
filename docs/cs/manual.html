@@ -191,8 +191,9 @@ gh auth login</code></pre>
         <dl class="controls">
           <dt><span class="n">5</span>Projects</dt>
           <dd>Klíče projektů oddělené čárkou (<code>STORE, WA</code>), ve kterých
-          <a href="#launcher">rychlé hledání</a> hledá samotné číslo; první z nich doplní
-          před <code>jira &lt;číslo&gt;</code>. Nejvýš deset. Prázdné pole znamená projekty
+          <a href="#launcher">rychlé hledání</a> hledá samotné číslo a <code>jira &lt;číslo&gt;</code>;
+          u <code>jira &lt;číslo&gt;</code> řádek prvního z nich zůstane, i když tiket neexistuje.
+          Nejvýš deset. Prázdné pole znamená projekty
           vašich tiketů, nejdřív ten, kde jich máte nejvíc; pole je ukazuje šedě.</dd>
         </dl>
         <p>DevPulse ukazuje tikety, které máte přiřazené a které ještě nejsou
@@ -432,7 +433,7 @@ gh auth login</code></pre>
           <table>
             <thead><tr><th>Napíšete</th><th>Výsledek</th></tr></thead>
             <tbody>
-              <tr><td><code>2474</code></td><td>Všechno s tímto číslem: vaše pull requesty a žádosti o review s číslem 2474 v libovolném repozitáři, za nimi vaše tikety s číslem 2474 v libovolném projektu (<code>STORE-2474</code>, <code>WA-2474</code>) a sessions Claude Code, jejichž klíč z Jiry nebo název složky toto číslo obsahuje (<code>store-2474-fix</code>, ale ne <code>store-24740</code>). Nakonec pull request 2474 ve <a href="#github">výchozím repozitáři</a> a tiket 2474 v každém z vašich <a href="#jira">projektů</a> (<code>STORE-2474</code>, <code>WA-2474</code>), pokud už v seznamu nejsou. Jakmile přestanete psát, DevPulse tyto řádky dohledá: ukážou název a stav a tikety nebo pull requesty, které neexistují, zmizí.</td></tr>
+              <tr><td><code>2474</code></td><td>Všechno s tímto číslem: vaše pull requesty a žádosti o review s číslem 2474 v libovolném repozitáři, za nimi vaše tikety a tikety vašich pull requestů s číslem 2474 v libovolném projektu (<code>STORE-2474</code>, <code>WA-2474</code>) a sessions Claude Code, jejichž klíč z Jiry nebo název složky toto číslo obsahuje (<code>store-2474-fix</code>, ale ne <code>store-24740</code>). Nakonec pull request 2474 ve <a href="#github">výchozím repozitáři</a> a tiket 2474 v každém z vašich <a href="#jira">projektů</a> (<code>STORE-2474</code>, <code>WA-2474</code>), pokud už v seznamu nejsou. Jakmile přestanete psát, DevPulse tyto řádky dohledá: ukážou název a stav a tikety nebo pull requesty, které neexistují, zmizí.</td></tr>
               <tr><td><code>gh</code></td><td>Vaše pull requesty, za nimi žádosti o review.</td></tr>
               <tr><td><code>gh invoice</code></td><td>Ty, jejichž název nebo repozitář text obsahuje.</td></tr>
               <tr><td><code>gh 812</code></td><td>Váš pull request nebo žádost o review s tímto číslem. Když takový nemáte, pull request 812 ve <a href="#github">výchozím repozitáři</a> s názvem a stavem, nebo <span class="ui">Not found on GitHub</span>.</td></tr>

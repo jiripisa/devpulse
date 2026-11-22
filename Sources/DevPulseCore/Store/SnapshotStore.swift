@@ -22,6 +22,14 @@ public protocol JiraFetching: Sendable {
     func fetch() async throws -> JiraResult
     /// The tickets with these keys, whoever they are assigned to, in one request.
     func fetchTickets(keys: [String]) async throws -> [Ticket]
+    /// The same, for the launcher, with the keys Jira says do not exist.
+    func lookUpTickets(keys: [String]) async throws -> TicketLookup
+}
+
+extension JiraFetching {
+    public func lookUpTickets(keys: [String]) async throws -> TicketLookup {
+        TicketLookup(tickets: try await fetchTickets(keys: keys), missingKeys: [])
+    }
 }
 
 /// The Claude Code session watcher. The store never scans the session files itself: the
@@ -97,9 +105,9 @@ public final class SnapshotStore {
 
     /// The tickets with these keys, for the launcher's rows, with the same Jira source and
     /// credentials as the refresh. Throws `LookupUnavailable` while Jira is off or not set up.
-    public func lookUpTickets(keys: [String]) async throws -> [Ticket] {
+    public func lookUpTickets(keys: [String]) async throws -> TicketLookup {
         guard isEnabled(.jira), let credentials = jiraCredentials() else { throw LookupUnavailable() }
-        return try await jiraSource(for: credentials).fetchTickets(keys: keys)
+        return try await jiraSource(for: credentials).lookUpTickets(keys: keys)
     }
 
     /// One PR by number, for the launcher's rows; nil when it does not exist. Throws

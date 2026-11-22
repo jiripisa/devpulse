@@ -191,8 +191,9 @@ gh auth login</code></pre>
         <dl class="controls">
           <dt><span class="n">5</span>Projects</dt>
           <dd>The project keys, separated by commas (<code>STORE, WA</code>), in which the
-          <a href="#launcher">quick launcher</a> looks up a bare number; the first one is what
-          <code>jira &lt;number&gt;</code> puts in front. Up to ten. Empty means the projects of
+          <a href="#launcher">quick launcher</a> looks up a bare number and
+          <code>jira &lt;number&gt;</code>; for <code>jira &lt;number&gt;</code>, the first one's row
+          stays even when the ticket does not exist. Up to ten. Empty means the projects of
           your tickets, most tickets first; the field shows them in grey.</dd>
         </dl>
         <p>DevPulse lists the tickets assigned to you that are not done.</p>
@@ -430,7 +431,7 @@ gh auth login</code></pre>
           <table>
             <thead><tr><th>Type</th><th>Result</th></tr></thead>
             <tbody>
-              <tr><td><code>2474</code></td><td>Everything with that number: your pull requests and review requests numbered 2474 in any repository, then your tickets numbered 2474 in any project (<code>STORE-2474</code>, <code>WA-2474</code>), then the Claude Code sessions whose Jira key or folder name has that number (<code>store-2474-fix</code>, but not <code>store-24740</code>). Last, pull request 2474 of the <a href="#github">default repository</a> and ticket 2474 of each of your <a href="#jira">projects</a> (<code>STORE-2474</code>, <code>WA-2474</code>), unless they are already in the list. Once you stop typing, DevPulse looks these rows up: they show their title and state, and tickets or pull requests that do not exist disappear.</td></tr>
+              <tr><td><code>2474</code></td><td>Everything with that number: your pull requests and review requests numbered 2474 in any repository, then your tickets and your pull requests' tickets numbered 2474 in any project (<code>STORE-2474</code>, <code>WA-2474</code>), then the Claude Code sessions whose Jira key or folder name has that number (<code>store-2474-fix</code>, but not <code>store-24740</code>). Last, pull request 2474 of the <a href="#github">default repository</a> and ticket 2474 of each of your <a href="#jira">projects</a> (<code>STORE-2474</code>, <code>WA-2474</code>), unless they are already in the list. Once you stop typing, DevPulse looks these rows up: they show their title and state, and tickets or pull requests that do not exist disappear.</td></tr>
               <tr><td><code>gh</code></td><td>Your pull requests, then your review requests.</td></tr>
               <tr><td><code>gh invoice</code></td><td>Those whose title or repository contains the text.</td></tr>
               <tr><td><code>gh 812</code></td><td>Your pull request or review request with that number. If you have none, pull request 812 of the <a href="#github">default repository</a>, with its title and state, or <span class="ui">Not found on GitHub</span>.</td></tr>

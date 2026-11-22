@@ -18,6 +18,18 @@ public struct JiraResult: Sendable, Equatable {
     }
 }
 
+/// The answer to a launcher lookup: the tickets Jira returned, and the asked-for keys it said
+/// do not exist (or that I may not see).
+public struct TicketLookup: Sendable, Equatable {
+    public var tickets: [Ticket]
+    public var missingKeys: Set<String>
+
+    public init(tickets: [Ticket], missingKeys: Set<String>) {
+        self.tickets = tickets
+        self.missingKeys = missingKeys
+    }
+}
+
 /// Fetches the user's open Jira Cloud tickets and their recent comments (REST v3).
 public final class JiraSource: Sendable {
     static let jql = "assignee = currentUser() AND statusCategory != Done ORDER BY updated DESC"
@@ -68,17 +80,27 @@ public final class JiraSource: Sendable {
     /// a key that does not exist or that I may not see does not fail the others: Jira lists it
     /// under `issueErrors`, which is left out. They come without comments and never notify.
     public func fetchTickets(keys: [String]) async throws -> [Ticket] {
+        try await lookUpTickets(keys: keys).tickets
+    }
+
+    /// `fetchTickets(keys:)` that also says which keys Jira named under `issueErrors`: those
+    /// that do not exist or that I may not see. A ticket moved to another project comes back
+    /// under its new key and is in neither list.
+    public func lookUpTickets(keys: [String]) async throws -> TicketLookup {
         let keys = Array(keys.prefix(Self.maxResults))
-        guard !keys.isEmpty else { return [] }
+        guard !keys.isEmpty else { return TicketLookup(tickets: [], missingKeys: []) }
         let body = try JSONSerialization.data(withJSONObject: [
             "issueIdsOrKeys": keys, "fields": Self.linkedFields,
         ] as [String: Any])
         let data = try await send(path: "/rest/api/3/issue/bulkfetch", method: "POST", body: body)
         let response = try mapped { try JSONDecoder().decode(BulkResponse.self, from: data) }
-        if let errors = response.issueErrors, !errors.isEmpty {
-            Self.log.debug("Bulk fetch could not return \(errors.count, privacy: .public) of the linked tickets")
+        let errors = response.issueErrors ?? []
+        if !errors.isEmpty {
+            Self.log.debug("Bulk fetch could not return \(errors.count, privacy: .public) of the tickets")
         }
-        return try response.issues.map { issue in try mapped { try issue.ticket(site: credentials.site) } }
+        let tickets = try response.issues.map { issue in try mapped { try issue.ticket(site: credentials.site) } }
+        let requested = Set(keys)
+        return TicketLookup(tickets: tickets, missingKeys: Set(errors.compactMap(\.id)).intersection(requested))
     }
 
     private static let log = Logger(subsystem: "io.jp4.devpulse", category: "jira")
@@ -165,10 +187,10 @@ public final class JiraSource: Sendable {
 
     private struct SearchResponse: Decodable { var issues: [Issue] }
 
-    /// The bulk fetch's answer: the issues found, and one entry per key it could not return
-    /// (only counted).
+    /// The bulk fetch's answer: the issues found, and one entry per key it could not return,
+    /// naming that key (`id`, as it was asked for).
     private struct BulkResponse: Decodable {
-        struct IssueError: Decodable {}
+        struct IssueError: Decodable { var id: String? }
         var issues: [Issue]
         var issueErrors: [IssueError]?
 

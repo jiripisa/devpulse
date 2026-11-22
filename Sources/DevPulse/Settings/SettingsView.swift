@@ -209,7 +209,7 @@ private struct JiraSettingsView: View {
                           prompt: Text(placeholderProjects))
                     .onChange(of: projects) { model.settings.jiraProjects = AppSettings.parseProjects(projects) }
             } footer: {
-                Text("Project keys, separated by commas, that the quick launcher looks a bare number up in. The first is used for `jira <number>`. Empty means the projects of your tickets.")
+                Text("Project keys, separated by commas, in which the quick launcher looks up a bare number and `jira <number>`. Empty means the projects of your tickets.")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }

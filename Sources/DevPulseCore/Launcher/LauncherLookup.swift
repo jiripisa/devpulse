@@ -85,7 +85,7 @@ public struct LookupResults: Equatable, Sendable {
 public final class LauncherLookup {
     public private(set) var results = LookupResults()
 
-    public typealias TicketFetch = @Sendable ([String]) async throws -> [Ticket]
+    public typealias TicketFetch = @Sendable ([String]) async throws -> TicketLookup
     public typealias PullRequestFetch = @Sendable (PullRequestRef) async throws -> PullRequestSummary?
 
     @ObservationIgnored private let fetchTickets: TicketFetch
@@ -126,18 +126,25 @@ public final class LauncherLookup {
         guard !keys.isEmpty else { return }
         ticketsInFlight.formUnion(keys)
         defer { ticketsInFlight.subtract(keys) }
-        guard let found = try? await fetchTickets(keys) else { return }
-        let byKey = Dictionary(found.map { ($0.key, $0) }) { first, _ in first }
+        guard let answer = try? await fetchTickets(keys) else { return }
+        let byKey = Dictionary(answer.tickets.map { ($0.key, $0) }) { first, _ in first }
+        // A ticket moved to another project comes back under its new key: when exactly one
+        // asked-for key is unaccounted for and exactly one ticket was not asked for, they are
+        // the same ticket.
+        let unaccounted = keys.filter { byKey[$0] == nil && !answer.missingKeys.contains($0) }
+        let unasked = answer.tickets.filter { !keys.contains($0.key) }
+        let moved = unaccounted.count == 1 && unasked.count == 1 ? [unaccounted[0]: unasked[0]] : [:]
         let moment = now()
         for key in keys {
             ticketsFetchedAt[key] = moment
-            if let ticket = byKey[key] {
+            if let ticket = byKey[key] ?? moved[key] {
                 results.tickets[key] = ticket
                 results.missingTickets.remove(key)
-            } else {
+            } else if answer.missingKeys.contains(key) {
                 results.tickets.removeValue(forKey: key)
                 results.missingTickets.insert(key)
             }
+            // Otherwise Jira said nothing about it: the row stays "Open …".
         }
     }
 
@@ -161,5 +168,16 @@ public final class LauncherLookup {
                 results.missingPullRequests.insert(ref)
             }
         }
+    }
+}
+
+/// Where the launcher's selection goes when its rows change while the query stays: a lookup
+/// can add titles or drop rows under the selection.
+public enum LauncherSelection {
+    /// The new index of the row that was selected, when it is still listed; else the old index,
+    /// clamped to the new rows.
+    public static func index(keeping selection: Int, from old: [OpenTarget], to new: [OpenTarget]) -> Int {
+        if old.indices.contains(selection), let moved = new.firstIndex(of: old[selection]) { return moved }
+        return min(selection, max(new.count - 1, 0))
     }
 }

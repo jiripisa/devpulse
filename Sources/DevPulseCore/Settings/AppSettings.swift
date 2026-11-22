@@ -68,14 +68,12 @@ public struct AppSettings: Codable, Sendable, Equatable {
     public var triggers: [NotificationTrigger: Bool]
     public var includeTeamReviewRequests: Bool
     public var defaultRepo: String?
-    /// The Jira projects (keys like `STORE`) the launcher looks a bare number up in, at most
-    /// `maxJiraProjects`; the first is the default for `jira <number>`. Empty means the
-    /// projects of my tickets, most tickets first.
+    /// The Jira projects (keys like `STORE`) the launcher looks a bare number and
+    /// `jira <number>` up in, at most `maxJiraProjects`; the first one's row stays when the
+    /// ticket does not exist. Empty means the projects of my tickets, most tickets first.
     public var jiraProjects: [String] {
         didSet { jiraProjects = Self.cleanProjects(jiraProjects) }
     }
-    /// The project `jira <number>` uses when none is typed: the first of `jiraProjects`.
-    public var defaultJiraProject: String? { jiraProjects.first }
     public var jiraSite: URL?
     public var jiraEmail: String?
     public var hotkey: Hotkey
@@ -181,11 +179,6 @@ public struct AppSettings: Codable, Sendable, Equatable {
     /// The repo (`owner/name`) with the most PRs; ties go to the alphabetically first.
     public static func mostFrequentRepo(_ prs: [PullRequest]) -> String? {
         mode(of: prs.map(\.repo))
-    }
-
-    /// The Jira project key (the part of the ticket key before the number) with the most tickets.
-    public static func mostFrequentProject(_ tickets: [Ticket]) -> String? {
-        mode(of: tickets.compactMap { ticket in ticket.key.lastIndex(of: "-").map { String(ticket.key[..<$0]) } })
     }
 
     /// Every Jira project of these tickets, the one with the most tickets first (ties
