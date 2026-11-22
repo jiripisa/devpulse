@@ -120,7 +120,7 @@ private func makeSession(pid: Int, status: SessionStatus) -> ClaudeSession {
         let base = AppSettings()
         var changed = base
         changed.refreshInterval = 600
-        changed.defaultRepo = "acme/app"
+        changed.githubRepos = ["acme/app"]
         changed.triggers[.ciFinished] = false
         changed.launchAtLogin = false
         changed.notificationsEnabled[.claude] = false

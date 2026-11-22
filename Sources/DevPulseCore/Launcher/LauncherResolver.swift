@@ -112,20 +112,18 @@ public enum LauncherResolver {
                 .compactMap { item($0, snapshot: snapshot) }
                 .map(Row.item)
         }
-        let fullRepo: String
         if let repo {
-            guard let resolved = resolveRepo(repo, known: known) else { return [] }
-            fullRepo = resolved
-        } else {
-            let matches = known.filter { $0.number == number }
-            if !matches.isEmpty { return matches.compactMap { item($0, snapshot: snapshot) }.map(Row.item) }
-            guard let fallback = defaultRepo(snapshot: snapshot, settings: settings) else { return [] }
-            fullRepo = fallback
+            guard let fullRepo = resolveRepo(repo, known: known, configured: repos(snapshot: snapshot, settings: settings))
+            else { return [] }
+            if let pr = known.first(where: { $0.repo.lowercased() == fullRepo.lowercased() && $0.number == number }) {
+                return item(pr, snapshot: snapshot).map { [.item($0)] } ?? []
+            }
+            return [.pullRequest(PullRequestRef(repo: fullRepo, number: number), typed: true)]
         }
-        if let pr = known.first(where: { $0.repo.lowercased() == fullRepo.lowercased() && $0.number == number }) {
-            return item(pr, snapshot: snapshot).map { [.item($0)] } ?? []
-        }
-        return [.pullRequest(PullRequestRef(repo: fullRepo, number: number), typed: true)]
+        // Every repository, the first one typed: it stays when the PR does not exist.
+        let (prs, refs) = pullRequests(number: number, snapshot: snapshot, settings: settings)
+        let first = repos(snapshot: snapshot, settings: settings).first.map { PullRequestRef(repo: $0, number: number) }
+        return prs.compactMap { item($0, snapshot: snapshot) }.map(Row.item) + refs.map { .pullRequest($0, typed: $0 == first) }
     }
 
     /// My PRs first, then the review requests; a PR in both lists shows once, as mine.
@@ -134,9 +132,21 @@ public enum LauncherResolver {
         return (snapshot.myPullRequests + snapshot.reviewRequests).filter { seen.insert($0.id).inserted }
     }
 
-    /// The configured default repository, else the one most of my PRs are in.
-    private static func defaultRepo(snapshot: Snapshot, settings: AppSettings) -> String? {
-        settings.defaultRepo ?? AppSettings.mostFrequentRepo(snapshot.myPullRequests)
+    /// The configured repositories, else those of my PRs, most PRs first.
+    private static func repos(snapshot: Snapshot, settings: AppSettings) -> [String] {
+        settings.githubRepos.isEmpty ? AppSettings.reposByFrequency(snapshot.myPullRequests) : settings.githubRepos
+    }
+
+    /// My PRs and review requests with this number in any repo, and the repositories' PRs with
+    /// it that are not among them.
+    private static func pullRequests(
+        number: Int, snapshot: Snapshot, settings: AppSettings
+    ) -> ([PullRequest], [PullRequestRef]) {
+        let known = knownPullRequests(snapshot).filter { $0.number == number }
+        let refs = repos(snapshot: snapshot, settings: settings)
+            .map { PullRequestRef(repo: $0, number: number) }
+            .filter { ref in !known.contains { PullRequestRef(repo: $0.repo, number: $0.number) == ref } }
+        return (known, refs)
     }
 
     /// A row that opens a PR by number, for one not in my lists.
@@ -146,10 +156,14 @@ public enum LauncherResolver {
             title: "Open \(repo)#\(number)", subtitle: url.absoluteString, kind: .pullRequest, target: .url(url))
     }
 
-    /// A full `owner/name` as typed, or the owner of a known PR in a repo of that name.
-    private static func resolveRepo(_ typed: String, known: [PullRequest]) -> String? {
+    /// A full `owner/name` as typed, or the configured repository or the repo of a known PR
+    /// with that name.
+    private static func resolveRepo(_ typed: String, known: [PullRequest], configured: [String]) -> String? {
         if typed.contains("/") { return typed }
-        return known.first { $0.repo.split(separator: "/").last.map { $0.lowercased() == typed.lowercased() } ?? false }?.repo
+        func named(_ repo: String) -> Bool {
+            repo.split(separator: "/").last.map { $0.lowercased() == typed.lowercased() } ?? false
+        }
+        return configured.first(where: named) ?? known.map(\.repo).first(where: named)
     }
 
     private static func item(_ pr: PullRequest, snapshot: Snapshot) -> LauncherItem? {
@@ -238,22 +252,17 @@ public enum LauncherResolver {
 
     /// Everything the number can be: my PRs and review requests with that number in any repo,
     /// the known tickets with that issue number in any project, the Claude Code sessions whose
-    /// Jira key or folder has it, then the default repo's PR and each project's ticket when the
+    /// Jira key or folder has it, then each repository's PR and each project's ticket when the
     /// rows above do not already show them.
     private static func everything(number: Int, snapshot: Snapshot, settings: AppSettings) -> [Row] {
-        let prs = knownPullRequests(snapshot).filter { $0.number == number }
+        let (prs, refs) = pullRequests(number: number, snapshot: snapshot, settings: settings)
         let (tickets, ticketKeys) = tickets(number: number, snapshot: snapshot, settings: settings)
         let sessions = snapshot.sessions.filter { session in
             session.jiraKey.flatMap(issueNumber) == number || folderNumbers(session.cwd).contains(number)
         }
-        var rows = (prs.compactMap { item($0, snapshot: snapshot) } + tickets.compactMap(item) + sessions.map(item))
+        let rows = (prs.compactMap { item($0, snapshot: snapshot) } + tickets.compactMap(item) + sessions.map(item))
             .map(Row.item)
-        if let repo = defaultRepo(snapshot: snapshot, settings: settings),
-           !prs.contains(where: { $0.repo.lowercased() == repo.lowercased() }) {
-            rows.append(.pullRequest(PullRequestRef(repo: repo, number: number), typed: false))
-        }
-        rows += ticketKeys.map { .ticket(key: $0, typed: false) }
-        return rows
+        return rows + refs.map { .pullRequest($0, typed: false) } + ticketKeys.map { .ticket(key: $0, typed: false) }
     }
 
     /// `2474` of `STORE-2474`.

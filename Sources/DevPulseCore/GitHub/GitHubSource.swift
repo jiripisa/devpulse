@@ -40,53 +40,68 @@ public final class GitHubSource: Sendable {
         return try Self.map(data, includeTeamRequests: includeTeamRequests)
     }
 
-    /// One PR by number (`GET /repos/{owner}/{name}/pulls/{number}`), for a launcher row of a
-    /// PR not in my lists; nil when it does not exist or I may not see it (404), or when `repo`
-    /// is not a plain `owner/name`.
-    public func fetchPullRequest(repo: String, number: Int) async throws -> PullRequestSummary? {
-        guard repo.wholeMatch(of: /[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+/) != nil, !repo.contains(".."),
-              let url = URL(string: "https://api.github.com/repos/\(repo)/pulls/\(number)")
-        else { return nil }
-        var response = try await get(url, token: tokens.token(forceRefresh: false))
+    /// PRs by repository and number, for the launcher's rows of PRs not in my lists: one
+    /// GraphQL request for all of them (at most `maxLookups`). A PR or repository GitHub cannot
+    /// resolve for me is missing; so is a ref whose repo is not a plain `owner/name`, which is
+    /// never sent.
+    public func fetchPullRequests(_ refs: [PullRequestRef]) async throws -> PullRequestLookup {
+        var lookup = PullRequestLookup()
+        var asked: [PullRequestRef] = []
+        for ref in refs.prefix(Self.maxLookups) where !asked.contains(ref) {
+            if AppSettings.isRepo(ref.repo) { asked.append(ref) } else { lookup.missing.insert(ref) }
+        }
+        guard !asked.isEmpty else { return lookup }
+        let body = try GitHubQuery.lookupBody(asked)
+        var response = try await post(body, token: tokens.token(forceRefresh: false))
         if response.1.statusCode == 401 {
-            response = try await get(url, token: tokens.token(forceRefresh: true))
+            response = try await post(body, token: tokens.token(forceRefresh: true))
         }
         let (data, http) = response
         switch http.statusCode {
         case 200..<300: break
-        case 404: return nil
         case 401: throw GitHubError.unauthorized
         default: throw GitHubError.http(http.statusCode)
         }
-        struct Body: Decodable {
-            var number: Int
-            var title: String
-            var state: String
-            var draft: Bool?
-            var merged_at: String?
-            var html_url: String
+        struct Answer: Decodable {
+            struct Repository: Decodable { var pullRequest: Node? }
+            struct Node: Decodable {
+                var number: Int
+                var title: String
+                var state: String
+                var isDraft: Bool
+                var url: String
+            }
+            struct GraphQLError: Decodable { var message: String }
+            /// An alias maps to null when the repository does not resolve.
+            var data: [String: Repository?]?
+            var errors: [GraphQLError]?
         }
-        let body: Body
+        let answer: Answer
         do {
-            body = try JSONDecoder().decode(Body.self, from: data)
+            answer = try JSONDecoder().decode(Answer.self, from: data)
         } catch {
             throw GitHubError.decoding(String(describing: error))
         }
-        let state: PullRequestSummary.State =
-            body.merged_at != nil ? .merged
-            : body.state == "closed" ? .closed
-            : body.draft == true ? .draft : .open
-        return PullRequestSummary(repo: repo, number: body.number, title: body.title, state: state, url: body.html_url)
+        guard let nodes = answer.data else {
+            throw GitHubError.graphQL((answer.errors ?? []).map(\.message))
+        }
+        for (index, ref) in asked.enumerated() {
+            // An alias the answer leaves out says nothing about the PR.
+            guard let repository = nodes["p\(index)"] else { continue }
+            guard let node = repository?.pullRequest else {
+                lookup.missing.insert(ref)
+                continue
+            }
+            let state: PullRequestSummary.State =
+                node.state == "MERGED" ? .merged : node.state == "CLOSED" ? .closed : node.isDraft ? .draft : .open
+            lookup.found[ref] = PullRequestSummary(
+                repo: ref.repo, number: node.number, title: node.title, state: state, url: node.url)
+        }
+        return lookup
     }
 
-    private func get(_ url: URL, token: String) async throws -> (Data, HTTPURLResponse) {
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
-        request.setValue("DevPulse", forHTTPHeaderField: "User-Agent")
-        return try await transport.send(request)
-    }
+    /// The most PRs one launcher lookup asks about: every configured repository, and a typed one.
+    static let maxLookups = 20
 
     private func post(_ body: Data, token: String) async throws -> (Data, HTTPURLResponse) {
         var request = URLRequest(url: GitHubQuery.endpoint)

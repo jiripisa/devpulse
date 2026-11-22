@@ -52,6 +52,18 @@ public struct PullRequestSummary: Equatable, Sendable {
     }
 }
 
+/// The answer to a launcher lookup of PRs: those GitHub found, and those it says do not exist
+/// (or that I may not see). A ref in neither is one the answer said nothing about.
+public struct PullRequestLookup: Sendable, Equatable {
+    public var found: [PullRequestRef: PullRequestSummary] = [:]
+    public var missing: Set<PullRequestRef> = []
+
+    public init(found: [PullRequestRef: PullRequestSummary] = [:], missing: Set<PullRequestRef> = []) {
+        self.found = found
+        self.missing = missing
+    }
+}
+
 /// The tickets and PRs the launcher would show as bare "Open …" rows: what is worth asking
 /// Jira and GitHub about, so the rows can show a title.
 public struct LookupRequest: Equatable, Sendable {
@@ -77,7 +89,7 @@ public struct LookupResults: Equatable, Sendable {
 }
 
 /// Looks up the launcher's "Open …" rows in Jira (one bulk fetch for all keys) and on GitHub
-/// (one request per PR, normally one), and remembers the answers for `ttl` seconds, so typing
+/// (one GraphQL request for all PRs), and remembers the answers for `ttl` seconds, so typing
 /// or reopening the launcher does not ask again. A failed lookup remembers nothing: its rows
 /// stay "Open …" and the next query tries again.
 @MainActor
@@ -86,10 +98,10 @@ public final class LauncherLookup {
     public private(set) var results = LookupResults()
 
     public typealias TicketFetch = @Sendable ([String]) async throws -> TicketLookup
-    public typealias PullRequestFetch = @Sendable (PullRequestRef) async throws -> PullRequestSummary?
+    public typealias PullRequestFetch = @Sendable ([PullRequestRef]) async throws -> PullRequestLookup
 
     @ObservationIgnored private let fetchTickets: TicketFetch
-    @ObservationIgnored private let fetchPullRequest: PullRequestFetch
+    @ObservationIgnored private let fetchPullRequests: PullRequestFetch
     @ObservationIgnored private let ttl: TimeInterval
     @ObservationIgnored private let now: () -> Date
     @ObservationIgnored private var ticketsFetchedAt: [String: Date] = [:]
@@ -99,12 +111,12 @@ public final class LauncherLookup {
 
     public init(
         ttl: TimeInterval = 300, now: @escaping () -> Date = { Date() },
-        fetchTickets: @escaping TicketFetch, fetchPullRequest: @escaping PullRequestFetch
+        fetchTickets: @escaping TicketFetch, fetchPullRequests: @escaping PullRequestFetch
     ) {
         self.ttl = ttl
         self.now = now
         self.fetchTickets = fetchTickets
-        self.fetchPullRequest = fetchPullRequest
+        self.fetchPullRequests = fetchPullRequests
     }
 
     /// Fetches what the request names and is neither fresh in the cache nor being fetched.
@@ -149,24 +161,21 @@ public final class LauncherLookup {
     }
 
     private func lookUpPullRequests(_ refs: [PullRequestRef]) async {
+        guard !refs.isEmpty else { return }
+        pullRequestsInFlight.formUnion(refs)
+        defer { pullRequestsInFlight.subtract(refs) }
+        guard let answer = try? await fetchPullRequests(refs) else { return }
+        let moment = now()
         for ref in refs {
-            pullRequestsInFlight.insert(ref)
-            defer { pullRequestsInFlight.remove(ref) }
-            // Not `try?`: it would flatten "not found" (nil) and "failed" into one.
-            let answer: PullRequestSummary?
-            do {
-                answer = try await fetchPullRequest(ref)
-            } catch {
-                continue
-            }
-            pullRequestsFetchedAt[ref] = now()
-            if let summary = answer {
+            pullRequestsFetchedAt[ref] = moment
+            if let summary = answer.found[ref] {
                 results.pullRequests[ref] = summary
                 results.missingPullRequests.remove(ref)
-            } else {
+            } else if answer.missing.contains(ref) {
                 results.pullRequests.removeValue(forKey: ref)
                 results.missingPullRequests.insert(ref)
             }
+            // Otherwise GitHub said nothing about it: the row stays "Open …".
         }
     }
 }

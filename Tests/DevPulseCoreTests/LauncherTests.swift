@@ -100,7 +100,7 @@ private func url(_ string: String) -> OpenTarget { .url(URL(string: string)!) }
 
     @Test func ghNumberWithoutMatchOpensTheDefaultRepo() {
         var settings = AppSettings()
-        settings.defaultRepo = "acmecorp/store"
+        settings.githubRepos = ["acmecorp/store"]
         let result = items("gh 999", snapshot(), settings)
         #expect(result.map(\.target) == [url("https://github.com/acmecorp/store/pull/999")])
     }
@@ -111,12 +111,13 @@ private func url(_ string: String) -> OpenTarget { .url(URL(string: string)!) }
 
     @Test func ghNumberPrefillsTheDefaultRepoFromTheMostFrequentOne() {
         let snap = snapshot(mine: [makePR(repo: "a/x", number: 1), makePR(repo: "b/y", number: 2), makePR(repo: "b/y", number: 3)])
-        #expect(items("gh 999", snap).map(\.target) == [url("https://github.com/b/y/pull/999")])
+        #expect(items("gh 999", snap).map(\.target)
+            == [url("https://github.com/b/y/pull/999"), url("https://github.com/a/x/pull/999")])
         // An explicit default wins and is not written back.
         var settings = AppSettings()
-        settings.defaultRepo = "a/x"
+        settings.githubRepos = ["a/x"]
         #expect(items("gh 999", snap, settings).map(\.target) == [url("https://github.com/a/x/pull/999")])
-        #expect(settings.defaultRepo == "a/x")
+        #expect(settings.githubRepos == ["a/x"])
     }
 
     @Test func ghRepoAndNumberTakesTheOwnerFromAKnownPullRequest() {
@@ -269,7 +270,7 @@ private func url(_ string: String) -> OpenTarget { .url(URL(string: string)!) }
 
     @Test func addsFallbackRowsForTheDefaultRepoAndProject() {
         var settings = AppSettings()
-        settings.defaultRepo = "acme/store"
+        settings.githubRepos = ["acme/store"]
         settings.jiraProjects = ["STORE"]
         let result = items("2474", snapshot(), settings)
         #expect(result.map(\.title) == ["Open acme/store#2474", "Open STORE-2474"])
@@ -283,12 +284,13 @@ private func url(_ string: String) -> OpenTarget { .url(URL(string: string)!) }
         let snap = snapshot(
             mine: [makePR(repo: "a/x", number: 1), makePR(repo: "b/y", number: 2), makePR(repo: "b/y", number: 3)],
             tickets: ["WA-1", "STORE-2", "STORE-3"].map { makeTicket(key: $0) })
-        #expect(items("2474", snap).map(\.title) == ["Open b/y#2474", "Open STORE-2474", "Open WA-2474"])
+        #expect(items("2474", snap).map(\.title)
+            == ["Open b/y#2474", "Open a/x#2474", "Open STORE-2474", "Open WA-2474"])
     }
 
     @Test func fallbacksAreLeftOutWhenTheirItemIsListed() {
         var settings = AppSettings()
-        settings.defaultRepo = "acme/store"
+        settings.githubRepos = ["acme/store"]
         settings.jiraProjects = ["STORE"]
         let snap = snapshot(mine: [makePR(repo: "acme/store", number: 2474)], tickets: [makeTicket(key: "STORE-2474")])
         #expect(items("2474", snap, settings).map(\.title) == ["#2474 PR 2474", "STORE-2474 S"])
@@ -318,7 +320,7 @@ private func url(_ string: String) -> OpenTarget { .url(URL(string: string)!) }
     private func settings(projects: [String] = ["STORE", "WA"], repo: String? = "acme/store") -> AppSettings {
         var settings = AppSettings()
         settings.jiraProjects = projects
-        settings.defaultRepo = repo
+        settings.githubRepos = repo.map { [$0] } ?? []
         return settings
     }
 
@@ -416,6 +418,44 @@ private func url(_ string: String) -> OpenTarget { .url(URL(string: string)!) }
         #expect(request("gh acme/api 4", snap, settings()) == LookupRequest(
             ticketKeys: [], pullRequests: [PullRequestRef(repo: "acme/api", number: 4)]))
         #expect(request("jira WA-4", snap, settings()) == LookupRequest(ticketKeys: ["WA-4"], pullRequests: []))
+    }
+
+    @Test func aBareNumberLooksUpEveryRepository() {
+        var config = settings(projects: [])
+        config.githubRepos = ["acme/store", "acme/api"]
+        let snap = snapshot(review: [makePR(repo: "acme/api", number: 12)])
+        #expect(request("12", snap, config).pullRequests == [PullRequestRef(repo: "acme/store", number: 12)])
+        #expect(request("13", snap, config).pullRequests
+            == [PullRequestRef(repo: "acme/store", number: 13), PullRequestRef(repo: "acme/api", number: 13)])
+        var lookup = LookupResults()
+        let api = PullRequestRef(repo: "acme/api", number: 13)
+        lookup.pullRequests[api] = found(api, "Api thirteen", .draft)
+        lookup.missingPullRequests = [PullRequestRef(repo: "acme/store", number: 13)]
+        let result = items("13", snap, config, lookup)
+        #expect(result.map(\.title) == ["#13 Api thirteen"])
+        #expect(result.map(\.subtitle) == ["acme/api · Draft"])
+    }
+
+    @Test func ghNumberLooksUpEveryRepositoryAndKeepsTheFirstOne() {
+        var config = settings(projects: [])
+        config.githubRepos = ["acme/store", "acme/api"]
+        #expect(request("gh 9", snapshot(), config).pullRequests
+            == [PullRequestRef(repo: "acme/store", number: 9), PullRequestRef(repo: "acme/api", number: 9)])
+        var lookup = LookupResults()
+        lookup.missingPullRequests = [PullRequestRef(repo: "acme/store", number: 9), PullRequestRef(repo: "acme/api", number: 9)]
+        let result = items("gh 9", snapshot(), config, lookup)
+        #expect(result.map(\.title) == ["Open acme/store#9"])
+        #expect(result.map(\.subtitle) == ["Not found on GitHub"])
+        // A known PR of that number comes first; the repositories without it follow.
+        let snap = snapshot(mine: [makePR(repo: "acme/api", number: 9)])
+        #expect(items("gh 9", snap, config).map(\.title) == ["#9 PR 9", "Open acme/store#9"])
+    }
+
+    @Test func ghRepoNameResolvesFromTheRepositoryList() {
+        var config = settings(projects: [])
+        config.githubRepos = ["acme/store", "Acme/API"]
+        #expect(request("gh api 4", snapshot(), config).pullRequests == [PullRequestRef(repo: "Acme/API", number: 4)])
+        #expect(items("gh nowhere 4", snapshot(), config).isEmpty)
     }
 
     @Test func withoutAJiraSiteNoTicketIsLookedUp() {

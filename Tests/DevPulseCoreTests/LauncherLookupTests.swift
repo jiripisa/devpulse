@@ -11,9 +11,9 @@ private final class FakeLookups: Sendable {
     /// When set, every ticket lookup waits until it is released.
     let gate = Mutex<CheckedContinuation<Void, Never>?>(nil)
     let gated = Mutex(false)
-    let pullRequests = Mutex<[PullRequestRef: Result<PullRequestSummary?, any Error>]>([:])
+    let pullRequests = Mutex<Result<PullRequestLookup, any Error>>(.success(PullRequestLookup()))
     let ticketCalls = Mutex<[[String]]>([])
-    let pullRequestCalls = Mutex<[PullRequestRef]>([])
+    let pullRequestCalls = Mutex<[[PullRequestRef]]>([])
     let clock = Mutex(Date(timeIntervalSince1970: 1_000))
 
     @MainActor func lookup(ttl: TimeInterval = 300) -> LauncherLookup {
@@ -26,9 +26,9 @@ private final class FakeLookups: Sendable {
                 }
                 return try self.tickets.withLock { $0 }.get()
             },
-            fetchPullRequest: { ref in
-                self.pullRequestCalls.withLock { $0.append(ref) }
-                return try (self.pullRequests.withLock { $0[ref] } ?? .success(nil)).get()
+            fetchPullRequests: { refs in
+                self.pullRequestCalls.withLock { $0.append(refs) }
+                return try self.pullRequests.withLock { $0 }.get()
             })
     }
 
@@ -54,7 +54,7 @@ private final class FakeLookups: Sendable {
 
     @Test func remembersAnswersForTheTTL() async {
         let fake = FakeLookups()
-        fake.pullRequests.withLock { $0[store] = .success(summary("Seven")) }
+        fake.pullRequests.withLock { $0 = .success(PullRequestLookup(found: [store: summary("Seven")])) }
         let lookup = fake.lookup(ttl: 300)
         let request = LookupRequest(ticketKeys: ["WA-7"], pullRequests: [store])
         await lookup.resolve(request)
@@ -74,7 +74,7 @@ private final class FakeLookups: Sendable {
     @Test func aFailedLookupRemembersNothing() async {
         let fake = FakeLookups()
         fake.tickets.withLock { $0 = .failure(Offline()) }
-        fake.pullRequests.withLock { $0[store] = .failure(Offline()) }
+        fake.pullRequests.withLock { $0 = .failure(Offline()) }
         let lookup = fake.lookup()
         let request = LookupRequest(ticketKeys: ["WA-7"], pullRequests: [store])
         await lookup.resolve(request)
@@ -84,15 +84,23 @@ private final class FakeLookups: Sendable {
         #expect(fake.pullRequestCalls.withLock { $0.count } == 2)
     }
 
-    @Test func aPullRequestThatDoesNotExistIsMissing() async {
+    @Test func asksGitHubOnceForAllPullRequests() async {
         let fake = FakeLookups()
+        let api = PullRequestRef(repo: "acme/api", number: 7)
+        let web = PullRequestRef(repo: "acme/web", number: 7)
+        fake.pullRequests.withLock { $0 = .success(PullRequestLookup(found: [store: summary("Seven")], missing: [api])) }
         let lookup = fake.lookup(ttl: 0)
-        await lookup.resolve(LookupRequest(pullRequests: [store]))
-        #expect(lookup.results.missingPullRequests == [store])
-        fake.pullRequests.withLock { $0[store] = .success(summary("Seven")) }
-        await lookup.resolve(LookupRequest(pullRequests: [store]))
-        #expect(lookup.results.missingPullRequests.isEmpty)
+        await lookup.resolve(LookupRequest(pullRequests: [store, api, web]))
+        #expect(fake.pullRequestCalls.withLock { $0 } == [[store, api, web]])
         #expect(lookup.results.pullRequests[store]?.title == "Seven")
+        #expect(lookup.results.missingPullRequests == [api])
+        // GitHub said nothing about acme/web: neither found nor missing.
+        #expect(lookup.results.pullRequests[web] == nil)
+        // A PR found later is no longer missing.
+        fake.pullRequests.withLock { $0 = .success(PullRequestLookup(found: [api: summary("Api")])) }
+        await lookup.resolve(LookupRequest(pullRequests: [api]))
+        #expect(lookup.results.missingPullRequests.isEmpty)
+        #expect(lookup.results.pullRequests[api] != nil)
     }
 
     @Test func aKeyJiraSaysNothingAboutIsNeitherFoundNorMissing() async {

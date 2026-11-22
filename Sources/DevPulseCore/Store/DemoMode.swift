@@ -42,7 +42,7 @@ extension DemoSnapshot {
     /// token is never stored; the demo only says that one is.
     public static var settings: AppSettings {
         AppSettings(
-            defaultRepo: "acmecorp/webapp",
+            githubRepos: ["acmecorp/webapp"],
             jiraSite: URL(string: "https://acme.atlassian.net"),
             jiraEmail: "alice@acme.example")
     }
