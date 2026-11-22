@@ -5,13 +5,13 @@
     <link>https://jiripisa.github.io/devpulse/</link>
     <description>DevPulse updates</description>
     <item>
-      <title>DevPulse 0.9.1</title>
-      <sparkle:version>0.9.1</sparkle:version>
-      <sparkle:shortVersionString>0.9.1</sparkle:shortVersionString>
+      <title>DevPulse 0.10.0</title>
+      <sparkle:version>0.10.0</sparkle:version>
+      <sparkle:shortVersionString>0.10.0</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>27.0</sparkle:minimumSystemVersion>
-      <pubDate>Fri, 20 Nov 2026 09:52:23 +0000</pubDate>
-      <description><![CDATA[<ul><li>In the <code>devpulse</code> terminal UI, a plain click (or ⌘-click) on an underlined link in the detail opens it in the browser; ⇧⌘-click is no longer needed.</li></ul>]]></description>
-      <enclosure url="https://github.com/jiripisa/devpulse/releases/download/v0.9.1/DevPulse-0.9.1.dmg" type="application/octet-stream" sparkle:edSignature="ewDwUi79+LHxk9qA41VNZVWqIh61EJaX66wmzpSIZVwtbBZQ2Fv3rIr+fMi0V4adgh841dvStihxdVOQ3b9IBA==" length="5548753"/>
+      <pubDate>Sun, 22 Nov 2026 22:47:46 +0000</pubDate>
+      <description><![CDATA[<ul><li>Settings › Jira › Projects: list the Jira projects (<code>STORE, WA</code>) in which the quick launcher looks up a bare number and <code>jira &lt;number&gt;</code>; it shows a row for each of them. It replaces the single default project, and your earlier choice is kept as the first entry.</li><li>The quick launcher shows the title and state of tickets and pull requests that are not in your lists: once you stop typing, it asks Jira and GitHub about them (one request each). Tickets or pull requests that do not exist disappear from a bare number&#x27;s results, and <code>jira &lt;key&gt;</code> or <code>gh &lt;number&gt;</code> say &quot;Not found&quot;.</li><li>The quick launcher also finds the tickets of your pull requests that are not assigned to you.</li><li>A pull request links to a Jira key of any project in the list, not only the default one.</li></ul>]]></description>
+      <enclosure url="https://github.com/jiripisa/devpulse/releases/download/v0.10.0/DevPulse-0.10.0.dmg" type="application/octet-stream" sparkle:edSignature="Yjq4x1iAct1jtn0267fCmDXdCkU4x1LPF8+Ew2k6GiMJ9eE6cu6wPFdz+yQ245Lq3Jwr78aAzxwBM84Ec4RJDQ==" length="5618257"/>
     </item>
   </channel>
 </rss>
