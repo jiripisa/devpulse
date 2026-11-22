@@ -241,11 +241,11 @@ public final class SnapshotStore {
         publish(next)
     }
 
-    /// Links each PR to a key of a project I have tickets in, or of the default project, when
+    /// Links each PR to a key of a project I have tickets in, or of a configured project, when
     /// its title or branch has one; otherwise the first key, as GitHub mapped it.
     private func linkTickets(_ snapshot: inout Snapshot) {
         var known = Set(snapshot.tickets.map { JiraKey.project(of: $0.key) })
-        if let project = settings.defaultJiraProject, !project.isEmpty { known.insert(project) }
+        known.formUnion(settings.jiraProjects)
         guard !known.isEmpty else { return }
         func link(_ prs: inout [PullRequest]) {
             for i in prs.indices {

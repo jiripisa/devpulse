@@ -167,7 +167,7 @@ private func url(_ string: String) -> OpenTarget { .url(URL(string: string)!) }
 
     @Test func jiraNumberExpandsToTheDefaultProject() {
         var settings = AppSettings()
-        settings.defaultJiraProject = "STORE"
+        settings.jiraProjects = ["STORE"]
         #expect(items("jira 2290", snapshot(), settings).map(\.target) == [url("https://acme.atlassian.net/browse/STORE-2290")])
     }
 
@@ -184,7 +184,7 @@ private func url(_ string: String) -> OpenTarget { .url(URL(string: string)!) }
             == [url("https://corp.atlassian.net/browse/ABC-1")])
         #expect(items("jira ABC-1", snapshot(jiraBaseURL: nil)).isEmpty)
         var withProject = AppSettings()
-        withProject.defaultJiraProject = "ABC"
+        withProject.jiraProjects = ["ABC"]
         #expect(items("jira 1", snapshot(jiraBaseURL: nil), withProject).isEmpty)
     }
 }
@@ -268,7 +268,7 @@ private func url(_ string: String) -> OpenTarget { .url(URL(string: string)!) }
     @Test func addsFallbackRowsForTheDefaultRepoAndProject() {
         var settings = AppSettings()
         settings.defaultRepo = "acme/store"
-        settings.defaultJiraProject = "STORE"
+        settings.jiraProjects = ["STORE"]
         let result = items("2474", snapshot(), settings)
         #expect(result.map(\.title) == ["Open acme/store#2474", "Open STORE-2474"])
         #expect(result.map(\.target) == [
@@ -287,7 +287,7 @@ private func url(_ string: String) -> OpenTarget { .url(URL(string: string)!) }
     @Test func fallbacksAreLeftOutWhenTheirItemIsListed() {
         var settings = AppSettings()
         settings.defaultRepo = "acme/store"
-        settings.defaultJiraProject = "STORE"
+        settings.jiraProjects = ["STORE"]
         let snap = snapshot(mine: [makePR(repo: "acme/store", number: 2474)], tickets: [makeTicket(key: "STORE-2474")])
         #expect(items("2474", snap, settings).map(\.title) == ["#2474 PR 2474", "STORE-2474 S"])
         // A match in another repo or project keeps the fallback.
@@ -301,7 +301,7 @@ private func url(_ string: String) -> OpenTarget { .url(URL(string: string)!) }
 
     @Test func theJiraFallbackNeedsASite() {
         var settings = AppSettings()
-        settings.defaultJiraProject = "STORE"
+        settings.jiraProjects = ["STORE"]
         #expect(items("2474", snapshot(jiraBaseURL: nil), settings).isEmpty)
     }
 

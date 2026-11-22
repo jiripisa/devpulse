@@ -174,6 +174,9 @@ private struct JiraSettingsView: View {
     @State private var hasStoredToken = false
     @State private var result: Result<String, any Error>?
     @State private var isTesting = false
+    /// The project list as typed; parsed into the settings on every change, but shown as typed
+    /// so a trailing comma or space survives until the next key is typed.
+    @State private var projects = ""
 
     var body: some View {
         Form {
@@ -202,10 +205,11 @@ private struct JiraSettingsView: View {
                 }
             }
             Section {
-                TextField("Default project", text: defaultProject,
-                          prompt: Text(AppSettings.mostFrequentProject(model.snapshot.tickets) ?? "KEY"))
+                TextField("Projects", text: $projects,
+                          prompt: Text(placeholderProjects))
+                    .onChange(of: projects) { model.settings.jiraProjects = AppSettings.parseProjects(projects) }
             } footer: {
-                Text("Used by the quick launcher for a bare number and `jira <number>`; empty means the project of most of your tickets.")
+                Text("Project keys, separated by commas, that the quick launcher looks a bare number up in. The first is used for `jira <number>`. Empty means the projects of your tickets.")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
@@ -225,16 +229,14 @@ private struct JiraSettingsView: View {
         }
     }
 
-    private var defaultProject: Binding<String> {
-        Binding(
-            get: { model.settings.defaultJiraProject ?? "" },
-            set: {
-                let text = $0.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-                model.settings.defaultJiraProject = text.isEmpty ? nil : text
-            })
+    /// What an empty list stands for: the projects of my tickets.
+    private var placeholderProjects: String {
+        let fromTickets = AppSettings.projectsByFrequency(model.snapshot.tickets)
+        return fromTickets.isEmpty ? "KEY, OTHER" : AppSettings.projectsText(fromTickets)
     }
 
     private func load() {
+        projects = AppSettings.projectsText(model.settings.jiraProjects)
         site = model.settings.jiraSite?.absoluteString ?? ""
         email = model.settings.jiraEmail ?? ""
         hasStoredToken = model.storedJiraToken(for: model.settings.jiraEmail)

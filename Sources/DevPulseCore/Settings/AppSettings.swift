@@ -68,7 +68,14 @@ public struct AppSettings: Codable, Sendable, Equatable {
     public var triggers: [NotificationTrigger: Bool]
     public var includeTeamReviewRequests: Bool
     public var defaultRepo: String?
-    public var defaultJiraProject: String?
+    /// The Jira projects (keys like `STORE`) the launcher looks a bare number up in, at most
+    /// `maxJiraProjects`; the first is the default for `jira <number>`. Empty means the
+    /// projects of my tickets, most tickets first.
+    public var jiraProjects: [String] {
+        didSet { jiraProjects = Self.cleanProjects(jiraProjects) }
+    }
+    /// The project `jira <number>` uses when none is typed: the first of `jiraProjects`.
+    public var defaultJiraProject: String? { jiraProjects.first }
     public var jiraSite: URL?
     public var jiraEmail: String?
     public var hotkey: Hotkey
@@ -82,7 +89,7 @@ public struct AppSettings: Codable, Sendable, Equatable {
             uniqueKeysWithValues: NotificationTrigger.allCases.map { ($0, $0.defaultEnabled) }),
         includeTeamReviewRequests: Bool = false,
         defaultRepo: String? = nil,
-        defaultJiraProject: String? = nil,
+        jiraProjects: [String] = [],
         jiraSite: URL? = nil,
         jiraEmail: String? = nil,
         hotkey: Hotkey = Hotkey(keyCode: 49, modifiers: [.option]),
@@ -94,7 +101,7 @@ public struct AppSettings: Codable, Sendable, Equatable {
         self.triggers = triggers
         self.includeTeamReviewRequests = includeTeamReviewRequests
         self.defaultRepo = defaultRepo
-        self.defaultJiraProject = defaultJiraProject
+        self.jiraProjects = Self.cleanProjects(jiraProjects)
         self.jiraSite = jiraSite
         self.jiraEmail = jiraEmail
         self.hotkey = hotkey
@@ -108,7 +115,24 @@ public struct AppSettings: Codable, Sendable, Equatable {
     // Missing keys (older or hand-edited settings) fall back to the defaults.
     private enum CodingKeys: String, CodingKey {
         case refreshInterval, sourceEnabled, notificationsEnabled, triggers, includeTeamReviewRequests
-        case defaultRepo, defaultJiraProject, jiraSite, jiraEmail, hotkey, launchAtLogin
+        case defaultRepo, jiraProjects, jiraSite, jiraEmail, hotkey, launchAtLogin
+        /// Before 0.10 there was one project; it becomes the only entry of `jiraProjects`.
+        case defaultJiraProject
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(refreshInterval, forKey: .refreshInterval)
+        try c.encode(sourceEnabled, forKey: .sourceEnabled)
+        try c.encode(notificationsEnabled, forKey: .notificationsEnabled)
+        try c.encode(triggers, forKey: .triggers)
+        try c.encode(includeTeamReviewRequests, forKey: .includeTeamReviewRequests)
+        try c.encodeIfPresent(defaultRepo, forKey: .defaultRepo)
+        try c.encode(jiraProjects, forKey: .jiraProjects)
+        try c.encodeIfPresent(jiraSite, forKey: .jiraSite)
+        try c.encodeIfPresent(jiraEmail, forKey: .jiraEmail)
+        try c.encode(hotkey, forKey: .hotkey)
+        try c.encode(launchAtLogin, forKey: .launchAtLogin)
     }
 
     public init(from decoder: any Decoder) throws {
@@ -125,7 +149,8 @@ public struct AppSettings: Codable, Sendable, Equatable {
             includeTeamReviewRequests: try c.decodeIfPresent(Bool.self, forKey: .includeTeamReviewRequests)
                 ?? d.includeTeamReviewRequests,
             defaultRepo: try c.decodeIfPresent(String.self, forKey: .defaultRepo),
-            defaultJiraProject: try c.decodeIfPresent(String.self, forKey: .defaultJiraProject),
+            jiraProjects: try c.decodeIfPresent([String].self, forKey: .jiraProjects)
+                ?? (try c.decodeIfPresent(String.self, forKey: .defaultJiraProject)).map { [$0] } ?? [],
             jiraSite: try c.decodeIfPresent(URL.self, forKey: .jiraSite),
             jiraEmail: try c.decodeIfPresent(String.self, forKey: .jiraEmail),
             hotkey: try c.decodeIfPresent(Hotkey.self, forKey: .hotkey) ?? d.hotkey,
@@ -161,6 +186,38 @@ public struct AppSettings: Codable, Sendable, Equatable {
     /// The Jira project key (the part of the ticket key before the number) with the most tickets.
     public static func mostFrequentProject(_ tickets: [Ticket]) -> String? {
         mode(of: tickets.compactMap { ticket in ticket.key.lastIndex(of: "-").map { String(ticket.key[..<$0]) } })
+    }
+
+    /// Every Jira project of these tickets, the one with the most tickets first (ties
+    /// alphabetically), at most `maxJiraProjects`.
+    public static func projectsByFrequency(_ tickets: [Ticket]) -> [String] {
+        let counts = tickets.map { JiraKey.project(of: $0.key) }.reduce(into: [String: Int]()) { $0[$1, default: 0] += 1 }
+        let sorted = counts.sorted { ($0.value, $1.key) > ($1.value, $0.key) }.map(\.key)
+        return Array(sorted.prefix(maxJiraProjects))
+    }
+
+    // MARK: Jira projects
+
+    /// A bare number costs one lookup per project, so the list stays short.
+    public static let maxJiraProjects = 10
+
+    /// The project keys in what was typed in Settings, e.g. `store, WA  ops`: separated by
+    /// commas or spaces, upper-cased, each once, invalid ones left out.
+    public static func parseProjects(_ text: String) -> [String] {
+        cleanProjects(text.split { $0 == "," || $0.isWhitespace }.map(String.init))
+    }
+
+    /// The projects as Settings shows them: `STORE, WA`.
+    public static func projectsText(_ projects: [String]) -> String {
+        projects.joined(separator: ", ")
+    }
+
+    private static func cleanProjects(_ projects: [String]) -> [String] {
+        var seen = Set<String>()
+        let keys = projects
+            .map { $0.trimmingCharacters(in: .whitespaces).uppercased() }
+            .filter { $0.wholeMatch(of: /[A-Z][A-Z0-9_]*/) != nil && seen.insert($0).inserted }
+        return Array(keys.prefix(maxJiraProjects))
     }
 
     private static func mode(of values: [String]) -> String? {

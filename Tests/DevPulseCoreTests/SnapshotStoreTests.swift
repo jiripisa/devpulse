@@ -322,7 +322,7 @@ private final class FakeClock: Sendable {
         // The default project counts too, and a known key in the branch beats an unknown one
         // in the title.
         var settings = rig.store.settings
-        settings.defaultJiraProject = "SHOP"
+        settings.jiraProjects = ["SHOP"]
         rig.store.settings = settings
         rig.jira.result.withLock { $0 = .success(JiraResult(myAccountId: "a", tickets: [])) }
         await rig.store.refresh([.github, .jira])
