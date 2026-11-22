@@ -239,6 +239,20 @@ struct JiraTests {
         #expect(lookup.missingKeys == ["WA-9"])
     }
 
+    @Test("Errors that name no asked-for key mark the unreturned keys missing only when they add up")
+    func lookupMissingKeysByCount() async throws {
+        func missing(_ errors: String) async throws -> Set<String> {
+            let answer = Data(#"{ "issueErrors": \#(errors) }"#.utf8)
+            let transport = FakeJiraTransport(search: try Self.fixture(), comments: [Self.bulkPath: answer])
+            return try await JiraSource(credentials: Self.credentials, transport: transport)
+                .lookUpTickets(keys: ["WA-9", "STORE-9"]).missingKeys
+        }
+        #expect(try await missing(#"[ { "id": "10001", "errorMessage": "x" }, { "id": "10002", "errorMessage": "x" } ]"#)
+            == ["WA-9", "STORE-9"])
+        #expect(try await missing(#"[ { "id": "10001", "errorMessage": "x" } ]"#).isEmpty)
+        #expect(try await missing("[]").isEmpty)
+    }
+
     @Test("An answer without issues, only errors, is an empty list")
     func linkedTicketsOnlyErrors() async throws {
         let answer = Data(#"{ "issueErrors": [ { "id": "UTF-8", "errorMessage": "Issue does not exist", "status": 404 } ] }"#.utf8)

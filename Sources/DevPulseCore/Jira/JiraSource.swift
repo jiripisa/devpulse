@@ -99,8 +99,14 @@ public final class JiraSource: Sendable {
             Self.log.debug("Bulk fetch could not return \(errors.count, privacy: .public) of the tickets")
         }
         let tickets = try response.issues.map { issue in try mapped { try issue.ticket(site: credentials.site) } }
+        // Jira's schema calls an error's `id` "the ID of the issue"; for a key that does not exist
+        // it is the key as asked for. Should an answer name none of the keys, but have one error
+        // for each key that did not come back, those keys are the missing ones.
         let requested = Set(keys)
-        return TicketLookup(tickets: tickets, missingKeys: Set(errors.compactMap(\.id)).intersection(requested))
+        let named = Set(errors.compactMap(\.id)).intersection(requested)
+        let unreturned = requested.subtracting(tickets.map(\.key))
+        let missing = named.isEmpty && !errors.isEmpty && errors.count == unreturned.count ? unreturned : named
+        return TicketLookup(tickets: tickets, missingKeys: missing)
     }
 
     private static let log = Logger(subsystem: "io.jp4.devpulse", category: "jira")
