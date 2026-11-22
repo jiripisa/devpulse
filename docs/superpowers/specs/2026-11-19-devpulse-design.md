@@ -329,11 +329,11 @@ configurable in Settings and must not collide with the system Spotlight shortcut
 
 | Typed | Result |
 |---|---|
-| `<number>` | everything with that number: my PRs and review requests in any repo, my tickets and my PRs' tickets in any project, sessions whose key or folder has it; then the PR in the default repo and the ticket in each of the Settings' Jira projects (up to 10; empty = the projects of my tickets). Those rows are looked up after a 300 ms typing pause (one Jira bulk fetch for all keys, one GitHub `GET /repos/{repo}/pulls/{n}`, answers cached 5 min) to show title and state; ones that do not exist are dropped |
+| `<number>` | everything with that number: my PRs and review requests in any repo, my tickets and my PRs' tickets in any project, sessions whose key or folder has it; then the PR in each of the Settings' GitHub repositories and the ticket in each of its Jira projects (up to 10 each; empty = the repos of my PRs / projects of my tickets). Those rows are looked up after a 300 ms typing pause (one Jira bulk fetch for all keys, one GitHub GraphQL request with an aliased `repository { pullRequest }` per repo, answers cached 5 min) to show title and state; ones that do not exist are dropped |
 | `gh` | my PRs and review requests; arrows select, `Enter` opens |
 | `gh <text>` | filters by title or repo |
-| `gh <number>` | filters known PRs to that number. If exactly one matches, `Enter` opens it. If none matches, `Enter` opens `<default repo>/pull/<number>`. The default repo is set in Settings and pre-filled with the repo of most of my PRs. |
-| `gh <repo> <number>` | opens that PR in that repo. `<repo>` is a repo name of a known PR (e.g. `webapp`) or a full `owner/name`. |
+| `gh <number>` | known PRs with that number, then PR `<number>` in each repository from Settings (looked up like a bare number's rows); the first repository's row stays as "Not found on GitHub" when the PR does not exist. Without repositories: those of my PRs, most PRs first. |
+| `gh <repo> <number>` | opens that PR in that repo. `<repo>` is the name of a repository from Settings or of a known PR (e.g. `webapp`), or a full `owner/name`. |
 | `jira` | my tickets |
 | `jira <text>` | filters by summary |
 | `jira <KEY-123>` | opens that ticket, even if it is not in my list; looked up like a bare number's rows, and "Not found in Jira" when it does not exist |

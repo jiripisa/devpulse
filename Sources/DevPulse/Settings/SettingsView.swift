@@ -107,6 +107,9 @@ private struct GeneralSettingsView: View {
 
 private struct GitHubSettingsView: View {
     @Bindable var model: AppModel
+    /// The repository list as typed; parsed into the settings on every change, but shown as
+    /// typed so a trailing comma or space survives until the next key is typed.
+    @State private var repos = ""
 
     var body: some View {
         Form {
@@ -126,14 +129,15 @@ private struct GitHubSettingsView: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section {
-                TextField("Default repository", text: optionalText(\.defaultRepo),
-                          prompt: Text(AppSettings.mostFrequentRepo(model.snapshot.myPullRequests) ?? "owner/name"))
+                TextField("Repositories", text: $repos, prompt: Text(placeholderRepos))
+                    .onChange(of: repos) { model.settings.githubRepos = AppSettings.parseRepos(repos) }
             } footer: {
-                Text("Used by the quick launcher for a bare number and `gh <number>`; empty means the repository of most of your pull requests.")
+                Text("Repositories (owner/name), separated by commas, in which the quick launcher looks up a bare number and `gh <number>`. Empty means the repositories of your pull requests.")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
+        .onAppear { repos = AppSettings.reposText(model.settings.githubRepos) }
     }
 
     @ViewBuilder
@@ -154,13 +158,10 @@ private struct GitHubSettingsView: View {
         }
     }
 
-    private func optionalText(_ field: WritableKeyPath<AppSettings, String?>) -> Binding<String> {
-        Binding(
-            get: { model.settings[keyPath: field] ?? "" },
-            set: {
-                let text = $0.trimmingCharacters(in: .whitespacesAndNewlines)
-                model.settings[keyPath: field] = text.isEmpty ? nil : text
-            })
+    /// What an empty list stands for: the repositories of my PRs.
+    private var placeholderRepos: String {
+        let fromPullRequests = AppSettings.reposByFrequency(model.snapshot.myPullRequests)
+        return fromPullRequests.isEmpty ? "owner/name, owner/other" : AppSettings.reposText(fromPullRequests)
     }
 }
 

@@ -127,7 +127,7 @@ gh auth login</code></pre>
         has these controls:</p>
         <figure class="fig" style="max-width:34rem">
           <div class="view" style="--iw:1040;--ih:900;--zh:77">
-            <img src="assets/manual/devpulse-settings-github.png" alt="The GitHub tab of Settings: status, team review requests and default repository">
+            <img src="assets/manual/devpulse-settings-github.png" alt="The GitHub tab of Settings: status, team review requests and repositories">
             <span class="mark" style="--x:3.8;--y:28.5;--w:92.3;--h:7.9"><b>1</b></span>
             <span class="mark" style="--x:3.8;--y:38.7;--w:92.3;--h:8"><b>2</b></span>
             <span class="mark" style="--x:3.8;--y:58.6;--w:92.3;--h:8"><b>3</b></span>
@@ -146,11 +146,13 @@ gh auth login</code></pre>
           <dt><span class="n">2</span>Include team review requests</dt>
           <dd>Off by default. When on, <b>Review requests</b> also lists pull
           requests that ask one of your teams for a review, not only you.</dd>
-          <dt><span class="n">3</span>Default repository</dt>
-          <dd>The <code>owner/name</code> the <a href="#launcher">quick launcher</a>
-          uses for <code>gh &lt;number&gt;</code> and a bare number when the
-          number is not one of your known pull requests. Empty means the repository of most of your
-          pull requests; the field shows it in grey.</dd>
+          <dt><span class="n">3</span>Repositories</dt>
+          <dd>The repositories (<code>owner/name</code>, separated by commas) in which the
+          <a href="#launcher">quick launcher</a> looks up a bare number and
+          <code>gh &lt;number&gt;</code>; for <code>gh &lt;number&gt;</code>, the first one's row
+          stays even when the pull request does not exist. A pasted GitHub address works too. Up to
+          ten. Empty means the repositories of your pull requests, most pull requests first; the
+          field shows them in grey.</dd>
         </dl>
       </section>
 
@@ -423,19 +425,19 @@ gh auth login</code></pre>
         </dl>
         <figure class="fig">
           <div class="view" style="--iw:1280;--ih:498">
-            <img src="assets/manual/devpulse-launcher-number.png" alt="The quick launcher for the number 2290: a review request, a Jira ticket, a Claude Code session and a row for the default repository">
+            <img src="assets/manual/devpulse-launcher-number.png" alt="The quick launcher for the number 2290: a review request, a Jira ticket, a Claude Code session and a row for a repository in Settings">
           </div>
-          <figcaption>A bare number finds everything with it: here the review request #2290, the ticket STORE-2290, the session in <code>store-2290-statement</code> and, last, a row that opens 2290 in the default repository.</figcaption>
+          <figcaption>A bare number finds everything with it: here the review request #2290, the ticket STORE-2290, the session in <code>store-2290-statement</code> and, last, a row that opens 2290 in a repository from Settings.</figcaption>
         </figure>
         <div class="table">
           <table>
             <thead><tr><th>Type</th><th>Result</th></tr></thead>
             <tbody>
-              <tr><td><code>2474</code></td><td>Everything with that number: your pull requests and review requests numbered 2474 in any repository, then your tickets and your pull requests' tickets numbered 2474 in any project (<code>STORE-2474</code>, <code>WA-2474</code>), then the Claude Code sessions whose Jira key or folder name has that number (<code>store-2474-fix</code>, but not <code>store-24740</code>). Last, pull request 2474 of the <a href="#github">default repository</a> and ticket 2474 of each of your <a href="#jira">projects</a> (<code>STORE-2474</code>, <code>WA-2474</code>), unless they are already in the list. Once you stop typing, DevPulse looks these rows up: they show their title and state, and tickets or pull requests that do not exist disappear.</td></tr>
+              <tr><td><code>2474</code></td><td>Everything with that number: your pull requests and review requests numbered 2474 in any repository, then your tickets and your pull requests' tickets numbered 2474 in any project (<code>STORE-2474</code>, <code>WA-2474</code>), then the Claude Code sessions whose Jira key or folder name has that number (<code>store-2474-fix</code>, but not <code>store-24740</code>). Last, pull request 2474 of each of your <a href="#github">repositories</a> and ticket 2474 of each of your <a href="#jira">projects</a> (<code>STORE-2474</code>, <code>WA-2474</code>), unless they are already in the list. Once you stop typing, DevPulse looks these rows up: they show their title and state, and tickets or pull requests that do not exist disappear.</td></tr>
               <tr><td><code>gh</code></td><td>Your pull requests, then your review requests.</td></tr>
               <tr><td><code>gh invoice</code></td><td>Those whose title or repository contains the text.</td></tr>
-              <tr><td><code>gh 812</code></td><td>Your pull request or review request with that number. If you have none, pull request 812 of the <a href="#github">default repository</a>, with its title and state, or <span class="ui">Not found on GitHub</span>.</td></tr>
-              <tr><td><code>gh webapp 455</code></td><td>Pull request 455 in that repository: the name of a repository you have pull requests in, or a full <code>owner/name</code>.</td></tr>
+              <tr><td><code>gh 812</code></td><td>Your pull requests and review requests with that number, then pull request 812 of each of your <a href="#github">repositories</a> with its title and state. The row of the first repository stays even when the pull request does not exist, as <span class="ui">Not found on GitHub</span>.</td></tr>
+              <tr><td><code>gh webapp 455</code></td><td>Pull request 455 in that repository: the name of one of your <a href="#github">repositories</a> or of a repository you have pull requests in, or a full <code>owner/name</code>.</td></tr>
               <tr><td><code>jira</code></td><td>Your tickets.</td></tr>
               <tr><td><code>jira export</code></td><td>Those whose summary or key contains the text.</td></tr>
               <tr><td><code>jira STORE-2290</code></td><td>That ticket, even when it is not in your list, with its summary and status, or <span class="ui">Not found in Jira</span>.</td></tr>

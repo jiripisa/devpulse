@@ -102,9 +102,9 @@ final class AppModel {
                 guard !isDemo, let store else { throw LookupUnavailable() }
                 return try await store.lookUpTickets(keys: keys)
             },
-            fetchPullRequest: { [weak store] ref in
+            fetchPullRequests: { [weak store] refs in
                 guard !isDemo, let store else { throw LookupUnavailable() }
-                return try await store.lookUpPullRequest(ref)
+                return try await store.lookUpPullRequests(refs)
             })
         snapshot = demo ?? store.snapshot
         #if DEBUG

@@ -142,59 +142,115 @@ struct GitHubTests {
         #expect(!query2.contains("team:"))
     }
 
-    private static func pullRequestBody(state: String = "open", draft: Bool = false, mergedAt: String? = nil) -> Data {
-        let merged = mergedAt.map { "\"\($0)\"" } ?? "null"
-        return Data("""
-            {"number":7,"title":"Faster checkout","state":"\(state)","draft":\(draft),"merged_at":\(merged),
-             "html_url":"https://github.com/acme/store/pull/7"}
+    private static let store7 = PullRequestRef(repo: "acme/store", number: 7)
+    private static let api8 = PullRequestRef(repo: "acme/api", number: 8)
+    private static let gone9 = PullRequestRef(repo: "acme/gone", number: 9)
+
+    /// A batch answer: p0 found (acme/store#7), p1 a repo without that PR, p2 a repo I cannot see.
+    private static func lookupBody(state: String = "OPEN", draft: Bool = false) -> Data {
+        Data("""
+            { "data": {
+                "p0": { "pullRequest": { "number": 7, "title": "Faster checkout", "state": "\(state)",
+                                         "isDraft": \(draft), "url": "https://github.com/acme/store/pull/7" } },
+                "p1": { "pullRequest": null },
+                "p2": null },
+              "errors": [ { "type": "NOT_FOUND", "path": ["p1", "pullRequest"], "message": "Could not resolve to a PullRequest" },
+                          { "type": "NOT_FOUND", "path": ["p2"], "message": "Could not resolve to a Repository" } ] }
             """.utf8)
     }
 
-    @Test("Fetches one PR by number over REST")
-    func pullRequestByNumber() async throws {
-        let transport = FakeTransport(body: Self.pullRequestBody())
+    @Test("Looks PRs up in several repositories with one GraphQL request")
+    func pullRequestLookup() async throws {
+        let transport = FakeTransport(body: Self.lookupBody())
         let source = GitHubSource(tokens: FakeTokens(), transport: transport)
-        let pr = try await source.fetchPullRequest(repo: "acme/store", number: 7)
-        #expect(pr == PullRequestSummary(
+        let lookup = try await source.fetchPullRequests([Self.store7, Self.api8, Self.gone9])
+        #expect(lookup.found == [Self.store7: PullRequestSummary(
             repo: "acme/store", number: 7, title: "Faster checkout", state: .open,
-            url: "https://github.com/acme/store/pull/7"))
-        let request = try #require(transport.requests.withLock { $0.first })
-        #expect(request.url?.absoluteString == "https://api.github.com/repos/acme/store/pulls/7")
-        #expect(request.httpMethod == "GET")
-        #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer old-token")
+            url: "https://github.com/acme/store/pull/7")])
+        #expect(lookup.missing == [Self.api8, Self.gone9])
+        let requests = transport.requests.withLock { $0 }
+        #expect(requests.count == 1)
+        let request = try #require(requests.first)
+        #expect(request.url == GitHubQuery.endpoint)
+        #expect(request.httpMethod == "POST")
+        // The repositories and numbers travel as variables, never inside the query text.
+        let body = try #require(JSONSerialization.jsonObject(with: request.httpBody ?? Data()) as? [String: Any])
+        let query = try #require(body["query"] as? String)
+        #expect(!query.contains("acme"))
+        #expect(query.contains("p2: repository(owner: $o2, name: $n2)"))
+        let variables = try #require(body["variables"] as? [String: Any])
+        #expect(variables["o1"] as? String == "acme")
+        #expect(variables["n1"] as? String == "api")
+        #expect(variables["k1"] as? Int == 8)
     }
 
     @Test("Maps draft, merged and closed PRs")
     func pullRequestStates() async throws {
         func state(_ body: Data) async throws -> PullRequestSummary.State? {
             try await GitHubSource(tokens: FakeTokens(), transport: FakeTransport(body: body))
-                .fetchPullRequest(repo: "acme/store", number: 7)?.state
+                .fetchPullRequests([Self.store7]).found[Self.store7]?.state
         }
-        #expect(try await state(Self.pullRequestBody(draft: true)) == .draft)
-        #expect(try await state(Self.pullRequestBody(state: "closed", mergedAt: "2026-11-01T10:00:00Z")) == .merged)
-        #expect(try await state(Self.pullRequestBody(state: "closed")) == .closed)
+        #expect(try await state(Self.lookupBody(draft: true)) == .draft)
+        #expect(try await state(Self.lookupBody(state: "MERGED")) == .merged)
+        #expect(try await state(Self.lookupBody(state: "CLOSED")) == .closed)
     }
 
-    @Test("A PR that does not exist is nil; a 401 retries once with a fresh token")
-    func pullRequestNotFoundAndRetry() async throws {
-        let missing = GitHubSource(tokens: FakeTokens(), transport: FakeTransport(statuses: [404], body: Data("{}".utf8)))
-        #expect(try await missing.fetchPullRequest(repo: "acme/store", number: 7) == nil)
-        let transport = FakeTransport(statuses: [401, 200], body: Self.pullRequestBody())
+    @Test("A 401 retries once with a fresh token; other failures throw")
+    func pullRequestLookupFailures() async throws {
         let tokens = FakeTokens()
-        let retried = try await GitHubSource(tokens: tokens, transport: transport).fetchPullRequest(repo: "acme/store", number: 7)
-        #expect(retried?.title == "Faster checkout")
+        let transport = FakeTransport(statuses: [401, 200], body: Self.lookupBody())
+        let retried = try await GitHubSource(tokens: tokens, transport: transport).fetchPullRequests([Self.store7])
+        #expect(retried.found[Self.store7]?.title == "Faster checkout")
         #expect(tokens.calls.withLock { $0 } == [false, true])
         let failing = GitHubSource(tokens: FakeTokens(), transport: FakeTransport(statuses: [500], body: Data()))
-        await #expect(throws: GitHubError.http(500)) { try await failing.fetchPullRequest(repo: "acme/store", number: 7) }
+        await #expect(throws: GitHubError.http(500)) { try await failing.fetchPullRequests([Self.store7]) }
+        let noData = Data(#"{ "errors": [ { "message": "API rate limit exceeded" } ] }"#.utf8)
+        let limited = GitHubSource(tokens: FakeTokens(), transport: FakeTransport(body: noData))
+        await #expect(throws: GitHubError.graphQL(["API rate limit exceeded"])) {
+            try await limited.fetchPullRequests([Self.store7])
+        }
     }
 
-    @Test("A repo that is not owner/name is never requested")
+    @Test("A repository GitHub refuses, or another error, is neither found nor missing")
+    func pullRequestLookupForbidden() async throws {
+        let body = Data("""
+            { "data": { "p0": null, "p1": null, "p2": { "pullRequest": null } },
+              "errors": [ { "type": "FORBIDDEN", "path": ["p0"], "message": "SAML enforcement" },
+                          { "path": ["p1"], "message": "Something went wrong" },
+                          { "type": "NOT_FOUND", "path": ["p2", "pullRequest"], "message": "Could not resolve" } ] }
+            """.utf8)
+        let lookup = try await GitHubSource(tokens: FakeTokens(), transport: FakeTransport(body: body))
+            .fetchPullRequests([Self.store7, Self.api8, Self.gone9])
+        #expect(lookup.found.isEmpty)
+        #expect(lookup.missing == [Self.gone9])
+    }
+
+    @Test("A number GraphQL cannot hold is missing without being sent")
+    func pullRequestLookupHugeNumber() async throws {
+        let transport = FakeTransport(body: Self.lookupBody())
+        let huge = PullRequestRef(repo: "acme/store", number: Int(Int32.max) + 1)
+        let lookup = try await GitHubSource(tokens: FakeTokens(), transport: transport).fetchPullRequests([huge])
+        #expect(lookup.missing == [huge])
+        #expect(transport.requests.withLock { $0.isEmpty })
+    }
+
+    @Test("Aliases the answer leaves out are neither found nor missing")
+    func pullRequestLookupPartial() async throws {
+        let body = Data(#"{ "data": { } }"#.utf8)
+        let lookup = try await GitHubSource(tokens: FakeTokens(), transport: FakeTransport(body: body))
+            .fetchPullRequests([Self.store7])
+        #expect(lookup.found.isEmpty)
+        #expect(lookup.missing.isEmpty)
+    }
+
+    @Test("A repo that is not owner/name is missing without a request; no refs, no request")
     func pullRequestInvalidRepo() async throws {
-        let transport = FakeTransport(body: Self.pullRequestBody())
+        let transport = FakeTransport(body: Self.lookupBody())
         let source = GitHubSource(tokens: FakeTokens(), transport: transport)
-        for repo in ["store", "a/b/c", "../x", "a b/c", "a/b?x=1"] {
-            #expect(try await source.fetchPullRequest(repo: repo, number: 7) == nil)
-        }
+        let refs = ["store", "a/b/c", "../x", "a b/c", "a/b?x=1"].map { PullRequestRef(repo: $0, number: 7) }
+        let lookup = try await source.fetchPullRequests(refs)
+        #expect(lookup.missing == Set(refs))
+        #expect(try await source.fetchPullRequests([]) == PullRequestLookup())
         #expect(transport.requests.withLock { $0.isEmpty })
     }
 

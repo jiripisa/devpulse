@@ -3,12 +3,12 @@ import os
 
 public protocol GitHubFetching: Sendable {
     func fetch(includeTeamRequests: Bool) async throws -> GitHubResult
-    /// One PR by number, for the launcher; nil when it does not exist.
-    func fetchPullRequest(repo: String, number: Int) async throws -> PullRequestSummary?
+    /// PRs by repository and number, for the launcher, in one request.
+    func fetchPullRequests(_ refs: [PullRequestRef]) async throws -> PullRequestLookup
 }
 
 extension GitHubFetching {
-    public func fetchPullRequest(repo: String, number: Int) async throws -> PullRequestSummary? {
+    public func fetchPullRequests(_ refs: [PullRequestRef]) async throws -> PullRequestLookup {
         throw LookupUnavailable()
     }
 }
@@ -110,11 +110,11 @@ public final class SnapshotStore {
         return try await jiraSource(for: credentials).lookUpTickets(keys: keys)
     }
 
-    /// One PR by number, for the launcher's rows; nil when it does not exist. Throws
+    /// PRs by repository and number, for the launcher's rows, in one request. Throws
     /// `LookupUnavailable` while GitHub is off.
-    public func lookUpPullRequest(_ ref: PullRequestRef) async throws -> PullRequestSummary? {
+    public func lookUpPullRequests(_ refs: [PullRequestRef]) async throws -> PullRequestLookup {
         guard isEnabled(.github) else { throw LookupUnavailable() }
-        return try await github.fetchPullRequest(repo: ref.repo, number: ref.number)
+        return try await github.fetchPullRequests(refs)
     }
 
     public func setPaused(_ paused: Bool) {

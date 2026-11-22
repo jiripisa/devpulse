@@ -21,7 +21,7 @@ private func withFreshDefaults(_ body: (UserDefaults) throws -> Void) rethrows {
         #expect(settings.refreshInterval == 120)
         #expect(Source.allCases.allSatisfy { settings.sourceEnabled[$0] == true })
         #expect(settings.includeTeamReviewRequests == false)
-        #expect(settings.defaultRepo == nil)
+        #expect(settings.githubRepos.isEmpty)
         #expect(settings.jiraProjects.isEmpty)
         #expect(settings.jiraSite == nil)
         #expect(settings.jiraEmail == nil)
@@ -70,7 +70,7 @@ private func withFreshDefaults(_ body: (UserDefaults) throws -> Void) rethrows {
         settings.notificationsEnabled[.claude] = false
         settings.triggers[.prBotComment] = true
         settings.includeTeamReviewRequests = true
-        settings.defaultRepo = "acme/app"
+        settings.githubRepos = ["acme/app", "acme/api"]
         settings.jiraProjects = ["ACME"]
         settings.jiraSite = URL(string: "https://acme.atlassian.net")
         settings.jiraEmail = "me@acme.test"
@@ -84,19 +84,38 @@ private func withFreshDefaults(_ body: (UserDefaults) throws -> Void) rethrows {
         withFreshDefaults { defaults in
             #expect(AppSettings.load(from: defaults) == AppSettings())
             var settings = AppSettings()
-            settings.defaultRepo = "acme/app"
+            settings.githubRepos = ["acme/app"]
             settings.sourceEnabled[.claude] = false
             settings.save(to: defaults)
             #expect(AppSettings.load(from: defaults) == settings)
         }
     }
 
-    @Test func mostFrequentRepoPicksTheModeWithAlphabeticalTies() {
-        #expect(AppSettings.mostFrequentRepo([]) == nil)
+    @Test func reposByFrequencyListsEveryRepoMostPullRequestsFirst() {
+        #expect(AppSettings.reposByFrequency([]) == [])
         let prs = ["b/x", "a/y", "b/x", "a/y", "c/z"].enumerated().map { makePR(repo: $1, number: $0) }
-        #expect(AppSettings.mostFrequentRepo(prs) == "a/y")
-        let prs2 = ["b/x", "b/x", "a/y"].enumerated().map { makePR(repo: $1, number: $0) }
-        #expect(AppSettings.mostFrequentRepo(prs2) == "b/x")
+        #expect(AppSettings.reposByFrequency(prs) == ["a/y", "b/x", "c/z"])
+    }
+
+    @Test func theOldSingleRepoBecomesTheRepoList() throws {
+        let old = Data(#"{"defaultRepo":"acme/store"}"#.utf8)
+        #expect(try JSONDecoder().decode(AppSettings.self, from: old).githubRepos == ["acme/store"])
+        let both = Data(#"{"defaultRepo":"acme/store","githubRepos":["acme/api"]}"#.utf8)
+        #expect(try JSONDecoder().decode(AppSettings.self, from: both).githubRepos == ["acme/api"])
+        let encoded = String(decoding: try JSONEncoder().encode(AppSettings()), as: UTF8.self)
+        #expect(!encoded.contains("defaultRepo"))
+    }
+
+    @Test func parsesTheRepoListAsTyped() {
+        #expect(AppSettings.parseRepos("acme/store, acme/api  Acme/Store") == ["acme/store", "acme/api"])
+        #expect(AppSettings.parseRepos("https://github.com/acme/store/ github.com/acme/api.git") == ["acme/store", "acme/api"])
+        #expect(AppSettings.parseRepos(
+            "https://github.com/acme/store/pull/12, https://www.github.com/acme/api/tree/main git@github.com:acme/web.git")
+            == ["acme/store", "acme/api", "acme/web"])
+        #expect(AppSettings.parseRepos("jdoe_acme/tools") == ["jdoe_acme/tools"])
+        #expect(AppSettings.parseRepos("store, ../x, a/.., a b, o/n?x=1, https://example.com/a/b") == [])
+        #expect(AppSettings.parseRepos((1...12).map { "o/r\($0)" }.joined(separator: ",")).count == AppSettings.maxGitHubRepos)
+        #expect(AppSettings.reposText(["acme/store", "acme/api"]) == "acme/store, acme/api")
     }
 
     @Test func theOldSingleProjectBecomesTheProjectList() throws {

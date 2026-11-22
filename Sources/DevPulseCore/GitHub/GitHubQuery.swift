@@ -39,4 +39,25 @@ enum GitHubQuery {
     static func body(includeTeamRequests: Bool) throws -> Data {
         try JSONEncoder().encode(["query": text(includeTeamRequests: includeTeamRequests)])
     }
+
+    /// The launcher's lookup of PRs by number: one aliased `repository { pullRequest }` per ref
+    /// (`p0`, `p1`, …), with owner, name and number as variables, so nothing typed ends up in
+    /// the query text.
+    static func lookupBody(_ refs: [PullRequestRef]) throws -> Data {
+        var declarations: [String] = []
+        var fields: [String] = []
+        var variables: [String: Any] = [:]
+        for (i, ref) in refs.enumerated() {
+            let parts = ref.repo.split(separator: "/", maxSplits: 1).map(String.init)
+            guard parts.count == 2 else { continue }
+            declarations.append("$o\(i): String!, $n\(i): String!, $k\(i): Int!")
+            fields.append(
+                "p\(i): repository(owner: $o\(i), name: $n\(i)) { pullRequest(number: $k\(i)) { number title state isDraft url } }")
+            variables["o\(i)"] = parts[0]
+            variables["n\(i)"] = parts[1]
+            variables["k\(i)"] = ref.number
+        }
+        let query = "query(\(declarations.joined(separator: ", "))) { \(fields.joined(separator: " ")) }"
+        return try JSONSerialization.data(withJSONObject: ["query": query, "variables": variables])
+    }
 }

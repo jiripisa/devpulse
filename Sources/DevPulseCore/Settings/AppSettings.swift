@@ -67,7 +67,12 @@ public struct AppSettings: Codable, Sendable, Equatable {
     public var notificationsEnabled: [Source: Bool]
     public var triggers: [NotificationTrigger: Bool]
     public var includeTeamReviewRequests: Bool
-    public var defaultRepo: String?
+    /// The repositories (`owner/name`) the launcher looks a bare number and `gh <number>` up
+    /// in, at most `maxGitHubRepos`; the first one's row stays when the PR does not exist.
+    /// Empty means the repositories of my PRs, most PRs first.
+    public var githubRepos: [String] {
+        didSet { githubRepos = Self.cleanRepos(githubRepos) }
+    }
     /// The Jira projects (keys like `STORE`) the launcher looks a bare number and
     /// `jira <number>` up in, at most `maxJiraProjects`; the first one's row stays when the
     /// ticket does not exist. Empty means the projects of my tickets, most tickets first.
@@ -86,7 +91,7 @@ public struct AppSettings: Codable, Sendable, Equatable {
         triggers: [NotificationTrigger: Bool] = Dictionary(
             uniqueKeysWithValues: NotificationTrigger.allCases.map { ($0, $0.defaultEnabled) }),
         includeTeamReviewRequests: Bool = false,
-        defaultRepo: String? = nil,
+        githubRepos: [String] = [],
         jiraProjects: [String] = [],
         jiraSite: URL? = nil,
         jiraEmail: String? = nil,
@@ -98,7 +103,7 @@ public struct AppSettings: Codable, Sendable, Equatable {
         self.notificationsEnabled = notificationsEnabled
         self.triggers = triggers
         self.includeTeamReviewRequests = includeTeamReviewRequests
-        self.defaultRepo = defaultRepo
+        self.githubRepos = Self.cleanRepos(githubRepos)
         self.jiraProjects = Self.cleanProjects(jiraProjects)
         self.jiraSite = jiraSite
         self.jiraEmail = jiraEmail
@@ -113,9 +118,11 @@ public struct AppSettings: Codable, Sendable, Equatable {
     // Missing keys (older or hand-edited settings) fall back to the defaults.
     private enum CodingKeys: String, CodingKey {
         case refreshInterval, sourceEnabled, notificationsEnabled, triggers, includeTeamReviewRequests
-        case defaultRepo, jiraProjects, jiraSite, jiraEmail, hotkey, launchAtLogin
+        case githubRepos, jiraProjects, jiraSite, jiraEmail, hotkey, launchAtLogin
         /// Before 0.10 there was one project; it becomes the only entry of `jiraProjects`.
         case defaultJiraProject
+        /// Before 0.11 there was one repository; it becomes the only entry of `githubRepos`.
+        case defaultRepo
     }
 
     public func encode(to encoder: any Encoder) throws {
@@ -125,7 +132,7 @@ public struct AppSettings: Codable, Sendable, Equatable {
         try c.encode(notificationsEnabled, forKey: .notificationsEnabled)
         try c.encode(triggers, forKey: .triggers)
         try c.encode(includeTeamReviewRequests, forKey: .includeTeamReviewRequests)
-        try c.encodeIfPresent(defaultRepo, forKey: .defaultRepo)
+        try c.encode(githubRepos, forKey: .githubRepos)
         try c.encode(jiraProjects, forKey: .jiraProjects)
         try c.encodeIfPresent(jiraSite, forKey: .jiraSite)
         try c.encodeIfPresent(jiraEmail, forKey: .jiraEmail)
@@ -146,7 +153,8 @@ public struct AppSettings: Codable, Sendable, Equatable {
                 try c.decodeIfPresent([NotificationTrigger: Bool].self, forKey: .triggers) ?? [:]) { $1 },
             includeTeamReviewRequests: try c.decodeIfPresent(Bool.self, forKey: .includeTeamReviewRequests)
                 ?? d.includeTeamReviewRequests,
-            defaultRepo: try c.decodeIfPresent(String.self, forKey: .defaultRepo),
+            githubRepos: try c.decodeIfPresent([String].self, forKey: .githubRepos)
+                ?? (try c.decodeIfPresent(String.self, forKey: .defaultRepo)).map { [$0] } ?? [],
             jiraProjects: try c.decodeIfPresent([String].self, forKey: .jiraProjects)
                 ?? (try c.decodeIfPresent(String.self, forKey: .defaultJiraProject)).map { [$0] } ?? [],
             jiraSite: try c.decodeIfPresent(URL.self, forKey: .jiraSite),
@@ -176,9 +184,57 @@ public struct AppSettings: Codable, Sendable, Equatable {
 
     // MARK: Defaults pre-fill
 
-    /// The repo (`owner/name`) with the most PRs; ties go to the alphabetically first.
-    public static func mostFrequentRepo(_ prs: [PullRequest]) -> String? {
-        mode(of: prs.map(\.repo))
+    /// Every repository (`owner/name`) of these PRs, the one with the most PRs first (ties
+    /// alphabetically), at most `maxGitHubRepos`.
+    public static func reposByFrequency(_ prs: [PullRequest]) -> [String] {
+        let counts = prs.map(\.repo).reduce(into: [String: Int]()) { $0[$1, default: 0] += 1 }
+        let sorted = counts.sorted { ($0.value, $1.key) > ($1.value, $0.key) }.map(\.key)
+        return Array(sorted.prefix(maxGitHubRepos))
+    }
+
+    // MARK: GitHub repositories
+
+    /// All repositories are asked about in one GitHub request; the list stays short anyway.
+    public static let maxGitHubRepos = 10
+
+    /// The repositories in what was typed in Settings: `owner/name` or a GitHub URL, separated
+    /// by commas or spaces, each once (without regard to case), invalid ones left out.
+    public static func parseRepos(_ text: String) -> [String] {
+        cleanRepos(text.split { $0 == "," || $0.isWhitespace }.map(String.init))
+    }
+
+    /// The repositories as Settings shows them: `acme/store, acme/api`.
+    public static func reposText(_ repos: [String]) -> String {
+        repos.joined(separator: ", ")
+    }
+
+    /// Whether this is a plain `owner/name`, safe to put into a GitHub URL or query.
+    public static func isRepo(_ text: String) -> Bool {
+        text.wholeMatch(of: /[A-Za-z0-9_-]+\/[A-Za-z0-9_.-]+/) != nil && !text.contains("..")
+    }
+
+    private static func cleanRepos(_ repos: [String]) -> [String] {
+        var seen = Set<String>()
+        let cleaned = repos
+            .map { raw -> String in
+                var repo = raw.trimmingCharacters(in: .whitespaces)
+                // A pasted address: the repository is the first two steps of its path
+                // (`…/acme/store/pull/12`, `git@github.com:acme/store.git`).
+                let hosts = ["https://", "http://", "www.", "github.com/", "git@github.com:"]
+                var isAddress = false
+                for prefix in hosts where repo.lowercased().hasPrefix(prefix) {
+                    repo = String(repo.dropFirst(prefix.count))
+                    isAddress = true
+                }
+                if isAddress {
+                    let steps = repo.split(separator: "/", omittingEmptySubsequences: true)
+                    repo = steps.prefix(2).joined(separator: "/")
+                }
+                if repo.hasSuffix(".git") { repo.removeLast(4) }
+                return repo
+            }
+            .filter { isRepo($0) && seen.insert($0.lowercased()).inserted }
+        return Array(cleaned.prefix(maxGitHubRepos))
     }
 
     /// Every Jira project of these tickets, the one with the most tickets first (ties
@@ -213,8 +269,4 @@ public struct AppSettings: Codable, Sendable, Equatable {
         return Array(keys.prefix(maxJiraProjects))
     }
 
-    private static func mode(of values: [String]) -> String? {
-        let counts = values.reduce(into: [String: Int]()) { $0[$1, default: 0] += 1 }
-        return counts.max { ($0.value, $1.key) < ($1.value, $0.key) }?.key
-    }
 }

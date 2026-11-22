@@ -44,14 +44,14 @@ struct DemoModeTests {
         #expect(DemoSnapshot.defaultsSuite == "io.jp4.devpulse.demo")
         #expect(settings.jiraSite == URL(string: "https://acme.atlassian.net"))
         #expect(settings.jiraEmail == "alice@acme.example")
-        #expect(settings.defaultRepo == "acmecorp/webapp")
+        #expect(settings.githubRepos == ["acmecorp/webapp"])
         // GitHub signs in through gh, not the settings: the demo's login is a value of its own.
         #expect(DemoSnapshot.githubLogin == "alice")
         // Everything else stays at the defaults, as a new user would see it.
         var defaults = settings
         defaults.jiraSite = nil
         defaults.jiraEmail = nil
-        defaults.defaultRepo = nil
+        defaults.githubRepos = []
         #expect(defaults == AppSettings())
     }
 }

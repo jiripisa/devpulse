@@ -127,7 +127,7 @@ gh auth login</code></pre>
         tyto prvky:</p>
         <figure class="fig" style="max-width:34rem">
           <div class="view" style="--iw:1040;--ih:900;--zh:77">
-            <img src="../assets/manual/devpulse-settings-github.png" alt="Záložka GitHub v nastavení: stav, týmové žádosti o review a výchozí repozitář">
+            <img src="../assets/manual/devpulse-settings-github.png" alt="Záložka GitHub v nastavení: stav, týmové žádosti o review a repozitáře">
             <span class="mark" style="--x:3.8;--y:28.5;--w:92.3;--h:7.9"><b>1</b></span>
             <span class="mark" style="--x:3.8;--y:38.7;--w:92.3;--h:8"><b>2</b></span>
             <span class="mark" style="--x:3.8;--y:58.6;--w:92.3;--h:8"><b>3</b></span>
@@ -147,11 +147,13 @@ gh auth login</code></pre>
           <dd>Ve výchozím stavu vypnuto. Zapnuté přidá do <b>Review requests</b>
           i pull requesty, které o review žádají některý z vašich týmů, ne jen
           vás.</dd>
-          <dt><span class="n">3</span>Default repository</dt>
-          <dd><code>owner/name</code>, které <a href="#launcher">rychlé hledání</a>
-          použije pro <code>gh &lt;číslo&gt;</code> a samotné číslo, když číslo nepatří žádnému
-          z vašich známých pull requestů. Prázdné pole znamená repozitář, ve
-          kterém máte nejvíc pull requestů; pole ho ukazuje šedě.</dd>
+          <dt><span class="n">3</span>Repositories</dt>
+          <dd>Repozitáře (<code>owner/name</code>, oddělené čárkou), ve kterých
+          <a href="#launcher">rychlé hledání</a> hledá samotné číslo a
+          <code>gh &lt;číslo&gt;</code>; u <code>gh &lt;číslo&gt;</code> řádek prvního z nich
+          zůstane, i když pull request neexistuje. Funguje i vložená adresa z GitHubu. Nejvýš deset.
+          Prázdné pole znamená repozitáře vašich pull requestů, nejdřív ten, kde jich máte nejvíc;
+          pole je ukazuje šedě.</dd>
         </dl>
       </section>
 
@@ -425,19 +427,19 @@ gh auth login</code></pre>
         </dl>
         <figure class="fig">
           <div class="view" style="--iw:1280;--ih:498">
-            <img src="../assets/manual/devpulse-launcher-number.png" alt="Rychlé hledání pro číslo 2290: žádost o review, tiket z Jiry, session Claude Code a řádek pro výchozí repozitář">
+            <img src="../assets/manual/devpulse-launcher-number.png" alt="Rychlé hledání pro číslo 2290: žádost o review, tiket z Jiry, session Claude Code a řádek pro repozitář z nastavení">
           </div>
-          <figcaption>Samotné číslo najde všechno, co ho nese: tady žádost o review #2290, tiket STORE-2290, session ve složce <code>store-2290-statement</code> a nakonec řádek, který otevře 2290 ve výchozím repozitáři.</figcaption>
+          <figcaption>Samotné číslo najde všechno, co ho nese: tady žádost o review #2290, tiket STORE-2290, session ve složce <code>store-2290-statement</code> a nakonec řádek, který otevře 2290 v repozitáři z nastavení.</figcaption>
         </figure>
         <div class="table">
           <table>
             <thead><tr><th>Napíšete</th><th>Výsledek</th></tr></thead>
             <tbody>
-              <tr><td><code>2474</code></td><td>Všechno s tímto číslem: vaše pull requesty a žádosti o review s číslem 2474 v libovolném repozitáři, za nimi vaše tikety a tikety vašich pull requestů s číslem 2474 v libovolném projektu (<code>STORE-2474</code>, <code>WA-2474</code>) a sessions Claude Code, jejichž klíč z Jiry nebo název složky toto číslo obsahuje (<code>store-2474-fix</code>, ale ne <code>store-24740</code>). Nakonec pull request 2474 ve <a href="#github">výchozím repozitáři</a> a tiket 2474 v každém z vašich <a href="#jira">projektů</a> (<code>STORE-2474</code>, <code>WA-2474</code>), pokud už v seznamu nejsou. Jakmile přestanete psát, DevPulse tyto řádky dohledá: ukážou název a stav a tikety nebo pull requesty, které neexistují, zmizí.</td></tr>
+              <tr><td><code>2474</code></td><td>Všechno s tímto číslem: vaše pull requesty a žádosti o review s číslem 2474 v libovolném repozitáři, za nimi vaše tikety a tikety vašich pull requestů s číslem 2474 v libovolném projektu (<code>STORE-2474</code>, <code>WA-2474</code>) a sessions Claude Code, jejichž klíč z Jiry nebo název složky toto číslo obsahuje (<code>store-2474-fix</code>, ale ne <code>store-24740</code>). Nakonec pull request 2474 v každém z vašich <a href="#github">repozitářů</a> a tiket 2474 v každém z vašich <a href="#jira">projektů</a> (<code>STORE-2474</code>, <code>WA-2474</code>), pokud už v seznamu nejsou. Jakmile přestanete psát, DevPulse tyto řádky dohledá: ukážou název a stav a tikety nebo pull requesty, které neexistují, zmizí.</td></tr>
               <tr><td><code>gh</code></td><td>Vaše pull requesty, za nimi žádosti o review.</td></tr>
               <tr><td><code>gh invoice</code></td><td>Ty, jejichž název nebo repozitář text obsahuje.</td></tr>
-              <tr><td><code>gh 812</code></td><td>Váš pull request nebo žádost o review s tímto číslem. Když takový nemáte, pull request 812 ve <a href="#github">výchozím repozitáři</a> s názvem a stavem, nebo <span class="ui">Not found on GitHub</span>.</td></tr>
-              <tr><td><code>gh webapp 455</code></td><td>Pull request 455 v daném repozitáři: stačí název repozitáře, ve kterém máte pull requesty, nebo celé <code>owner/name</code>.</td></tr>
+              <tr><td><code>gh 812</code></td><td>Vaše pull requesty a žádosti o review s tímto číslem, za nimi pull request 812 v každém z vašich <a href="#github">repozitářů</a> s názvem a stavem. Řádek prvního repozitáře zůstane, i když pull request neexistuje, jako <span class="ui">Not found on GitHub</span>.</td></tr>
+              <tr><td><code>gh webapp 455</code></td><td>Pull request 455 v daném repozitáři: stačí název jednoho z vašich <a href="#github">repozitářů</a> nebo repozitáře, ve kterém máte pull requesty, nebo celé <code>owner/name</code>.</td></tr>
               <tr><td><code>jira</code></td><td>Vaše tikety.</td></tr>
               <tr><td><code>jira export</code></td><td>Ty, jejichž název nebo klíč text obsahuje.</td></tr>
               <tr><td><code>jira STORE-2290</code></td><td>Tento tiket, i když ve vašem seznamu není, s názvem a stavem, nebo <span class="ui">Not found in Jira</span>.</td></tr>

@@ -8,9 +8,14 @@ private final class FakeGitHub: GitHubFetching {
     let results = Mutex<[Result<GitHubResult, Error>]>([])
     let teamFlags = Mutex<[Bool]>([])
     let pullRequestLookups = Mutex<[String]>([])
-    func fetchPullRequest(repo: String, number: Int) async throws -> PullRequestSummary? {
-        pullRequestLookups.withLock { $0.append("\(repo)#\(number)") }
-        return PullRequestSummary(repo: repo, number: number, title: "T", state: .open, url: "https://github.com/\(repo)/pull/\(number)")
+    func fetchPullRequests(_ refs: [PullRequestRef]) async throws -> PullRequestLookup {
+        pullRequestLookups.withLock { $0.append(refs.map { "\($0.repo)#\($0.number)" }.joined(separator: ",")) }
+        var lookup = PullRequestLookup()
+        for ref in refs {
+            lookup.found[ref] = PullRequestSummary(
+                repo: ref.repo, number: ref.number, title: "T", state: .open, url: "https://github.com/\(ref.repo)/pull/\(ref.number)")
+        }
+        return lookup
     }
     func fetch(includeTeamRequests: Bool) async throws -> GitHubResult {
         teamFlags.withLock { $0.append(includeTeamRequests) }
@@ -117,9 +122,10 @@ private final class FakeClock: Sendable {
         rig.jira.linked.withLock { $0 = .success([makeTicket(key: "WA-7")]) }
         #expect(try await rig.store.lookUpTickets(keys: ["WA-7"]).tickets.map(\.key) == ["WA-7"])
         #expect(rig.jira.linkedSearches.withLock { $0 } == [["WA-7"]])
-        let pr = try await rig.store.lookUpPullRequest(PullRequestRef(repo: "acme/store", number: 7))
-        #expect(pr?.title == "T")
-        #expect(rig.github.pullRequestLookups.withLock { $0 } == ["acme/store#7"])
+        let refs = [PullRequestRef(repo: "acme/store", number: 7), PullRequestRef(repo: "acme/api", number: 7)]
+        let prs = try await rig.store.lookUpPullRequests(refs)
+        #expect(prs.found[refs[1]]?.title == "T")
+        #expect(rig.github.pullRequestLookups.withLock { $0 } == ["acme/store#7,acme/api#7"])
     }
 
     @Test func launcherLookupsFailWhenASourceIsOffOrJiraIsNotSetUp() async {
@@ -129,7 +135,7 @@ private final class FakeClock: Sendable {
         let rig = Rig(settings: off)
         await #expect(throws: LookupUnavailable.self) { try await rig.store.lookUpTickets(keys: ["WA-7"]) }
         await #expect(throws: LookupUnavailable.self) {
-            try await rig.store.lookUpPullRequest(PullRequestRef(repo: "acme/store", number: 7))
+            try await rig.store.lookUpPullRequests([PullRequestRef(repo: "acme/store", number: 7)])
         }
         #expect(rig.jira.linkedSearches.withLock { $0 }.isEmpty)
         #expect(rig.github.pullRequestLookups.withLock { $0 }.isEmpty)
