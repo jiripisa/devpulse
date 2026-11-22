@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.11.0 — 2026-11-23
 
 - Settings › GitHub › Repositories: list the repositories (`owner/name`, or a pasted GitHub
   address) in which the quick launcher looks up a bare number and `gh <number>`; it shows a row
