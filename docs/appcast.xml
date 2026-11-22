@@ -5,13 +5,13 @@
     <link>https://jiripisa.github.io/devpulse/</link>
     <description>DevPulse updates</description>
     <item>
-      <title>DevPulse 0.10.0</title>
-      <sparkle:version>0.10.0</sparkle:version>
-      <sparkle:shortVersionString>0.10.0</sparkle:shortVersionString>
+      <title>DevPulse 0.11.0</title>
+      <sparkle:version>0.11.0</sparkle:version>
+      <sparkle:shortVersionString>0.11.0</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>27.0</sparkle:minimumSystemVersion>
-      <pubDate>Sun, 22 Nov 2026 22:47:46 +0000</pubDate>
-      <description><![CDATA[<ul><li>Settings › Jira › Projects: list the Jira projects (<code>STORE, WA</code>) in which the quick launcher looks up a bare number and <code>jira &lt;number&gt;</code>; it shows a row for each of them. It replaces the single default project, and your earlier choice is kept as the first entry.</li><li>The quick launcher shows the title and state of tickets and pull requests that are not in your lists: once you stop typing, it asks Jira and GitHub about them (one request each). Tickets or pull requests that do not exist disappear from a bare number&#x27;s results, and <code>jira &lt;key&gt;</code> or <code>gh &lt;number&gt;</code> say &quot;Not found&quot;.</li><li>The quick launcher also finds the tickets of your pull requests that are not assigned to you.</li><li>A pull request links to a Jira key of any project in the list, not only the default one.</li></ul>]]></description>
-      <enclosure url="https://github.com/jiripisa/devpulse/releases/download/v0.10.0/DevPulse-0.10.0.dmg" type="application/octet-stream" sparkle:edSignature="Yjq4x1iAct1jtn0267fCmDXdCkU4x1LPF8+Ew2k6GiMJ9eE6cu6wPFdz+yQ245Lq3Jwr78aAzxwBM84Ec4RJDQ==" length="5618257"/>
+      <pubDate>Sun, 22 Nov 2026 23:25:27 +0000</pubDate>
+      <description><![CDATA[<ul><li>Settings › GitHub › Repositories: list the repositories (<code>owner/name</code>, or a pasted GitHub address) in which the quick launcher looks up a bare number and <code>gh &lt;number&gt;</code>; it shows a row for each of them with the pull request&#x27;s title and state. It replaces the single default repository, and your earlier choice is kept as the first entry.</li><li><code>gh &lt;name&gt; &lt;number&gt;</code> also knows the repositories from that list by their name.</li><li>The quick launcher asks GitHub about all those pull requests in one request.</li></ul>]]></description>
+      <enclosure url="https://github.com/jiripisa/devpulse/releases/download/v0.11.0/DevPulse-0.11.0.dmg" type="application/octet-stream" sparkle:edSignature="M7Bql3bo1Q5WPRVvkkrlZ37Mgp/9WhPoDcwtI+QdkOEhCgHMbkgyGkz9BQ6MFHXhy1XiB+6Xf7Z1IVsiwfNQAA==" length="5649962"/>
     </item>
   </channel>
 </rss>
