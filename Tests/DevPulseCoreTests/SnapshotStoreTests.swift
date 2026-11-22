@@ -7,6 +7,11 @@ import Testing
 private final class FakeGitHub: GitHubFetching {
     let results = Mutex<[Result<GitHubResult, Error>]>([])
     let teamFlags = Mutex<[Bool]>([])
+    let pullRequestLookups = Mutex<[String]>([])
+    func fetchPullRequest(repo: String, number: Int) async throws -> PullRequestSummary? {
+        pullRequestLookups.withLock { $0.append("\(repo)#\(number)") }
+        return PullRequestSummary(repo: repo, number: number, title: "T", state: .open, url: "https://github.com/\(repo)/pull/\(number)")
+    }
     func fetch(includeTeamRequests: Bool) async throws -> GitHubResult {
         teamFlags.withLock { $0.append(includeTeamRequests) }
         return try results.withLock { $0.count > 1 ? $0.removeFirst() : $0[0] }.get()
@@ -107,6 +112,31 @@ private final class FakeClock: Sendable {
 }
 
 @Suite @MainActor struct SnapshotStoreTests {
+    @Test func launcherLookupsUseTheSourcesWhileTheyAreOn() async throws {
+        let rig = Rig()
+        rig.jira.linked.withLock { $0 = .success([makeTicket(key: "WA-7")]) }
+        #expect(try await rig.store.lookUpTickets(keys: ["WA-7"]).map(\.key) == ["WA-7"])
+        #expect(rig.jira.linkedSearches.withLock { $0 } == [["WA-7"]])
+        let pr = try await rig.store.lookUpPullRequest(PullRequestRef(repo: "acme/store", number: 7))
+        #expect(pr?.title == "T")
+        #expect(rig.github.pullRequestLookups.withLock { $0 } == ["acme/store#7"])
+    }
+
+    @Test func launcherLookupsFailWhenASourceIsOffOrJiraIsNotSetUp() async {
+        var off = AppSettings()
+        off.sourceEnabled[.jira] = false
+        off.sourceEnabled[.github] = false
+        let rig = Rig(settings: off)
+        await #expect(throws: LookupUnavailable.self) { try await rig.store.lookUpTickets(keys: ["WA-7"]) }
+        await #expect(throws: LookupUnavailable.self) {
+            try await rig.store.lookUpPullRequest(PullRequestRef(repo: "acme/store", number: 7))
+        }
+        #expect(rig.jira.linkedSearches.withLock { $0 }.isEmpty)
+        #expect(rig.github.pullRequestLookups.withLock { $0 }.isEmpty)
+        let unset = Rig(credentials: nil)
+        await #expect(throws: LookupUnavailable.self) { try await unset.store.lookUpTickets(keys: ["WA-7"]) }
+    }
+
     @Test func successfulFetchFillsSnapshotAndIds() async {
         let rig = Rig()
         rig.jira.result.withLock { $0 = .success(JiraResult(myAccountId: "acc-1", tickets: [makeTicket(key: "A-1")])) }

@@ -38,7 +38,21 @@ struct LauncherView: View {
     }
 
     private var items: [LauncherItem] {
-        LauncherResolver.items(for: .parse(query), snapshot: model.snapshot, settings: model.settings)
+        LauncherResolver.items(
+            for: .parse(query), snapshot: model.snapshot, settings: model.settings, lookup: model.launcherLookup.results)
+    }
+
+    /// Asks Jira and GitHub for the titles of the "Open …" rows once typing pauses; a new key
+    /// cancels the wait.
+    private func lookUp() async {
+        do {
+            try await Task.sleep(for: .milliseconds(300))
+        } catch {
+            return
+        }
+        let request = LauncherResolver.lookupRequest(for: .parse(query), snapshot: model.snapshot, settings: model.settings)
+        guard !request.isEmpty else { return }
+        await model.launcherLookup.resolve(request)
     }
 
     var body: some View {
@@ -96,7 +110,12 @@ struct LauncherView: View {
         // Not before: a field that takes focus with text in it selects all of it.
         .onChange(of: focused) { if focused, query.isEmpty { query = initialQuery } }
         .onChange(of: query) { selection = 0 }
-        .onChange(of: items.count, initial: true) { onHeight(Self.height(rows: items.count)) }
+        .task(id: query) { await lookUp() }
+        .onChange(of: items.count, initial: true) {
+            // A lookup can drop rows (tickets that do not exist) under the selection.
+            selection = min(selection, max(items.count - 1, 0))
+            onHeight(Self.height(rows: items.count))
+        }
     }
 
     private func row(_ item: LauncherItem, selected: Bool) -> some View {

@@ -142,6 +142,62 @@ struct GitHubTests {
         #expect(!query2.contains("team:"))
     }
 
+    private static func pullRequestBody(state: String = "open", draft: Bool = false, mergedAt: String? = nil) -> Data {
+        let merged = mergedAt.map { "\"\($0)\"" } ?? "null"
+        return Data("""
+            {"number":7,"title":"Faster checkout","state":"\(state)","draft":\(draft),"merged_at":\(merged),
+             "html_url":"https://github.com/acme/store/pull/7"}
+            """.utf8)
+    }
+
+    @Test("Fetches one PR by number over REST")
+    func pullRequestByNumber() async throws {
+        let transport = FakeTransport(body: Self.pullRequestBody())
+        let source = GitHubSource(tokens: FakeTokens(), transport: transport)
+        let pr = try await source.fetchPullRequest(repo: "acme/store", number: 7)
+        #expect(pr == PullRequestSummary(
+            repo: "acme/store", number: 7, title: "Faster checkout", state: .open,
+            url: "https://github.com/acme/store/pull/7"))
+        let request = try #require(transport.requests.withLock { $0.first })
+        #expect(request.url?.absoluteString == "https://api.github.com/repos/acme/store/pulls/7")
+        #expect(request.httpMethod == "GET")
+        #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer old-token")
+    }
+
+    @Test("Maps draft, merged and closed PRs")
+    func pullRequestStates() async throws {
+        func state(_ body: Data) async throws -> PullRequestSummary.State? {
+            try await GitHubSource(tokens: FakeTokens(), transport: FakeTransport(body: body))
+                .fetchPullRequest(repo: "acme/store", number: 7)?.state
+        }
+        #expect(try await state(Self.pullRequestBody(draft: true)) == .draft)
+        #expect(try await state(Self.pullRequestBody(state: "closed", mergedAt: "2026-11-01T10:00:00Z")) == .merged)
+        #expect(try await state(Self.pullRequestBody(state: "closed")) == .closed)
+    }
+
+    @Test("A PR that does not exist is nil; a 401 retries once with a fresh token")
+    func pullRequestNotFoundAndRetry() async throws {
+        let missing = GitHubSource(tokens: FakeTokens(), transport: FakeTransport(statuses: [404], body: Data("{}".utf8)))
+        #expect(try await missing.fetchPullRequest(repo: "acme/store", number: 7) == nil)
+        let transport = FakeTransport(statuses: [401, 200], body: Self.pullRequestBody())
+        let tokens = FakeTokens()
+        let retried = try await GitHubSource(tokens: tokens, transport: transport).fetchPullRequest(repo: "acme/store", number: 7)
+        #expect(retried?.title == "Faster checkout")
+        #expect(tokens.calls.withLock { $0 } == [false, true])
+        let failing = GitHubSource(tokens: FakeTokens(), transport: FakeTransport(statuses: [500], body: Data()))
+        await #expect(throws: GitHubError.http(500)) { try await failing.fetchPullRequest(repo: "acme/store", number: 7) }
+    }
+
+    @Test("A repo that is not owner/name is never requested")
+    func pullRequestInvalidRepo() async throws {
+        let transport = FakeTransport(body: Self.pullRequestBody())
+        let source = GitHubSource(tokens: FakeTokens(), transport: transport)
+        for repo in ["store", "a/b/c", "../x", "a b/c", "a/b?x=1"] {
+            #expect(try await source.fetchPullRequest(repo: repo, number: 7) == nil)
+        }
+        #expect(transport.requests.withLock { $0.isEmpty })
+    }
+
     @Test("A 401 refreshes the token once and retries")
     func tokenRefresh() async throws {
         let tokens = FakeTokens()

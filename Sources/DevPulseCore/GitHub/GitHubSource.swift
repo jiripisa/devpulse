@@ -40,6 +40,54 @@ public final class GitHubSource: Sendable {
         return try Self.map(data, includeTeamRequests: includeTeamRequests)
     }
 
+    /// One PR by number (`GET /repos/{owner}/{name}/pulls/{number}`), for a launcher row of a
+    /// PR not in my lists; nil when it does not exist or I may not see it (404), or when `repo`
+    /// is not a plain `owner/name`.
+    public func fetchPullRequest(repo: String, number: Int) async throws -> PullRequestSummary? {
+        guard repo.wholeMatch(of: /[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+/) != nil, !repo.contains(".."),
+              let url = URL(string: "https://api.github.com/repos/\(repo)/pulls/\(number)")
+        else { return nil }
+        var response = try await get(url, token: tokens.token(forceRefresh: false))
+        if response.1.statusCode == 401 {
+            response = try await get(url, token: tokens.token(forceRefresh: true))
+        }
+        let (data, http) = response
+        switch http.statusCode {
+        case 200..<300: break
+        case 404: return nil
+        case 401: throw GitHubError.unauthorized
+        default: throw GitHubError.http(http.statusCode)
+        }
+        struct Body: Decodable {
+            var number: Int
+            var title: String
+            var state: String
+            var draft: Bool?
+            var merged_at: String?
+            var html_url: String
+        }
+        let body: Body
+        do {
+            body = try JSONDecoder().decode(Body.self, from: data)
+        } catch {
+            throw GitHubError.decoding(String(describing: error))
+        }
+        let state: PullRequestSummary.State =
+            body.merged_at != nil ? .merged
+            : body.state == "closed" ? .closed
+            : body.draft == true ? .draft : .open
+        return PullRequestSummary(repo: repo, number: body.number, title: body.title, state: state, url: body.html_url)
+    }
+
+    private func get(_ url: URL, token: String) async throws -> (Data, HTTPURLResponse) {
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+        request.setValue("DevPulse", forHTTPHeaderField: "User-Agent")
+        return try await transport.send(request)
+    }
+
     private func post(_ body: Data, token: String) async throws -> (Data, HTTPURLResponse) {
         var request = URLRequest(url: GitHubQuery.endpoint)
         request.httpMethod = "POST"

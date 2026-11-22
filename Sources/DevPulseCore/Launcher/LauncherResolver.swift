@@ -27,36 +27,90 @@ public struct LauncherItem: Equatable, Sendable {
     }
 }
 
-/// Turns a parsed launcher query into the rows to show, from the snapshot and the settings.
+/// Turns a parsed launcher query into the rows to show, from the snapshot, the settings and
+/// what `LauncherLookup` found about the rows the snapshot does not know.
 public enum LauncherResolver {
     public static let maxItems = 20
 
-    public static func items(for query: LauncherQuery, snapshot: Snapshot, settings: AppSettings) -> [LauncherItem] {
-        let items: [LauncherItem]
-        switch query {
-        case .empty:
-            items = []
-        case .github(let repo, let number, let text):
-            items = github(repo: repo, number: number, text: text, snapshot: snapshot, settings: settings)
-        case .jira(let key, let number, let text):
-            items = jira(key: key, number: number, text: text, snapshot: snapshot, settings: settings)
-        case .number(let number):
-            items = everything(number: number, snapshot: snapshot, settings: settings)
+    public static func items(
+        for query: LauncherQuery, snapshot: Snapshot, settings: AppSettings, lookup: LookupResults = LookupResults()
+    ) -> [LauncherItem] {
+        let site = settings.jiraSite
+        let items = rows(for: query, snapshot: snapshot, settings: settings).compactMap { row -> LauncherItem? in
+            switch row {
+            case .item(let item):
+                return item
+            case .ticket(let key, let typed):
+                if let ticket = lookup.tickets[key] { return item(ticket) }
+                guard let link = ticketLink(key, snapshot: snapshot, site: site) else { return nil }
+                guard lookup.missingTickets.contains(key) else { return link }
+                return typed ? notFound(link, "Not found in Jira") : nil
+            case .pullRequest(let ref, let typed):
+                if let found = lookup.pullRequests[ref] { return item(found) }
+                guard let link = pullRequestLink(repo: ref.repo, number: ref.number) else { return nil }
+                guard lookup.missingPullRequests.contains(ref) else { return link }
+                return typed ? notFound(link, "Not found on GitHub") : nil
+            }
         }
         return Array(items.prefix(maxItems))
+    }
+
+    /// The "Open …" rows of the query that `LauncherLookup` can give a title: only those it
+    /// could also open (a ticket needs the Jira site).
+    public static func lookupRequest(for query: LauncherQuery, snapshot: Snapshot, settings: AppSettings) -> LookupRequest {
+        var request = LookupRequest()
+        for row in rows(for: query, snapshot: snapshot, settings: settings) {
+            switch row {
+            case .item: break
+            case .ticket(let key, _):
+                if jiraURL(key, snapshot: snapshot, site: settings.jiraSite) != nil { request.ticketKeys.append(key) }
+            case .pullRequest(let ref, _):
+                request.pullRequests.append(ref)
+            }
+        }
+        return request
+    }
+
+    /// A planned row: one the snapshot knows, or a ticket or PR it does not, shown by what the
+    /// lookup found. `typed` rows are what the query names outright (`jira WA-9`, `gh 9`): they
+    /// stay when they do not exist, saying so; the guesses of a bare number go.
+    private enum Row {
+        case item(LauncherItem)
+        case ticket(key: String, typed: Bool)
+        case pullRequest(PullRequestRef, typed: Bool)
+    }
+
+    private static func rows(for query: LauncherQuery, snapshot: Snapshot, settings: AppSettings) -> [Row] {
+        switch query {
+        case .empty:
+            []
+        case .github(let repo, let number, let text):
+            github(repo: repo, number: number, text: text, snapshot: snapshot, settings: settings)
+        case .jira(let key, let number, let text):
+            jira(key: key, number: number, text: text, snapshot: snapshot, settings: settings)
+        case .number(let number):
+            everything(number: number, snapshot: snapshot, settings: settings)
+        }
+    }
+
+    private static func notFound(_ link: LauncherItem, _ text: String) -> LauncherItem {
+        var item = link
+        item.subtitle = text
+        return item
     }
 
     // MARK: GitHub
 
     private static func github(
         repo: String?, number: Int?, text: String, snapshot: Snapshot, settings: AppSettings
-    ) -> [LauncherItem] {
+    ) -> [Row] {
         let known = knownPullRequests(snapshot)
         guard let number else {
             let needle = text.lowercased()
             return known
                 .filter { needle.isEmpty || $0.title.lowercased().contains(needle) || $0.repo.lowercased().contains(needle) }
                 .compactMap { item($0, snapshot: snapshot) }
+                .map(Row.item)
         }
         let fullRepo: String
         if let repo {
@@ -64,14 +118,14 @@ public enum LauncherResolver {
             fullRepo = resolved
         } else {
             let matches = known.filter { $0.number == number }
-            if !matches.isEmpty { return matches.compactMap { item($0, snapshot: snapshot) } }
+            if !matches.isEmpty { return matches.compactMap { item($0, snapshot: snapshot) }.map(Row.item) }
             guard let fallback = defaultRepo(snapshot: snapshot, settings: settings) else { return [] }
             fullRepo = fallback
         }
         if let pr = known.first(where: { $0.repo.lowercased() == fullRepo.lowercased() && $0.number == number }) {
-            return item(pr, snapshot: snapshot).map { [$0] } ?? []
+            return item(pr, snapshot: snapshot).map { [.item($0)] } ?? []
         }
-        return pullRequestLink(repo: fullRepo, number: number).map { [$0] } ?? []
+        return [.pullRequest(PullRequestRef(repo: fullRepo, number: number), typed: true)]
     }
 
     /// My PRs first, then the review requests; a PR in both lists shows once, as mine.
@@ -111,28 +165,45 @@ public enum LauncherResolver {
 
     private static func jira(
         key: String?, number: Int?, text: String, snapshot: Snapshot, settings: AppSettings
-    ) -> [LauncherItem] {
-        let site = settings.jiraSite
-        var key = key
-        if key == nil, let number {
-            guard let project = defaultProject(snapshot: snapshot, settings: settings) else { return [] }
-            key = "\(project)-\(number)"
+    ) -> [Row] {
+        if let number {
+            // Every project, the default one (the first) typed: it stays when it does not exist.
+            let (known, keys) = tickets(number: number, snapshot: snapshot, settings: settings)
+            let first = projects(snapshot: snapshot, settings: settings).first.map { "\($0)-\(number)" }
+            return known.compactMap(item).map(Row.item) + keys.map { .ticket(key: $0, typed: $0 == first) }
         }
         guard let key else {
             let needle = text.lowercased()
             return snapshot.tickets
                 .filter { needle.isEmpty || $0.summary.lowercased().contains(needle) || $0.key.lowercased().contains(needle) }
                 .compactMap(item)
+                .map(Row.item)
         }
-        if let ticket = snapshot.tickets.first(where: { $0.key == key }) {
-            return item(ticket).map { [$0] } ?? []
+        if let ticket = knownTickets(snapshot).first(where: { $0.key == key }) {
+            return item(ticket).map { [.item($0)] } ?? []
         }
-        return ticketLink(key, snapshot: snapshot, site: site).map { [$0] } ?? []
+        return [.ticket(key: key, typed: true)]
     }
 
-    /// The configured default project, else the one most of my tickets are in.
-    private static func defaultProject(snapshot: Snapshot, settings: AppSettings) -> String? {
-        settings.defaultJiraProject ?? AppSettings.mostFrequentProject(snapshot.tickets)
+    /// The configured projects, else those of my tickets, most tickets first.
+    private static func projects(snapshot: Snapshot, settings: AppSettings) -> [String] {
+        settings.jiraProjects.isEmpty ? AppSettings.projectsByFrequency(snapshot.tickets) : settings.jiraProjects
+    }
+
+    /// My tickets, then those of PRs that are not mine; each once.
+    private static func knownTickets(_ snapshot: Snapshot) -> [Ticket] {
+        var seen = Set<String>()
+        return (snapshot.tickets + snapshot.linkedTickets).filter { seen.insert($0.key).inserted }
+    }
+
+    /// The known tickets with this issue number in any project, and the keys of the projects'
+    /// tickets with it that are not known.
+    private static func tickets(number: Int, snapshot: Snapshot, settings: AppSettings) -> ([Ticket], [String]) {
+        let known = knownTickets(snapshot).filter { issueNumber(of: $0.key) == number }
+        let keys = projects(snapshot: snapshot, settings: settings)
+            .map { "\($0)-\(number)" }
+            .filter { key in !known.contains { $0.key == key } }
+        return (known, keys)
     }
 
     /// A row that opens a ticket not in my list by the site's URL; without a site there is
@@ -140,6 +211,15 @@ public enum LauncherResolver {
     private static func ticketLink(_ key: String, snapshot: Snapshot, site: URL?) -> LauncherItem? {
         guard let url = jiraURL(key, snapshot: snapshot, site: site) else { return nil }
         return LauncherItem(title: "Open \(key)", subtitle: url.absoluteString, kind: .ticket, target: .url(url))
+    }
+
+    /// A PR the lookup found: its title, and its repo and state.
+    private static func item(_ pr: PullRequestSummary) -> LauncherItem? {
+        URL(string: pr.url).map {
+            LauncherItem(
+                title: "#\(pr.number) \(pr.title)", subtitle: "\(pr.repo) · \(pr.state.text)",
+                kind: .pullRequest, target: .url($0))
+        }
     }
 
     private static func item(_ ticket: Ticket) -> LauncherItem? {
@@ -157,31 +237,23 @@ public enum LauncherResolver {
     // MARK: Bare number
 
     /// Everything the number can be: my PRs and review requests with that number in any repo,
-    /// my tickets with that issue number in any project, the Claude Code sessions whose Jira key
-    /// or folder has it, then a row for the default repo's PR and the default project's ticket
-    /// when the rows above do not already show them.
-    private static func everything(number: Int, snapshot: Snapshot, settings: AppSettings) -> [LauncherItem] {
+    /// the known tickets with that issue number in any project, the Claude Code sessions whose
+    /// Jira key or folder has it, then the default repo's PR and each project's ticket when the
+    /// rows above do not already show them.
+    private static func everything(number: Int, snapshot: Snapshot, settings: AppSettings) -> [Row] {
         let prs = knownPullRequests(snapshot).filter { $0.number == number }
-        let tickets = snapshot.tickets.filter { issueNumber(of: $0.key) == number }
+        let (tickets, ticketKeys) = tickets(number: number, snapshot: snapshot, settings: settings)
         let sessions = snapshot.sessions.filter { session in
             session.jiraKey.flatMap(issueNumber) == number || folderNumbers(session.cwd).contains(number)
         }
-        var items = prs.compactMap { item($0, snapshot: snapshot) }
-            + tickets.compactMap(item)
-            + sessions.map(item)
+        var rows = (prs.compactMap { item($0, snapshot: snapshot) } + tickets.compactMap(item) + sessions.map(item))
+            .map(Row.item)
         if let repo = defaultRepo(snapshot: snapshot, settings: settings),
-           !prs.contains(where: { $0.repo.lowercased() == repo.lowercased() }),
-           let link = pullRequestLink(repo: repo, number: number) {
-            items.append(link)
+           !prs.contains(where: { $0.repo.lowercased() == repo.lowercased() }) {
+            rows.append(.pullRequest(PullRequestRef(repo: repo, number: number), typed: false))
         }
-        if let project = defaultProject(snapshot: snapshot, settings: settings) {
-            let key = "\(project)-\(number)"
-            if !tickets.contains(where: { $0.key == key }),
-               let link = ticketLink(key, snapshot: snapshot, site: settings.jiraSite) {
-                items.append(link)
-            }
-        }
-        return items
+        rows += ticketKeys.map { .ticket(key: $0, typed: false) }
+        return rows
     }
 
     /// `2474` of `STORE-2474`.
