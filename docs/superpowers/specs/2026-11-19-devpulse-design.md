@@ -329,15 +329,15 @@ configurable in Settings and must not collide with the system Spotlight shortcut
 
 | Typed | Result |
 |---|---|
-| `<number>` | everything with that number: my PRs and review requests in any repo, my tickets in any project, sessions whose key or folder has it; then rows that open it in the default repo and the default project |
+| `<number>` | everything with that number: my PRs and review requests in any repo, my tickets and my PRs' tickets in any project, sessions whose key or folder has it; then the PR in the default repo and the ticket in each of the Settings' Jira projects (up to 10; empty = the projects of my tickets). Those rows are looked up after a 300 ms typing pause (one Jira bulk fetch for all keys, one GitHub `GET /repos/{repo}/pulls/{n}`, answers cached 5 min) to show title and state; ones that do not exist are dropped |
 | `gh` | my PRs and review requests; arrows select, `Enter` opens |
 | `gh <text>` | filters by title or repo |
 | `gh <number>` | filters known PRs to that number. If exactly one matches, `Enter` opens it. If none matches, `Enter` opens `<default repo>/pull/<number>`. The default repo is set in Settings and pre-filled with the repo of most of my PRs. |
 | `gh <repo> <number>` | opens that PR in that repo. `<repo>` is a repo name of a known PR (e.g. `webapp`) or a full `owner/name`. |
 | `jira` | my tickets |
 | `jira <text>` | filters by summary |
-| `jira <KEY-123>` | opens that ticket, even if it is not in my list |
-| `jira <123>` | expands to `<default project>-123`. The default project is set in Settings and pre-filled with the most frequent key prefix among my tickets (my call). |
+| `jira <KEY-123>` | opens that ticket, even if it is not in my list; looked up like a bare number's rows, and "Not found in Jira" when it does not exist |
+| `jira <123>` | ticket 123 of each Jira project in Settings; the first project's row stays (as "Not found") when it does not exist. Without projects: those of my tickets, most tickets first. |
 | `Esc` | closes the panel |
 | `⌘Enter` | opens the linked Jira ticket of a PR |
 

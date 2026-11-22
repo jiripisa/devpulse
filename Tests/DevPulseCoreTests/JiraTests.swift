@@ -225,6 +225,34 @@ struct JiraTests {
             key: "OTHER-10", summary: "Next", status: "To Do", statusCategory: .todo, relation: "blocks")])
     }
 
+    @Test("A lookup names the asked-for keys Jira lists under issueErrors as missing")
+    func lookupMissingKeys() async throws {
+        let answer = Data(#"""
+            { "issueErrors": [ { "id": "WA-9", "errorMessage": "Issue does not exist", "status": 404 },
+                               { "errorMessage": "No id", "status": 404 },
+                               { "id": "NOT-ASKED", "errorMessage": "x", "status": 404 } ] }
+            """#.utf8)
+        let transport = FakeJiraTransport(search: try Self.fixture(), comments: [Self.bulkPath: answer])
+        let source = JiraSource(credentials: Self.credentials, transport: transport)
+        let lookup = try await source.lookUpTickets(keys: ["WA-9", "STORE-9"])
+        #expect(lookup.tickets.isEmpty)
+        #expect(lookup.missingKeys == ["WA-9"])
+    }
+
+    @Test("Errors that name no asked-for key mark the unreturned keys missing only when they add up")
+    func lookupMissingKeysByCount() async throws {
+        func missing(_ errors: String) async throws -> Set<String> {
+            let answer = Data(#"{ "issueErrors": \#(errors) }"#.utf8)
+            let transport = FakeJiraTransport(search: try Self.fixture(), comments: [Self.bulkPath: answer])
+            return try await JiraSource(credentials: Self.credentials, transport: transport)
+                .lookUpTickets(keys: ["WA-9", "STORE-9"]).missingKeys
+        }
+        #expect(try await missing(#"[ { "id": "10001", "errorMessage": "x" }, { "id": "10002", "errorMessage": "x" } ]"#)
+            == ["WA-9", "STORE-9"])
+        #expect(try await missing(#"[ { "id": "10001", "errorMessage": "x" } ]"#).isEmpty)
+        #expect(try await missing("[]").isEmpty)
+    }
+
     @Test("An answer without issues, only errors, is an empty list")
     func linkedTicketsOnlyErrors() async throws {
         let answer = Data(#"{ "issueErrors": [ { "id": "UTF-8", "errorMessage": "Issue does not exist", "status": 404 } ] }"#.utf8)

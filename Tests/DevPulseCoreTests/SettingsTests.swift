@@ -22,7 +22,7 @@ private func withFreshDefaults(_ body: (UserDefaults) throws -> Void) rethrows {
         #expect(Source.allCases.allSatisfy { settings.sourceEnabled[$0] == true })
         #expect(settings.includeTeamReviewRequests == false)
         #expect(settings.defaultRepo == nil)
-        #expect(settings.defaultJiraProject == nil)
+        #expect(settings.jiraProjects.isEmpty)
         #expect(settings.jiraSite == nil)
         #expect(settings.jiraEmail == nil)
         #expect(settings.hotkey == Hotkey(keyCode: 49, modifiers: [.option]))
@@ -71,7 +71,7 @@ private func withFreshDefaults(_ body: (UserDefaults) throws -> Void) rethrows {
         settings.triggers[.prBotComment] = true
         settings.includeTeamReviewRequests = true
         settings.defaultRepo = "acme/app"
-        settings.defaultJiraProject = "ACME"
+        settings.jiraProjects = ["ACME"]
         settings.jiraSite = URL(string: "https://acme.atlassian.net")
         settings.jiraEmail = "me@acme.test"
         settings.hotkey = Hotkey(keyCode: 40, modifiers: [.command, .shift])
@@ -99,12 +99,33 @@ private func withFreshDefaults(_ body: (UserDefaults) throws -> Void) rethrows {
         #expect(AppSettings.mostFrequentRepo(prs2) == "b/x")
     }
 
-    @Test func mostFrequentProjectUsesTheKeyPrefix() {
-        #expect(AppSettings.mostFrequentProject([]) == nil)
-        let tickets = ["WA-1", "STORE-2", "STORE-3", "WA-4"].map { makeTicket(key: $0) }
-        #expect(AppSettings.mostFrequentProject(tickets) == "STORE")
-        #expect(AppSettings.mostFrequentProject([makeTicket(key: "WA-1"), makeTicket(key: "A-1")]) == "A")
+    @Test func theOldSingleProjectBecomesTheProjectList() throws {
+        let old = Data(#"{"defaultJiraProject":"STORE","refreshInterval":300}"#.utf8)
+        let settings = try JSONDecoder().decode(AppSettings.self, from: old)
+        #expect(settings.jiraProjects == ["STORE"])
+        let both = Data(#"{"defaultJiraProject":"STORE","jiraProjects":["WA","OPS"]}"#.utf8)
+        #expect(try JSONDecoder().decode(AppSettings.self, from: both).jiraProjects == ["WA", "OPS"])
+        #expect(AppSettings().jiraProjects.isEmpty)
     }
+
+    @Test func parsesTheProjectListAsTyped() {
+        #expect(AppSettings.parseProjects("store, WA  ops") == ["STORE", "WA", "OPS"])
+        #expect(AppSettings.parseProjects(" , store,,store ;x 9AB a-b") == ["STORE"])
+        #expect(AppSettings.parseProjects("") == [])
+        #expect(AppSettings.parseProjects((1...12).map { "P\($0)" }.joined(separator: ",")).count
+            == AppSettings.maxJiraProjects)
+        #expect(AppSettings.projectsText(["STORE", "WA"]) == "STORE, WA")
+        var settings = AppSettings()
+        settings.jiraProjects = ["store", "Store", "wa"]
+        #expect(settings.jiraProjects == ["STORE", "WA"])
+    }
+
+    @Test func projectsByFrequencyListsEveryProjectMostTicketsFirst() {
+        #expect(AppSettings.projectsByFrequency([]) == [])
+        let tickets = ["WA-1", "STORE-2", "STORE-3", "OPS-4", "AB-5"].map { makeTicket(key: $0) }
+        #expect(AppSettings.projectsByFrequency(tickets) == ["STORE", "AB", "OPS", "WA"])
+    }
+
 }
 
 @Suite struct KeychainTests {

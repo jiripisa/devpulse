@@ -167,13 +167,15 @@ private func url(_ string: String) -> OpenTarget { .url(URL(string: string)!) }
 
     @Test func jiraNumberExpandsToTheDefaultProject() {
         var settings = AppSettings()
-        settings.defaultJiraProject = "STORE"
+        settings.jiraProjects = ["STORE"]
         #expect(items("jira 2290", snapshot(), settings).map(\.target) == [url("https://acme.atlassian.net/browse/STORE-2290")])
     }
 
     @Test func jiraNumberPrefillsTheDefaultProjectFromTheMostFrequentOne() {
         let snap = snapshot(tickets: ["WA-1", "STORE-2", "STORE-3"].map { makeTicket(key: $0) })
-        #expect(items("jira 2290", snap).map(\.target) == [url("https://acme.atlassian.net/browse/STORE-2290")])
+        #expect(items("jira 2290", snap).map(\.target) == [
+            url("https://acme.atlassian.net/browse/STORE-2290"), url("https://acme.atlassian.net/browse/WA-2290"),
+        ])
         #expect(items("jira 2290", snapshot()).isEmpty)
     }
 
@@ -184,7 +186,7 @@ private func url(_ string: String) -> OpenTarget { .url(URL(string: string)!) }
             == [url("https://corp.atlassian.net/browse/ABC-1")])
         #expect(items("jira ABC-1", snapshot(jiraBaseURL: nil)).isEmpty)
         var withProject = AppSettings()
-        withProject.defaultJiraProject = "ABC"
+        withProject.jiraProjects = ["ABC"]
         #expect(items("jira 1", snapshot(jiraBaseURL: nil), withProject).isEmpty)
     }
 }
@@ -268,7 +270,7 @@ private func url(_ string: String) -> OpenTarget { .url(URL(string: string)!) }
     @Test func addsFallbackRowsForTheDefaultRepoAndProject() {
         var settings = AppSettings()
         settings.defaultRepo = "acme/store"
-        settings.defaultJiraProject = "STORE"
+        settings.jiraProjects = ["STORE"]
         let result = items("2474", snapshot(), settings)
         #expect(result.map(\.title) == ["Open acme/store#2474", "Open STORE-2474"])
         #expect(result.map(\.target) == [
@@ -281,13 +283,13 @@ private func url(_ string: String) -> OpenTarget { .url(URL(string: string)!) }
         let snap = snapshot(
             mine: [makePR(repo: "a/x", number: 1), makePR(repo: "b/y", number: 2), makePR(repo: "b/y", number: 3)],
             tickets: ["WA-1", "STORE-2", "STORE-3"].map { makeTicket(key: $0) })
-        #expect(items("2474", snap).map(\.title) == ["Open b/y#2474", "Open STORE-2474"])
+        #expect(items("2474", snap).map(\.title) == ["Open b/y#2474", "Open STORE-2474", "Open WA-2474"])
     }
 
     @Test func fallbacksAreLeftOutWhenTheirItemIsListed() {
         var settings = AppSettings()
         settings.defaultRepo = "acme/store"
-        settings.defaultJiraProject = "STORE"
+        settings.jiraProjects = ["STORE"]
         let snap = snapshot(mine: [makePR(repo: "acme/store", number: 2474)], tickets: [makeTicket(key: "STORE-2474")])
         #expect(items("2474", snap, settings).map(\.title) == ["#2474 PR 2474", "STORE-2474 S"])
         // A match in another repo or project keeps the fallback.
@@ -301,7 +303,7 @@ private func url(_ string: String) -> OpenTarget { .url(URL(string: string)!) }
 
     @Test func theJiraFallbackNeedsASite() {
         var settings = AppSettings()
-        settings.defaultJiraProject = "STORE"
+        settings.jiraProjects = ["STORE"]
         #expect(items("2474", snapshot(jiraBaseURL: nil), settings).isEmpty)
     }
 
@@ -309,5 +311,116 @@ private func url(_ string: String) -> OpenTarget { .url(URL(string: string)!) }
         let snap = snapshot(mine: [makePR(number: 1)], review: [makePR(number: 2)], tickets: [makeTicket(key: "STORE-1")])
         #expect(items("gh", snap).map(\.kind) == [.pullRequest, .reviewRequest(direct: false)])
         #expect(items("jira", snap).map(\.kind) == [.ticket])
+    }
+}
+
+@Suite struct LauncherLookupResolverTests {
+    private func settings(projects: [String] = ["STORE", "WA"], repo: String? = "acme/store") -> AppSettings {
+        var settings = AppSettings()
+        settings.jiraProjects = projects
+        settings.defaultRepo = repo
+        return settings
+    }
+
+    private func request(_ input: String, _ snapshot: Snapshot, _ settings: AppSettings) -> LookupRequest {
+        LauncherResolver.lookupRequest(for: .parse(input), snapshot: snapshot, settings: settings)
+    }
+
+    private func items(
+        _ input: String, _ snapshot: Snapshot, _ settings: AppSettings, _ lookup: LookupResults = LookupResults()
+    ) -> [LauncherItem] {
+        LauncherResolver.items(for: .parse(input), snapshot: snapshot, settings: settings, lookup: lookup)
+    }
+
+    private func ticket(_ key: String, _ summary: String, status: String = "In Progress") -> Ticket {
+        var ticket = makeTicket(key: key)
+        ticket.summary = summary
+        ticket.status = status
+        return ticket
+    }
+
+    private func found(_ ref: PullRequestRef, _ title: String, _ state: PullRequestSummary.State) -> PullRequestSummary {
+        PullRequestSummary(
+            repo: ref.repo, number: ref.number, title: title, state: state,
+            url: "https://github.com/\(ref.repo)/pull/\(ref.number)")
+    }
+
+    @Test func aBareNumberLooksUpEveryProjectAndTheDefaultRepo() {
+        let snap = snapshot(tickets: [makeTicket(key: "STORE-5")])
+        #expect(request("2474", snap, settings()) == LookupRequest(
+            ticketKeys: ["STORE-2474", "WA-2474"], pullRequests: [PullRequestRef(repo: "acme/store", number: 2474)]))
+        #expect(items("2474", snap, settings()).map(\.title) == ["Open acme/store#2474", "Open STORE-2474", "Open WA-2474"])
+    }
+
+    @Test func knownTicketsAndPullRequestsNeedNoLookup() {
+        var snap = snapshot(mine: [makePR(repo: "acme/store", number: 2474)])
+        snap.linkedTickets = [ticket("WA-2474", "Fix login")]
+        #expect(request("2474", snap, settings()) == LookupRequest(ticketKeys: ["STORE-2474"], pullRequests: []))
+        // A PR's ticket that is not mine is listed like mine.
+        #expect(items("2474", snap, settings()).map(\.title) == ["#2474 PR 2474", "WA-2474 Fix login", "Open STORE-2474"])
+    }
+
+    @Test func foundRowsShowTheTitleAndMissingOnesAreLeftOut() {
+        let ref = PullRequestRef(repo: "acme/store", number: 2474)
+        var lookup = LookupResults()
+        lookup.tickets["WA-2474"] = ticket("WA-2474", "Fix login")
+        lookup.missingTickets = ["STORE-2474"]
+        lookup.pullRequests[ref] = found(ref, "Faster checkout", .merged)
+        let result = items("2474", snapshot(), settings(), lookup)
+        #expect(result.map(\.title) == ["#2474 Faster checkout", "WA-2474 Fix login"])
+        #expect(result.map(\.subtitle) == ["acme/store · Merged", "In Progress"])
+        #expect(result.map(\.kind) == [.pullRequest, .ticket])
+        #expect(result[0].target == url("https://github.com/acme/store/pull/2474"))
+        lookup.missingPullRequests = [ref]
+        lookup.pullRequests = [:]
+        #expect(items("2474", snapshot(), settings(), lookup).map(\.title) == ["WA-2474 Fix login"])
+    }
+
+    @Test func theRepoOfAPullRequestRefComparesWithoutCase() {
+        #expect(PullRequestRef(repo: "Acme/Store", number: 1) == PullRequestRef(repo: "acme/store", number: 1))
+        var lookup = LookupResults()
+        let ref = PullRequestRef(repo: "acme/store", number: 7)
+        lookup.pullRequests[ref] = found(ref, "Seven", .open)
+        #expect(items("gh 7", snapshot(), settings(repo: "Acme/Store"), lookup).map(\.title) == ["#7 Seven"])
+    }
+
+    @Test func aTypedKeyOrRepoThatDoesNotExistSaysSo() {
+        var lookup = LookupResults()
+        lookup.missingTickets = ["WA-9", "STORE-9"]
+        lookup.missingPullRequests = [PullRequestRef(repo: "acme/store", number: 9)]
+        let jira = items("jira WA-9", snapshot(), settings(), lookup)
+        #expect(jira.map(\.title) == ["Open WA-9"])
+        #expect(jira.map(\.subtitle) == ["Not found in Jira"])
+        let gh = items("gh 9", snapshot(), settings(), lookup)
+        #expect(gh.map(\.title) == ["Open acme/store#9"])
+        #expect(gh.map(\.subtitle) == ["Not found on GitHub"])
+        // `jira <number>` keeps its default project's row, the other projects' rows go.
+        let number = items("jira 9", snapshot(), settings(), lookup)
+        #expect(number.map(\.title) == ["Open STORE-9"])
+        #expect(number.map(\.subtitle) == ["Not found in Jira"])
+    }
+
+    @Test func jiraNumberLooksUpEveryProject() {
+        #expect(request("jira 9", snapshot(), settings()) == LookupRequest(ticketKeys: ["STORE-9", "WA-9"], pullRequests: []))
+        var lookup = LookupResults()
+        lookup.tickets["WA-9"] = ticket("WA-9", "Nine")
+        lookup.missingTickets = ["STORE-9"]
+        #expect(items("jira 9", snapshot(), settings(), lookup).map(\.title) == ["Open STORE-9", "WA-9 Nine"])
+    }
+
+    @Test func listingsAndKnownItemsLookNothingUp() {
+        let snap = snapshot(mine: [makePR(repo: "acme/store", number: 1)], tickets: [makeTicket(key: "STORE-1")])
+        for input in ["gh", "gh login", "jira", "jira login", "jira STORE-1", "gh 1", "xyz", ""] {
+            #expect(request(input, snap, settings()).isEmpty, "\(input)")
+        }
+        #expect(request("gh acme/api 4", snap, settings()) == LookupRequest(
+            ticketKeys: [], pullRequests: [PullRequestRef(repo: "acme/api", number: 4)]))
+        #expect(request("jira WA-4", snap, settings()) == LookupRequest(ticketKeys: ["WA-4"], pullRequests: []))
+    }
+
+    @Test func withoutAJiraSiteNoTicketIsLookedUp() {
+        let snap = snapshot(jiraBaseURL: nil)
+        #expect(request("2474", snap, settings()).ticketKeys.isEmpty)
+        #expect(request("jira WA-1", snap, settings()).isEmpty)
     }
 }

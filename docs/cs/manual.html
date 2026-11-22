@@ -160,7 +160,7 @@ gh auth login</code></pre>
         <p>Otevřené tikety z Jira Cloud čte DevPulse pomocí API tokenu.</p>
         <figure class="fig" style="max-width:34rem">
           <div class="view" style="--iw:1040;--ih:900">
-            <img src="../assets/manual/devpulse-settings-jira.png" alt="Záložka Jira v nastavení s webem, e-mailem, uloženým tokenem, tlačítky Test Connection a Save a výchozím projektem">
+            <img src="../assets/manual/devpulse-settings-jira.png" alt="Záložka Jira v nastavení s webem, e-mailem, uloženým tokenem, tlačítky Test Connection a Save a projekty">
             <span class="mark" style="--x:3.8;--y:28.5;--w:92.3;--h:24.4"><b>1</b></span>
             <span class="mark" style="--x:5.3;--y:54.8;--w:37.5;--h:3.6"><b>2</b></span>
             <span class="mark" style="--x:58.4;--y:70.4;--w:24.4;--h:6"><b>3</b></span>
@@ -189,10 +189,12 @@ gh auth login</code></pre>
         Keychain — leave empty to keep</span>: když měníte <span class="ui">Site</span> nebo e-mail,
         nechte ho prázdné a token zůstane, nebo vložte nový a nahradíte ho.</p>
         <dl class="controls">
-          <dt><span class="n">5</span>Default project</dt>
-          <dd>Klíč projektu, který <a href="#launcher">rychlé hledání</a> doplní
-          před <code>jira &lt;číslo&gt;</code> a samotné číslo. Prázdné pole znamená projekt,
-          ve kterém máte nejvíc tiketů; pole ho ukazuje šedě.</dd>
+          <dt><span class="n">5</span>Projects</dt>
+          <dd>Klíče projektů oddělené čárkou (<code>STORE, WA</code>), ve kterých
+          <a href="#launcher">rychlé hledání</a> hledá samotné číslo a <code>jira &lt;číslo&gt;</code>;
+          u <code>jira &lt;číslo&gt;</code> řádek prvního z nich zůstane, i když tiket neexistuje.
+          Nejvýš deset. Prázdné pole znamená projekty
+          vašich tiketů, nejdřív ten, kde jich máte nejvíc; pole je ukazuje šedě.</dd>
         </dl>
         <p>DevPulse ukazuje tikety, které máte přiřazené a které ještě nejsou
         hotové.</p>
@@ -257,7 +259,7 @@ gh auth login</code></pre>
         klíč v názvu složky session Claude Code udělá totéž pro session. Názvy
         jako <code>UTF-8</code> nebo <code>SHA-256</code> se za klíče
         nepovažují, a když je klíčů víc, vyhraje klíč projektu, ve kterém máte
-        tikety (nebo <a href="#jira">výchozího projektu</a>). Když najedete
+        tikety (nebo jednoho z vašich <a href="#jira">projektů</a>). Když najedete
         myší na řádek, uvidíte celý název nebo složku.</p>
         <p>DevPulse ukazuje interaktivní sessions nativního příkazu
         <code>claude</code>, tedy toho, který nainstaluje vlastní instalátor
@@ -431,15 +433,15 @@ gh auth login</code></pre>
           <table>
             <thead><tr><th>Napíšete</th><th>Výsledek</th></tr></thead>
             <tbody>
-              <tr><td><code>2474</code></td><td>Všechno s tímto číslem: vaše pull requesty a žádosti o review s číslem 2474 v libovolném repozitáři, za nimi vaše tikety s číslem 2474 v libovolném projektu (<code>STORE-2474</code>, <code>WA-2474</code>) a sessions Claude Code, jejichž klíč z Jiry nebo název složky toto číslo obsahuje (<code>store-2474-fix</code>, ale ne <code>store-24740</code>). Nakonec řádky, které otevřou 2474 ve <a href="#github">výchozím repozitáři</a> a <code>STORE-2474</code> ve <a href="#jira">výchozím projektu</a>, pokud už v seznamu nejsou.</td></tr>
+              <tr><td><code>2474</code></td><td>Všechno s tímto číslem: vaše pull requesty a žádosti o review s číslem 2474 v libovolném repozitáři, za nimi vaše tikety a tikety vašich pull requestů s číslem 2474 v libovolném projektu (<code>STORE-2474</code>, <code>WA-2474</code>) a sessions Claude Code, jejichž klíč z Jiry nebo název složky toto číslo obsahuje (<code>store-2474-fix</code>, ale ne <code>store-24740</code>). Nakonec pull request 2474 ve <a href="#github">výchozím repozitáři</a> a tiket 2474 v každém z vašich <a href="#jira">projektů</a> (<code>STORE-2474</code>, <code>WA-2474</code>), pokud už v seznamu nejsou. Jakmile přestanete psát, DevPulse tyto řádky dohledá: ukážou název a stav a tikety nebo pull requesty, které neexistují, zmizí.</td></tr>
               <tr><td><code>gh</code></td><td>Vaše pull requesty, za nimi žádosti o review.</td></tr>
               <tr><td><code>gh invoice</code></td><td>Ty, jejichž název nebo repozitář text obsahuje.</td></tr>
-              <tr><td><code>gh 812</code></td><td>Váš pull request nebo žádost o review s tímto číslem. Když takový nemáte, řádek, který otevře <code>812</code> ve <a href="#github">výchozím repozitáři</a>.</td></tr>
+              <tr><td><code>gh 812</code></td><td>Váš pull request nebo žádost o review s tímto číslem. Když takový nemáte, pull request 812 ve <a href="#github">výchozím repozitáři</a> s názvem a stavem, nebo <span class="ui">Not found on GitHub</span>.</td></tr>
               <tr><td><code>gh webapp 455</code></td><td>Pull request 455 v daném repozitáři: stačí název repozitáře, ve kterém máte pull requesty, nebo celé <code>owner/name</code>.</td></tr>
               <tr><td><code>jira</code></td><td>Vaše tikety.</td></tr>
               <tr><td><code>jira export</code></td><td>Ty, jejichž název nebo klíč text obsahuje.</td></tr>
-              <tr><td><code>jira STORE-2290</code></td><td>Tento tiket, i když ve vašem seznamu není.</td></tr>
-              <tr><td><code>jira 2290</code></td><td>Totéž s <a href="#jira">výchozím projektem</a> na začátku: <code>STORE-2290</code>.</td></tr>
+              <tr><td><code>jira STORE-2290</code></td><td>Tento tiket, i když ve vašem seznamu není, s názvem a stavem, nebo <span class="ui">Not found in Jira</span>.</td></tr>
+              <tr><td><code>jira 2290</code></td><td>Tiket 2290 v každém z vašich <a href="#jira">projektů</a>. Řádek prvního projektu zůstane, i když tiket neexistuje.</td></tr>
             </tbody>
           </table>
         </div>

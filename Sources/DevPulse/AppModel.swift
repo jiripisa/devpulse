@@ -36,6 +36,8 @@ final class AppModel {
     }
 
     @ObservationIgnored let store: SnapshotStore
+    /// Titles for the launcher's "Open …" rows of tickets and PRs not in the snapshot.
+    let launcherLookup: LauncherLookup
     @ObservationIgnored let server: SocketServer
     @ObservationIgnored let updates: UpdateService
     let notifier = Notifier()
@@ -93,6 +95,17 @@ final class AppModel {
             appVersion: version)
         weakStore = store
         self.store = store
+        // The demo never talks to Jira or GitHub: its rows stay "Open …".
+        let isDemo = demo != nil
+        launcherLookup = LauncherLookup(
+            fetchTickets: { [weak store] keys in
+                guard !isDemo, let store else { throw LookupUnavailable() }
+                return try await store.lookUpTickets(keys: keys)
+            },
+            fetchPullRequest: { [weak store] ref in
+                guard !isDemo, let store else { throw LookupUnavailable() }
+                return try await store.lookUpPullRequest(ref)
+            })
         snapshot = demo ?? store.snapshot
         #if DEBUG
         if demo != nil { githubLogin = DemoSnapshot.githubLogin }

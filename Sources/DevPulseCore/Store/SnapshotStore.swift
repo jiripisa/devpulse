@@ -3,12 +3,33 @@ import os
 
 public protocol GitHubFetching: Sendable {
     func fetch(includeTeamRequests: Bool) async throws -> GitHubResult
+    /// One PR by number, for the launcher; nil when it does not exist.
+    func fetchPullRequest(repo: String, number: Int) async throws -> PullRequestSummary?
+}
+
+extension GitHubFetching {
+    public func fetchPullRequest(repo: String, number: Int) async throws -> PullRequestSummary? {
+        throw LookupUnavailable()
+    }
+}
+
+/// The launcher cannot look a ticket or PR up: its source is switched off or not set up.
+public struct LookupUnavailable: Error, Equatable {
+    public init() {}
 }
 
 public protocol JiraFetching: Sendable {
     func fetch() async throws -> JiraResult
     /// The tickets with these keys, whoever they are assigned to, in one request.
     func fetchTickets(keys: [String]) async throws -> [Ticket]
+    /// The same, for the launcher, with the keys Jira says do not exist.
+    func lookUpTickets(keys: [String]) async throws -> TicketLookup
+}
+
+extension JiraFetching {
+    public func lookUpTickets(keys: [String]) async throws -> TicketLookup {
+        TicketLookup(tickets: try await fetchTickets(keys: keys), missingKeys: [])
+    }
 }
 
 /// The Claude Code session watcher. The store never scans the session files itself: the
@@ -78,6 +99,22 @@ public final class SnapshotStore {
                 github: fetching, jira: fetching,
                 claude: claudeOn ? fetching : SourceStatus(state: .disabled)),
             myPullRequests: [], reviewRequests: [], tickets: [], sessions: [])
+    }
+
+    // MARK: Launcher lookups
+
+    /// The tickets with these keys, for the launcher's rows, with the same Jira source and
+    /// credentials as the refresh. Throws `LookupUnavailable` while Jira is off or not set up.
+    public func lookUpTickets(keys: [String]) async throws -> TicketLookup {
+        guard isEnabled(.jira), let credentials = jiraCredentials() else { throw LookupUnavailable() }
+        return try await jiraSource(for: credentials).lookUpTickets(keys: keys)
+    }
+
+    /// One PR by number, for the launcher's rows; nil when it does not exist. Throws
+    /// `LookupUnavailable` while GitHub is off.
+    public func lookUpPullRequest(_ ref: PullRequestRef) async throws -> PullRequestSummary? {
+        guard isEnabled(.github) else { throw LookupUnavailable() }
+        return try await github.fetchPullRequest(repo: ref.repo, number: ref.number)
     }
 
     public func setPaused(_ paused: Bool) {
@@ -241,11 +278,11 @@ public final class SnapshotStore {
         publish(next)
     }
 
-    /// Links each PR to a key of a project I have tickets in, or of the default project, when
+    /// Links each PR to a key of a project I have tickets in, or of a configured project, when
     /// its title or branch has one; otherwise the first key, as GitHub mapped it.
     private func linkTickets(_ snapshot: inout Snapshot) {
         var known = Set(snapshot.tickets.map { JiraKey.project(of: $0.key) })
-        if let project = settings.defaultJiraProject, !project.isEmpty { known.insert(project) }
+        known.formUnion(settings.jiraProjects)
         guard !known.isEmpty else { return }
         func link(_ prs: inout [PullRequest]) {
             for i in prs.indices {

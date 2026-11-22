@@ -159,7 +159,7 @@ gh auth login</code></pre>
         <p>DevPulse reads your open Jira Cloud tickets with an API token.</p>
         <figure class="fig" style="max-width:34rem">
           <div class="view" style="--iw:1040;--ih:900">
-            <img src="assets/manual/devpulse-settings-jira.png" alt="The Jira tab of Settings with site, e-mail, a saved token, the Test Connection and Save buttons and the default project">
+            <img src="assets/manual/devpulse-settings-jira.png" alt="The Jira tab of Settings with site, e-mail, a saved token, the Test Connection and Save buttons and the projects">
             <span class="mark" style="--x:3.8;--y:28.5;--w:92.3;--h:24.4"><b>1</b></span>
             <span class="mark" style="--x:5.3;--y:54.8;--w:37.5;--h:3.6"><b>2</b></span>
             <span class="mark" style="--x:58.4;--y:70.4;--w:24.4;--h:6"><b>3</b></span>
@@ -189,10 +189,12 @@ gh auth login</code></pre>
         Keychain — leave empty to keep</span>: leave it empty to keep the token
         when you change the site or e-mail, or paste a new one to replace it.</p>
         <dl class="controls">
-          <dt><span class="n">5</span>Default project</dt>
-          <dd>The project key the <a href="#launcher">quick launcher</a> puts in
-          front of <code>jira &lt;number&gt;</code> and a bare number. Empty means the project of
-          most of your tickets; the field shows it in grey.</dd>
+          <dt><span class="n">5</span>Projects</dt>
+          <dd>The project keys, separated by commas (<code>STORE, WA</code>), in which the
+          <a href="#launcher">quick launcher</a> looks up a bare number and
+          <code>jira &lt;number&gt;</code>; for <code>jira &lt;number&gt;</code>, the first one's row
+          stays even when the ticket does not exist. Up to ten. Empty means the projects of
+          your tickets, most tickets first; the field shows them in grey.</dd>
         </dl>
         <p>DevPulse lists the tickets assigned to you that are not done.</p>
       </section>
@@ -255,7 +257,7 @@ gh auth login</code></pre>
         ticket; a Jira key in a Claude Code session's folder name does the same
         for the session. Names such as <code>UTF-8</code> or <code>SHA-256</code>
         do not count as keys, and when there are several keys, one of a project
-        you have tickets in (or of the <a href="#jira">default project</a>)
+        you have tickets in (or of one of your <a href="#jira">projects</a>)
         wins. Hover over a row to see its full title or folder.</p>
         <p>DevPulse shows the interactive sessions of the native
         <code>claude</code> command, the one Claude Code's own installer puts
@@ -429,15 +431,15 @@ gh auth login</code></pre>
           <table>
             <thead><tr><th>Type</th><th>Result</th></tr></thead>
             <tbody>
-              <tr><td><code>2474</code></td><td>Everything with that number: your pull requests and review requests numbered 2474 in any repository, then your tickets numbered 2474 in any project (<code>STORE-2474</code>, <code>WA-2474</code>), then the Claude Code sessions whose Jira key or folder name has that number (<code>store-2474-fix</code>, but not <code>store-24740</code>). Last, rows that open 2474 in the <a href="#github">default repository</a> and <code>STORE-2474</code> in the <a href="#jira">default project</a>, unless they are already in the list.</td></tr>
+              <tr><td><code>2474</code></td><td>Everything with that number: your pull requests and review requests numbered 2474 in any repository, then your tickets and your pull requests' tickets numbered 2474 in any project (<code>STORE-2474</code>, <code>WA-2474</code>), then the Claude Code sessions whose Jira key or folder name has that number (<code>store-2474-fix</code>, but not <code>store-24740</code>). Last, pull request 2474 of the <a href="#github">default repository</a> and ticket 2474 of each of your <a href="#jira">projects</a> (<code>STORE-2474</code>, <code>WA-2474</code>), unless they are already in the list. Once you stop typing, DevPulse looks these rows up: they show their title and state, and tickets or pull requests that do not exist disappear.</td></tr>
               <tr><td><code>gh</code></td><td>Your pull requests, then your review requests.</td></tr>
               <tr><td><code>gh invoice</code></td><td>Those whose title or repository contains the text.</td></tr>
-              <tr><td><code>gh 812</code></td><td>Your pull request or review request with that number. If you have none, a row that opens <code>812</code> in the <a href="#github">default repository</a>.</td></tr>
+              <tr><td><code>gh 812</code></td><td>Your pull request or review request with that number. If you have none, pull request 812 of the <a href="#github">default repository</a>, with its title and state, or <span class="ui">Not found on GitHub</span>.</td></tr>
               <tr><td><code>gh webapp 455</code></td><td>Pull request 455 in that repository: the name of a repository you have pull requests in, or a full <code>owner/name</code>.</td></tr>
               <tr><td><code>jira</code></td><td>Your tickets.</td></tr>
               <tr><td><code>jira export</code></td><td>Those whose summary or key contains the text.</td></tr>
-              <tr><td><code>jira STORE-2290</code></td><td>That ticket, even when it is not in your list.</td></tr>
-              <tr><td><code>jira 2290</code></td><td>The same, with the <a href="#jira">default project</a> in front: <code>STORE-2290</code>.</td></tr>
+              <tr><td><code>jira STORE-2290</code></td><td>That ticket, even when it is not in your list, with its summary and status, or <span class="ui">Not found in Jira</span>.</td></tr>
+              <tr><td><code>jira 2290</code></td><td>Ticket 2290 of each of your <a href="#jira">projects</a>. The row of the first project stays even when the ticket does not exist.</td></tr>
             </tbody>
           </table>
         </div>
