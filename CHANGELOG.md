@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.10.0 — 2026-11-22
 
 - Settings › Jira › Projects: list the Jira projects (`STORE, WA`) in which the quick launcher
   looks up a bare number and `jira <number>`; it shows a row for each of them. It replaces the
