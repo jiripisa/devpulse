@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+- Settings › Jira › Projects: list the Jira projects (`STORE, WA`) in which the quick launcher
+  looks up a bare number; it shows a row for each of them. It replaces the single default
+  project, and your earlier choice is kept as the first entry. The first project is the one
+  `jira <number>` uses.
+- The quick launcher shows the title and state of tickets and pull requests that are not in your
+  lists: once you stop typing, it asks Jira and GitHub about them (one request each). Tickets or
+  pull requests that do not exist disappear from a bare number's results, and `jira <key>` or
+  `gh <number>` say "Not found".
+- The quick launcher also finds the tickets of your pull requests that are not assigned to you.
+- A pull request links to a Jira key of any project in the list, not only the default one.
+
 ## 0.9.1 — 2026-11-20
 
 - In the `devpulse` terminal UI, a plain click (or ⌘-click) on an underlined link in the detail
