@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Settings › GitHub › Repositories: list the repositories (`owner/name`, or a pasted GitHub
+  address) in which the quick launcher looks up a bare number and `gh <number>`; it shows a row
+  for each of them with the pull request's title and state. It replaces the single default
+  repository, and your earlier choice is kept as the first entry.
+- `gh <name> <number>` also knows the repositories from that list by their name.
+- The quick launcher asks GitHub about all those pull requests in one request.
+
 ## 0.10.0 — 2026-11-22
 
 - Settings › Jira › Projects: list the Jira projects (`STORE, WA`) in which the quick launcher

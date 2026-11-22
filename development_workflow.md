@@ -140,8 +140,8 @@ A demo runs next to an installed DevPulse without touching it:
 - It serves its own socket, `~/Library/Application Support/DevPulse/devpulse-demo.sock`, and
   registers no launcher hotkey.
 - Its settings live in the defaults suite `io.jp4.devpulse.demo`, filled at every launch with
-  example values (Jira site `acme.atlassian.net`, e-mail `alice@acme.example`, default
-  repository `acmecorp/webapp`). The Jira tab shows a saved token without touching the
+  example values (Jira site `acme.atlassian.net`, e-mail `alice@acme.example`, repository
+  `acmecorp/webapp`). The Jira tab shows a saved token without touching the
   Keychain; Save and Test Connection refuse. General shows launch at login on and the command
   line tool installed. Remove the suite afterwards: `defaults delete io.jp4.devpulse.demo`.
 - `-DevPulseDemoOpen <what>` opens a window right after launch, so no hotkey or menu bar click
