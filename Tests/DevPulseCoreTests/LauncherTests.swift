@@ -458,6 +458,22 @@ private func url(_ string: String) -> OpenTarget { .url(URL(string: string)!) }
         #expect(items("gh nowhere 4", snapshot(), config).isEmpty)
     }
 
+    @Test func aTypedRepoNameThatHasNoSuchPullRequestSaysSo() {
+        var config = settings(projects: [])
+        config.githubRepos = ["acme/store", "acme/api"]
+        var lookup = LookupResults()
+        lookup.missingPullRequests = [PullRequestRef(repo: "acme/api", number: 4)]
+        let result = items("gh api 4", snapshot(), config, lookup)
+        #expect(result.map(\.title) == ["Open acme/api#4"])
+        #expect(result.map(\.subtitle) == ["Not found on GitHub"])
+    }
+
+    @Test func withoutRepositoriesOrMyPullRequestsGhNumberHasNoFallback() {
+        let snap = snapshot(review: [makePR(repo: "acme/api", number: 1)])
+        #expect(request("gh 9", snap, settings(projects: [], repo: nil)).isEmpty)
+        #expect(items("gh 9", snap, settings(projects: [], repo: nil)).isEmpty)
+    }
+
     @Test func withoutAJiraSiteNoTicketIsLookedUp() {
         let snap = snapshot(jiraBaseURL: nil)
         #expect(request("2474", snap, settings()).ticketKeys.isEmpty)

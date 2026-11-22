@@ -210,7 +210,7 @@ public struct AppSettings: Codable, Sendable, Equatable {
 
     /// Whether this is a plain `owner/name`, safe to put into a GitHub URL or query.
     public static func isRepo(_ text: String) -> Bool {
-        text.wholeMatch(of: /[A-Za-z0-9-]+\/[A-Za-z0-9_.-]+/) != nil && !text.contains("..")
+        text.wholeMatch(of: /[A-Za-z0-9_-]+\/[A-Za-z0-9_.-]+/) != nil && !text.contains("..")
     }
 
     private static func cleanRepos(_ repos: [String]) -> [String] {
@@ -218,11 +218,18 @@ public struct AppSettings: Codable, Sendable, Equatable {
         let cleaned = repos
             .map { raw -> String in
                 var repo = raw.trimmingCharacters(in: .whitespaces)
-                for prefix in ["https://github.com/", "http://github.com/", "github.com/"]
-                where repo.lowercased().hasPrefix(prefix) {
+                // A pasted address: the repository is the first two steps of its path
+                // (`…/acme/store/pull/12`, `git@github.com:acme/store.git`).
+                let hosts = ["https://", "http://", "www.", "github.com/", "git@github.com:"]
+                var isAddress = false
+                for prefix in hosts where repo.lowercased().hasPrefix(prefix) {
                     repo = String(repo.dropFirst(prefix.count))
+                    isAddress = true
                 }
-                while repo.hasSuffix("/") { repo.removeLast() }
+                if isAddress {
+                    let steps = repo.split(separator: "/", omittingEmptySubsequences: true)
+                    repo = steps.prefix(2).joined(separator: "/")
+                }
                 if repo.hasSuffix(".git") { repo.removeLast(4) }
                 return repo
             }

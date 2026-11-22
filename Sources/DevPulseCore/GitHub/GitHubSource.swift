@@ -41,14 +41,19 @@ public final class GitHubSource: Sendable {
     }
 
     /// PRs by repository and number, for the launcher's rows of PRs not in my lists: one
-    /// GraphQL request for all of them (at most `maxLookups`). A PR or repository GitHub cannot
-    /// resolve for me is missing; so is a ref whose repo is not a plain `owner/name`, which is
-    /// never sent.
+    /// GraphQL request for all of them (at most `maxLookups`). A PR GitHub does not find in a
+    /// repository, or a repository it reports NOT_FOUND, is missing; so is a ref whose repo is
+    /// not a plain `owner/name` or whose number is too long, which is never sent.
     public func fetchPullRequests(_ refs: [PullRequestRef]) async throws -> PullRequestLookup {
         var lookup = PullRequestLookup()
         var asked: [PullRequestRef] = []
         for ref in refs.prefix(Self.maxLookups) where !asked.contains(ref) {
-            if AppSettings.isRepo(ref.repo) { asked.append(ref) } else { lookup.missing.insert(ref) }
+            // GraphQL's Int is 32 bits: a longer number would fail the whole query.
+            if AppSettings.isRepo(ref.repo), ref.number <= Int(Int32.max) {
+                asked.append(ref)
+            } else {
+                lookup.missing.insert(ref)
+            }
         }
         guard !asked.isEmpty else { return lookup }
         let body = try GitHubQuery.lookupBody(asked)
@@ -71,7 +76,24 @@ public final class GitHubSource: Sendable {
                 var isDraft: Bool
                 var url: String
             }
-            struct GraphQLError: Decodable { var message: String }
+            struct GraphQLError: Decodable {
+                /// A path step: a field name or a list index.
+                enum Step: Decodable {
+                    case field(String), index(Int)
+                    init(from decoder: any Decoder) throws {
+                        let c = try decoder.singleValueContainer()
+                        if let i = try? c.decode(Int.self) { self = .index(i) } else { self = .field(try c.decode(String.self)) }
+                    }
+                }
+                var message: String
+                var type: String?
+                var path: [Step]?
+                /// The alias (`p0`, …) the error is about.
+                var alias: String? {
+                    if case .field(let name)? = path?.first { return name }
+                    return nil
+                }
+            }
             /// An alias maps to null when the repository does not resolve.
             var data: [String: Repository?]?
             var errors: [GraphQLError]?
@@ -85,10 +107,19 @@ public final class GitHubSource: Sendable {
         guard let nodes = answer.data else {
             throw GitHubError.graphQL((answer.errors ?? []).map(\.message))
         }
+        let errorTypes = Dictionary(grouping: answer.errors ?? [], by: { $0.alias ?? "" })
+            .mapValues { Set($0.map { $0.type ?? "" }) }
         for (index, ref) in asked.enumerated() {
-            // An alias the answer leaves out says nothing about the PR.
-            guard let repository = nodes["p\(index)"] else { continue }
-            guard let node = repository?.pullRequest else {
+            let alias = "p\(index)"
+            let types = errorTypes[alias] ?? []
+            // An alias the answer leaves out, or one with an error other than "not found" (an
+            // org that refuses the token, a GitHub hiccup), says nothing about the PR.
+            guard let repository = nodes[alias], types.subtracting(["NOT_FOUND"]).isEmpty else { continue }
+            guard let resolved = repository else {
+                if types.contains("NOT_FOUND") { lookup.missing.insert(ref) }
+                continue
+            }
+            guard let node = resolved.pullRequest else {
                 lookup.missing.insert(ref)
                 continue
             }

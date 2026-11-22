@@ -109,7 +109,11 @@ private func withFreshDefaults(_ body: (UserDefaults) throws -> Void) rethrows {
     @Test func parsesTheRepoListAsTyped() {
         #expect(AppSettings.parseRepos("acme/store, acme/api  Acme/Store") == ["acme/store", "acme/api"])
         #expect(AppSettings.parseRepos("https://github.com/acme/store/ github.com/acme/api.git") == ["acme/store", "acme/api"])
-        #expect(AppSettings.parseRepos("store, a/b/c, ../x, a/.., a b, o/n?x=1") == [])
+        #expect(AppSettings.parseRepos(
+            "https://github.com/acme/store/pull/12, https://www.github.com/acme/api/tree/main git@github.com:acme/web.git")
+            == ["acme/store", "acme/api", "acme/web"])
+        #expect(AppSettings.parseRepos("jdoe_acme/tools") == ["jdoe_acme/tools"])
+        #expect(AppSettings.parseRepos("store, ../x, a/.., a b, o/n?x=1, https://example.com/a/b") == [])
         #expect(AppSettings.parseRepos((1...12).map { "o/r\($0)" }.joined(separator: ",")).count == AppSettings.maxGitHubRepos)
         #expect(AppSettings.reposText(["acme/store", "acme/api"]) == "acme/store, acme/api")
     }

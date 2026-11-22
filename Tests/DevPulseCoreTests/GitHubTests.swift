@@ -154,8 +154,8 @@ struct GitHubTests {
                                          "isDraft": \(draft), "url": "https://github.com/acme/store/pull/7" } },
                 "p1": { "pullRequest": null },
                 "p2": null },
-              "errors": [ { "type": "NOT_FOUND", "message": "Could not resolve to a PullRequest" },
-                          { "type": "NOT_FOUND", "message": "Could not resolve to a Repository" } ] }
+              "errors": [ { "type": "NOT_FOUND", "path": ["p1", "pullRequest"], "message": "Could not resolve to a PullRequest" },
+                          { "type": "NOT_FOUND", "path": ["p2"], "message": "Could not resolve to a Repository" } ] }
             """.utf8)
     }
 
@@ -209,6 +209,29 @@ struct GitHubTests {
         await #expect(throws: GitHubError.graphQL(["API rate limit exceeded"])) {
             try await limited.fetchPullRequests([Self.store7])
         }
+    }
+
+    @Test("A repository GitHub refuses, or another error, is neither found nor missing")
+    func pullRequestLookupForbidden() async throws {
+        let body = Data("""
+            { "data": { "p0": null, "p1": null, "p2": { "pullRequest": null } },
+              "errors": [ { "type": "FORBIDDEN", "path": ["p0"], "message": "SAML enforcement" },
+                          { "path": ["p1"], "message": "Something went wrong" },
+                          { "type": "NOT_FOUND", "path": ["p2", "pullRequest"], "message": "Could not resolve" } ] }
+            """.utf8)
+        let lookup = try await GitHubSource(tokens: FakeTokens(), transport: FakeTransport(body: body))
+            .fetchPullRequests([Self.store7, Self.api8, Self.gone9])
+        #expect(lookup.found.isEmpty)
+        #expect(lookup.missing == [Self.gone9])
+    }
+
+    @Test("A number GraphQL cannot hold is missing without being sent")
+    func pullRequestLookupHugeNumber() async throws {
+        let transport = FakeTransport(body: Self.lookupBody())
+        let huge = PullRequestRef(repo: "acme/store", number: Int(Int32.max) + 1)
+        let lookup = try await GitHubSource(tokens: FakeTokens(), transport: transport).fetchPullRequests([huge])
+        #expect(lookup.missing == [huge])
+        #expect(transport.requests.withLock { $0.isEmpty })
     }
 
     @Test("Aliases the answer leaves out are neither found nor missing")
