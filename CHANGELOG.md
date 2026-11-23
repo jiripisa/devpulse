@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.15.0 — 2026-11-23
 
 - Search the quick launcher by words from a title: it finds your pull requests, tickets and
   Claude Code sessions with every word at once, then the tickets of your Jira projects and the
