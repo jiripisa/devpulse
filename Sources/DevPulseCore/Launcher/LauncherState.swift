@@ -81,6 +81,23 @@ public struct LauncherState: Equatable, Sendable {
         }
     }
 
+    /// →: into the detail when it has rows. False lets the search field have the key (the
+    /// caret moves), which is the case only in the list with an empty detail.
+    public mutating func enterDetail(detailCount: Int) -> Bool {
+        if focus == .detail { return true }
+        guard detailCount > 0 else { return false }
+        focus = .detail
+        detailSelection = 0
+        return true
+    }
+
+    /// ←: back from the detail to the list. False in the list, where the caret moves.
+    public mutating func leaveDetail() -> Bool {
+        guard focus == .detail else { return false }
+        focus = .list
+        return true
+    }
+
     /// A result chosen with the mouse.
     public mutating func select(_ index: Int) {
         guard items.indices.contains(index) else { return }

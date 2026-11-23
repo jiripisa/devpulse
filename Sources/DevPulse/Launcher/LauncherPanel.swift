@@ -71,6 +71,8 @@ final class LauncherPanelController {
         case "backtab": return (48, "\u{19}", [.shift])
         case "down": return (125, function(NSDownArrowFunctionKey), [.numericPad, .function])
         case "up": return (126, function(NSUpArrowFunctionKey), [.numericPad, .function])
+        case "left": return (123, function(NSLeftArrowFunctionKey), [.numericPad, .function])
+        case "right": return (124, function(NSRightArrowFunctionKey), [.numericPad, .function])
         default: return nil
         }
     }
