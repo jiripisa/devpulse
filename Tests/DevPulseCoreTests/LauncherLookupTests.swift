@@ -14,6 +14,8 @@ private final class FakeLookups: Sendable {
     let pullRequests = Mutex<Result<PullRequestLookup, any Error>>(.success(PullRequestLookup()))
     let ticketCalls = Mutex<[[String]]>([])
     let pullRequestCalls = Mutex<[[PullRequestRef]]>([])
+    let searches = Mutex<Result<[PullRequestSummary], any Error>>(.success([]))
+    let searchCalls = Mutex<[PullRequestSearch]>([])
     let clock = Mutex(Date(timeIntervalSince1970: 1_000))
 
     @MainActor func lookup(ttl: TimeInterval = 300) -> LauncherLookup {
@@ -29,6 +31,10 @@ private final class FakeLookups: Sendable {
             fetchPullRequests: { refs in
                 self.pullRequestCalls.withLock { $0.append(refs) }
                 return try self.pullRequests.withLock { $0 }.get()
+            },
+            searchPullRequests: { search in
+                self.searchCalls.withLock { $0.append(search) }
+                return try self.searches.withLock { $0 }.get()
             })
     }
 
@@ -143,6 +149,31 @@ private final class FakeLookups: Sendable {
         await first.value
     }
 
+    @Test func searchesATicketsPullRequestsOnceForTheTTL() async {
+        let fake = FakeLookups()
+        fake.searches.withLock { $0 = .success([summary("Seven")]) }
+        let lookup = fake.lookup(ttl: 300)
+        let search = PullRequestSearch(key: "STORE-7", repos: ["acme/store"])
+        await lookup.resolve(LookupRequest(pullRequestSearches: [search]))
+        await lookup.resolve(LookupRequest(pullRequestSearches: [search]))
+        #expect(fake.searchCalls.withLock { $0 } == [search])
+        #expect(lookup.results.pullRequestsForTicket["STORE-7"]?.map(\.title) == ["Seven"])
+        // Other repositories are another search.
+        await lookup.resolve(LookupRequest(pullRequestSearches: [PullRequestSearch(key: "STORE-7", repos: ["acme/api"])]))
+        #expect(fake.searchCalls.withLock { $0.count } == 2)
+    }
+
+    @Test func aFailedSearchRemembersNothing() async {
+        let fake = FakeLookups()
+        fake.searches.withLock { $0 = .failure(Offline()) }
+        let lookup = fake.lookup()
+        let search = PullRequestSearch(key: "STORE-7", repos: ["acme/store"])
+        await lookup.resolve(LookupRequest(pullRequestSearches: [search]))
+        await lookup.resolve(LookupRequest(pullRequestSearches: [search]))
+        #expect(fake.searchCalls.withLock { $0.count } == 2)
+        #expect(lookup.results.pullRequestsForTicket.isEmpty)
+    }
+
     @Test func anEmptyRequestAsksNothing() async {
         let fake = FakeLookups()
         await fake.lookup().resolve(LookupRequest())
@@ -159,6 +190,14 @@ private final class FakeLookups: Sendable {
     @Test func keepsTheSelectedRowWhenRowsAboveItGo() {
         #expect(LauncherSelection.index(keeping: 2, from: [a, b, c], to: [a, c]) == 1)
         #expect(LauncherSelection.index(keeping: 0, from: [a, b], to: [b, a]) == 1)
+    }
+
+    @Test func keepsTheSelectedRowByIdWhenChildrenFold() {
+        let open = ["a", "a>x", "a>y", "b"]
+        let folded = ["a", "b"]
+        #expect(LauncherSelection.index(keeping: 3, from: open, to: folded) == 1)
+        #expect(LauncherSelection.index(keeping: 0, from: folded, to: open) == 0)
+        #expect(LauncherSelection.index(keeping: 1, from: folded, to: ["a", "b>x", "b"]) == 2)
     }
 
     @Test func clampsWhenTheSelectedRowIsGone() {

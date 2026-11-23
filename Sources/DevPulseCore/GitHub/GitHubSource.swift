@@ -75,6 +75,7 @@ public final class GitHubSource: Sendable {
                 var state: String
                 var isDraft: Bool
                 var url: String
+                var headRefName: String?
             }
             struct GraphQLError: Decodable {
                 /// A path step: a field name or a list index.
@@ -123,16 +124,73 @@ public final class GitHubSource: Sendable {
                 lookup.missing.insert(ref)
                 continue
             }
-            let state: PullRequestSummary.State =
-                node.state == "MERGED" ? .merged : node.state == "CLOSED" ? .closed : node.isDraft ? .draft : .open
             lookup.found[ref] = PullRequestSummary(
-                repo: ref.repo, number: node.number, title: node.title, state: state, url: node.url)
+                repo: ref.repo, number: node.number, title: node.title,
+                state: Self.state(node.state, draft: node.isDraft), url: node.url, headBranch: node.headRefName)
         }
         return lookup
     }
 
     /// The most PRs one launcher lookup asks about: every configured repository, and a typed one.
     static let maxLookups = 20
+
+    private static func state(_ raw: String, draft: Bool) -> PullRequestSummary.State {
+        raw == "MERGED" ? .merged : raw == "CLOSED" ? .closed : draft ? .draft : .open
+    }
+
+    /// The PRs that name a Jira key (in the title or description, as GitHub's search reads
+    /// them) in these repositories, for an expanded launcher row: one GraphQL search. Nothing is
+    /// sent for a malformed key or without a usable repository.
+    public func searchPullRequests(_ search: PullRequestSearch) async throws -> [PullRequestSummary] {
+        let repos = Array(search.repos.filter(AppSettings.isRepo).prefix(AppSettings.maxGitHubRepos))
+        guard search.key.wholeMatch(of: /[A-Z][A-Z0-9_]*-\d+/) != nil, !repos.isEmpty else { return [] }
+        let body = try GitHubQuery.searchBody(key: search.key, repos: repos)
+        var response = try await post(body, token: tokens.token(forceRefresh: false))
+        if response.1.statusCode == 401 {
+            response = try await post(body, token: tokens.token(forceRefresh: true))
+        }
+        let (data, http) = response
+        switch http.statusCode {
+        case 200..<300: break
+        case 401: throw GitHubError.unauthorized
+        default: throw GitHubError.http(http.statusCode)
+        }
+        struct Answer: Decodable {
+            struct Payload: Decodable {
+                struct Search: Decodable { var nodes: [Node?] }
+                var search: Search
+            }
+            /// Search results that are not PRs come as empty objects: every field is optional.
+            struct Node: Decodable {
+                struct Repository: Decodable { var nameWithOwner: String }
+                var number: Int?
+                var title: String?
+                var state: String?
+                var isDraft: Bool?
+                var url: String?
+                var headRefName: String?
+                var repository: Repository?
+            }
+            struct GraphQLError: Decodable { var message: String }
+            var data: Payload?
+            var errors: [GraphQLError]?
+        }
+        let answer: Answer
+        do {
+            answer = try JSONDecoder().decode(Answer.self, from: data)
+        } catch {
+            throw GitHubError.decoding(String(describing: error))
+        }
+        guard let payload = answer.data else { throw GitHubError.graphQL((answer.errors ?? []).map(\.message)) }
+        return payload.search.nodes.compactMap { node in
+            guard let node, let number = node.number, let title = node.title, let url = node.url,
+                  let repo = node.repository?.nameWithOwner
+            else { return nil }
+            return PullRequestSummary(
+                repo: repo, number: number, title: title, state: Self.state(node.state ?? "", draft: node.isDraft ?? false),
+                url: url, headBranch: node.headRefName)
+        }
+    }
 
     private func post(_ body: Data, token: String) async throws -> (Data, HTTPURLResponse) {
         var request = URLRequest(url: GitHubQuery.endpoint)

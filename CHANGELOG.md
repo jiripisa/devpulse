@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- In the quick launcher, move to a ticket or a pull request and rest there for half a second:
+  it expands. A ticket shows its pull requests (yours, and those GitHub finds with its key in
+  your repositories) and its related tickets; a pull request shows its ticket and that ticket's
+  related tickets. The arrow keys move into the indented rows, and Enter opens one.
+- The mouse moves the launcher's selection too.
+
 ## 0.11.0 — 2026-11-23
 
 - Settings › GitHub › Repositories: list the repositories (`owner/name`, or a pasted GitHub

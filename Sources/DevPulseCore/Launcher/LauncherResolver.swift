@@ -10,6 +10,13 @@ public struct LauncherItem: Equatable, Sendable {
         case session(SessionStatus)
     }
 
+    /// The ticket or PR a row shows, which the launcher can expand into its PRs, its ticket and
+    /// related tickets.
+    public enum Subject: Hashable, Sendable {
+        case ticket(String)
+        case pullRequest(PullRequestRef)
+    }
+
     public var title: String
     public var subtitle: String
     public var kind: Kind
@@ -17,13 +24,20 @@ public struct LauncherItem: Equatable, Sendable {
     public var target: OpenTarget
     /// What ⌘Enter opens (a PR's linked Jira ticket).
     public var secondary: OpenTarget?
+    /// What the row expands into; nil for sessions, for a "Not found" row and for an
+    /// expanded row's children.
+    public var subject: Subject?
 
-    public init(title: String, subtitle: String, kind: Kind, target: OpenTarget, secondary: OpenTarget? = nil) {
+    public init(
+        title: String, subtitle: String, kind: Kind, target: OpenTarget, secondary: OpenTarget? = nil,
+        subject: Subject? = nil
+    ) {
         self.title = title
         self.subtitle = subtitle
         self.kind = kind
         self.target = target
         self.secondary = secondary
+        self.subject = subject
     }
 }
 
@@ -41,7 +55,13 @@ public enum LauncherResolver {
             case .item(let item):
                 return item
             case .ticket(let key, let typed):
-                if let ticket = lookup.tickets[key] { return item(ticket) }
+                if let ticket = lookup.tickets[key] {
+                    // A moved ticket shows its new key but expands by the one asked for, whose
+                    // PRs still carry it.
+                    var found = item(ticket)
+                    found?.subject = .ticket(key)
+                    return found
+                }
                 guard let link = ticketLink(key, snapshot: snapshot, site: site) else { return nil }
                 guard lookup.missingTickets.contains(key) else { return link }
                 return typed ? notFound(link, "Not found in Jira") : nil
@@ -96,6 +116,7 @@ public enum LauncherResolver {
     private static func notFound(_ link: LauncherItem, _ text: String) -> LauncherItem {
         var item = link
         item.subtitle = text
+        item.subject = nil
         return item
     }
 
@@ -127,13 +148,13 @@ public enum LauncherResolver {
     }
 
     /// My PRs first, then the review requests; a PR in both lists shows once, as mine.
-    private static func knownPullRequests(_ snapshot: Snapshot) -> [PullRequest] {
+    static func knownPullRequests(_ snapshot: Snapshot) -> [PullRequest] {
         var seen = Set<String>()
         return (snapshot.myPullRequests + snapshot.reviewRequests).filter { seen.insert($0.id).inserted }
     }
 
     /// The configured repositories, else those of my PRs, most PRs first.
-    private static func repos(snapshot: Snapshot, settings: AppSettings) -> [String] {
+    static func repos(snapshot: Snapshot, settings: AppSettings) -> [String] {
         settings.githubRepos.isEmpty ? AppSettings.reposByFrequency(snapshot.myPullRequests) : settings.githubRepos
     }
 
@@ -153,7 +174,8 @@ public enum LauncherResolver {
     private static func pullRequestLink(repo: String, number: Int) -> LauncherItem? {
         guard let url = URL(string: "https://github.com/\(repo)/pull/\(number)") else { return nil }
         return LauncherItem(
-            title: "Open \(repo)#\(number)", subtitle: url.absoluteString, kind: .pullRequest, target: .url(url))
+            title: "Open \(repo)#\(number)", subtitle: url.absoluteString, kind: .pullRequest, target: .url(url),
+            subject: .pullRequest(PullRequestRef(repo: repo, number: number)))
     }
 
     /// A full `owner/name` as typed, or the configured repository or the repo of a known PR
@@ -166,13 +188,14 @@ public enum LauncherResolver {
         return configured.first(where: named) ?? known.map(\.repo).first(where: named)
     }
 
-    private static func item(_ pr: PullRequest, snapshot: Snapshot) -> LauncherItem? {
+    static func item(_ pr: PullRequest, snapshot: Snapshot) -> LauncherItem? {
         guard let url = URL(string: pr.url) else { return nil }
         let isMine = snapshot.myPullRequests.contains { $0.id == pr.id }
         return LauncherItem(
             title: "#\(pr.number) \(pr.title)", subtitle: pr.repo,
             kind: isMine ? .pullRequest : .reviewRequest(direct: pr.requestedDirectly), target: .url(url),
-            secondary: pr.jiraKey.flatMap { jiraURL($0, snapshot: snapshot, site: nil) }.map { .url($0) })
+            secondary: pr.jiraKey.flatMap { jiraURL($0, snapshot: snapshot, site: nil) }.map { .url($0) },
+            subject: .pullRequest(PullRequestRef(repo: pr.repo, number: pr.number)))
     }
 
     // MARK: Jira
@@ -200,12 +223,12 @@ public enum LauncherResolver {
     }
 
     /// The configured projects, else those of my tickets, most tickets first.
-    private static func projects(snapshot: Snapshot, settings: AppSettings) -> [String] {
+    static func projects(snapshot: Snapshot, settings: AppSettings) -> [String] {
         settings.jiraProjects.isEmpty ? AppSettings.projectsByFrequency(snapshot.tickets) : settings.jiraProjects
     }
 
     /// My tickets, then those of PRs that are not mine; each once.
-    private static func knownTickets(_ snapshot: Snapshot) -> [Ticket] {
+    static func knownTickets(_ snapshot: Snapshot) -> [Ticket] {
         var seen = Set<String>()
         return (snapshot.tickets + snapshot.linkedTickets).filter { seen.insert($0.key).inserted }
     }
@@ -222,28 +245,31 @@ public enum LauncherResolver {
 
     /// A row that opens a ticket not in my list by the site's URL; without a site there is
     /// nothing to build.
-    private static func ticketLink(_ key: String, snapshot: Snapshot, site: URL?) -> LauncherItem? {
+    static func ticketLink(_ key: String, snapshot: Snapshot, site: URL?) -> LauncherItem? {
         guard let url = jiraURL(key, snapshot: snapshot, site: site) else { return nil }
-        return LauncherItem(title: "Open \(key)", subtitle: url.absoluteString, kind: .ticket, target: .url(url))
+        return LauncherItem(
+            title: "Open \(key)", subtitle: url.absoluteString, kind: .ticket, target: .url(url), subject: .ticket(key))
     }
 
     /// A PR the lookup found: its title, and its repo and state.
-    private static func item(_ pr: PullRequestSummary) -> LauncherItem? {
+    static func item(_ pr: PullRequestSummary) -> LauncherItem? {
         URL(string: pr.url).map {
             LauncherItem(
                 title: "#\(pr.number) \(pr.title)", subtitle: "\(pr.repo) · \(pr.state.text)",
-                kind: .pullRequest, target: .url($0))
+                kind: .pullRequest, target: .url($0), subject: .pullRequest(pr.ref))
         }
     }
 
-    private static func item(_ ticket: Ticket) -> LauncherItem? {
+    static func item(_ ticket: Ticket) -> LauncherItem? {
         URL(string: ticket.url).map {
-            LauncherItem(title: "\(ticket.key) \(ticket.summary)", subtitle: ticket.status, kind: .ticket, target: .url($0))
+            LauncherItem(
+                title: "\(ticket.key) \(ticket.summary)", subtitle: ticket.status, kind: .ticket, target: .url($0),
+                subject: .ticket(ticket.key))
         }
     }
 
     /// `<site>/browse/<key>`; the configured site wins over the one the snapshot carries.
-    private static func jiraURL(_ key: String, snapshot: Snapshot, site: URL?) -> URL? {
+    static func jiraURL(_ key: String, snapshot: Snapshot, site: URL?) -> URL? {
         guard let base = site ?? snapshot.jiraBaseURL.flatMap({ URL(string: $0) }) else { return nil }
         return base.appending(path: "browse/\(key)")
     }

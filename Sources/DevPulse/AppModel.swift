@@ -105,6 +105,10 @@ final class AppModel {
             fetchPullRequests: { [weak store] refs in
                 guard !isDemo, let store else { throw LookupUnavailable() }
                 return try await store.lookUpPullRequests(refs)
+            },
+            searchPullRequests: { [weak store] search in
+                guard !isDemo, let store else { throw LookupUnavailable() }
+                return try await store.searchPullRequests(search)
             })
         snapshot = demo ?? store.snapshot
         #if DEBUG
@@ -166,8 +170,8 @@ final class AppModel {
         #if DEBUG
         guard let argument = UserDefaults.standard.string(forKey: "DevPulseDemoOpen") else { return }
         switch DemoOpen(argument: argument) {
-        case .launcher(let query):
-            launcher?.show(query: query)
+        case .launcher(let query, let select):
+            launcher?.show(query: query, select: select)
         case .popover:
             DemoPopoverWindow.show(model: self)
         case .settings(let name):

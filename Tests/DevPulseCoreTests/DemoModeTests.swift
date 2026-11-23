@@ -12,6 +12,9 @@ struct DemoModeTests {
         #expect(DemoOpen(argument: "launcher:gh webapp 455") == .launcher(query: "gh webapp 455"))
         #expect(DemoOpen(argument: "launcher:a:b") == .launcher(query: "a:b"))
         #expect(DemoOpen(argument: "launcher:") == .launcher(query: ""))
+        // `@<row>` selects that row as if moved to, so it expands.
+        #expect(DemoOpen(argument: "launcher:2290@1") == .launcher(query: "2290", select: 1))
+        #expect(DemoOpen(argument: "launcher:a@b") == .launcher(query: "a@b"))
     }
 
     @Test("popover opens the popover content")

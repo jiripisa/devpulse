@@ -5,10 +5,16 @@ public protocol GitHubFetching: Sendable {
     func fetch(includeTeamRequests: Bool) async throws -> GitHubResult
     /// PRs by repository and number, for the launcher, in one request.
     func fetchPullRequests(_ refs: [PullRequestRef]) async throws -> PullRequestLookup
+    /// The PRs that name a Jira key in these repositories, for the launcher.
+    func searchPullRequests(_ search: PullRequestSearch) async throws -> [PullRequestSummary]
 }
 
 extension GitHubFetching {
     public func fetchPullRequests(_ refs: [PullRequestRef]) async throws -> PullRequestLookup {
+        throw LookupUnavailable()
+    }
+
+    public func searchPullRequests(_ search: PullRequestSearch) async throws -> [PullRequestSummary] {
         throw LookupUnavailable()
     }
 }
@@ -115,6 +121,13 @@ public final class SnapshotStore {
     public func lookUpPullRequests(_ refs: [PullRequestRef]) async throws -> PullRequestLookup {
         guard isEnabled(.github) else { throw LookupUnavailable() }
         return try await github.fetchPullRequests(refs)
+    }
+
+    /// The PRs that name a Jira key, for an expanded launcher row. Throws `LookupUnavailable`
+    /// while GitHub is off.
+    public func searchPullRequests(_ search: PullRequestSearch) async throws -> [PullRequestSummary] {
+        guard isEnabled(.github) else { throw LookupUnavailable() }
+        return try await github.searchPullRequests(search)
     }
 
     public func setPaused(_ paused: Bool) {

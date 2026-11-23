@@ -52,7 +52,7 @@ enum GitHubQuery {
             guard parts.count == 2 else { continue }
             declarations.append("$o\(i): String!, $n\(i): String!, $k\(i): Int!")
             fields.append(
-                "p\(i): repository(owner: $o\(i), name: $n\(i)) { pullRequest(number: $k\(i)) { number title state isDraft url } }")
+                "p\(i): repository(owner: $o\(i), name: $n\(i)) { pullRequest(number: $k\(i)) { number title state isDraft url headRefName } }")
             variables["o\(i)"] = parts[0]
             variables["n\(i)"] = parts[1]
             variables["k\(i)"] = ref.number
@@ -60,4 +60,19 @@ enum GitHubQuery {
         let query = "query(\(declarations.joined(separator: ", "))) { \(fields.joined(separator: " ")) }"
         return try JSONSerialization.data(withJSONObject: ["query": query, "variables": variables])
     }
+
+    /// The search for the PRs that name a Jira key in these repositories; the search text is a
+    /// variable, like the lookup's values.
+    static func searchBody(key: String, repos: [String]) throws -> Data {
+        // Title and description only: a key someone mentioned in a comment does not make it the
+        // ticket's PR.
+        let text = (["\"\(key)\" in:title,body is:pr"] + repos.map { "repo:\($0)" }).joined(separator: " ")
+        let query = """
+            query($q: String!) { search(query: $q, type: ISSUE, first: \(maxSearchResults)) { nodes { \
+            ... on PullRequest { number title state isDraft url headRefName repository { nameWithOwner } } } } }
+            """
+        return try JSONSerialization.data(withJSONObject: ["query": query, "variables": ["q": text]])
+    }
+
+    static let maxSearchResults = 20
 }
