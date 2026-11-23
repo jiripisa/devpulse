@@ -40,8 +40,16 @@ private struct GeneralSettingsView: View {
     var body: some View {
         Form {
             Section {
-                Stepper(value: refreshMinutes, in: 1...30) {
-                    LabeledContent("Refresh GitHub and Jira every", value: "\(refreshMinutes.wrappedValue) min")
+                LabeledContent("Refresh GitHub and Jira every") {
+                    // The value right by the arrows that change it.
+                    HStack(spacing: 6) {
+                        Text("\(refreshMinutes.wrappedValue) min").monospacedDigit()
+                        Stepper("Refresh GitHub and Jira every", value: refreshMinutes, in: 1...30)
+                            .labelsHidden()
+                            .accessibilityValue("\(refreshMinutes.wrappedValue) min")
+                            // The first control of the window took the focus and its ring.
+                            .focusEffectDisabled()
+                    }
                 }
                 Toggle("Launch at login", isOn: Binding(
                     get: { model.launchesAtLogin }, set: { model.setLaunchAtLogin($0) }))

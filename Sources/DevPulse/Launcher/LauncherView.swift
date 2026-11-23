@@ -2,6 +2,12 @@ import AppKit
 import DevPulseCore
 import SwiftUI
 
+/// Keys the launcher's panel catches before the search field sees them.
+@MainActor
+final class LauncherKeys {
+    var onFilter: ((LauncherFilter) -> Void)?
+}
+
 /// The quick launcher: the search field, the results on the left, and on the right the detail
 /// of the selected result (a ticket's pull requests and related tickets, a PR's ticket).
 ///
@@ -13,6 +19,8 @@ struct LauncherView: View {
     let onOpen: (OpenTarget) -> Void
     let onClose: () -> Void
     let onHeight: (CGFloat) -> Void
+    /// ⌘1–⌘3, which the panel catches by key position (`LauncherFilter(numberKeyCode:)`).
+    let keys: LauncherKeys
 
     /// Typed in once the field has focus, so the caret follows it as after typing.
     private let initialQuery: String
@@ -29,10 +37,11 @@ struct LauncherView: View {
     @FocusState private var focused: Bool
 
     init(
-        model: AppModel, query: String = "", select: Int? = nil, onOpen: @escaping (OpenTarget) -> Void,
-        onClose: @escaping () -> Void, onHeight: @escaping (CGFloat) -> Void
+        model: AppModel, query: String = "", select: Int? = nil, keys: LauncherKeys,
+        onOpen: @escaping (OpenTarget) -> Void, onClose: @escaping () -> Void, onHeight: @escaping (CGFloat) -> Void
     ) {
         self.model = model
+        self.keys = keys
         self.onOpen = onOpen
         self.onClose = onClose
         self.onHeight = onHeight
@@ -113,7 +122,10 @@ struct LauncherView: View {
         }
         .frame(width: Self.width, height: Self.height(showsContent: showsContent), alignment: .top)
         .background { demoBackdrop }
-        .onAppear { focused = true }
+        .onAppear {
+            focused = true
+            keys.onFilter = { state.setFilter($0) }
+        }
         // Not before: a field that takes focus with text in it selects all of it.
         .onChange(of: focused) { if focused, query.isEmpty { query = initialQuery } }
         .onChange(of: Results(query: query, items: freshItems), initial: true) { _, results in
@@ -216,15 +228,10 @@ struct LauncherView: View {
 
     private var results: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 8) {
+            HStack(spacing: 12) {
                 Text("Results").font(.system(size: 15, weight: .semibold)).foregroundStyle(Lookout.primary)
-                if !state.items.isEmpty {
-                    Text("\(state.items.count)")
-                        .font(.system(size: 12, weight: .medium)).monospacedDigit()
-                        .foregroundStyle(Lookout.secondary)
-                        .padding(.horizontal, 7).padding(.vertical, 1)
-                        .background(Lookout.chrome, in: Capsule())
-                }
+                filterChips
+                Spacer(minLength: 0)
             }
             .padding(.horizontal, 18)
             .frame(height: 42)
@@ -250,6 +257,45 @@ struct LauncherView: View {
                 }
                 .onChange(of: state.selection) { proxy.scrollTo(state.selection) }
             }
+        }
+    }
+
+    /// All, PR and Jira with their counts; a click or ⌘1–⌘3 picks one.
+    private var filterChips: some View {
+        HStack(spacing: 2) {
+            ForEach(Array(LauncherFilter.allCases.enumerated()), id: \.element) { number, filter in
+                let selected = state.filter == filter
+                let tint = Self.tint(filter)
+                Button {
+                    state.setFilter(filter)
+                } label: {
+                    HStack(spacing: 5) {
+                        Text(filter.title).font(.system(size: 12, weight: selected ? .semibold : .medium))
+                        Text("\(state.count(filter))").font(.system(size: 11, weight: .medium)).monospacedDigit()
+                            .opacity(0.75)
+                    }
+                    .foregroundStyle(selected ? tint : Lookout.secondary)
+                    .padding(.horizontal, 9)
+                    .frame(height: 22)
+                    .background(selected ? tint.opacity(0.16) : .clear, in: Capsule())
+                    .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                // A click must leave the keyboard in the search field.
+                .focusable(false)
+                .help("\(filter.title) (⌘\(number + 1))")
+                .accessibilityAddTraits(selected ? .isSelected : [])
+            }
+        }
+        .padding(2)
+        .background(Lookout.chrome, in: Capsule())
+    }
+
+    private static func tint(_ filter: LauncherFilter) -> Color {
+        switch filter {
+        case .all: Lookout.interaction
+        case .pullRequests: Lookout.pullRequest
+        case .tickets: Lookout.jira
         }
     }
 
@@ -400,6 +446,7 @@ struct LauncherView: View {
         return HStack(spacing: 18) {
             keyHint(["↑", "↓"], "Navigate")
             keyHint(["tab"], "Switch pane")
+            keyHint(["⌘1–3"], "Filter")
             if let focusedRow { keyHint(["↵"], focusedRow.openLabel) }
             Spacer()
             keyHint(["esc"], state.focus == .detail ? "Back" : "Close")

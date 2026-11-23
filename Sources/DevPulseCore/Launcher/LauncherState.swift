@@ -1,11 +1,48 @@
 import Foundation
 
+/// Which kinds of result the launcher's list shows. Sessions show under All only.
+public enum LauncherFilter: CaseIterable, Equatable, Sendable {
+    case all
+    case pullRequests
+    case tickets
+
+    public var title: String {
+        switch self {
+        case .all: "All"
+        case .pullRequests: "PR"
+        case .tickets: "Jira"
+        }
+    }
+
+    /// ⌘1–⌘3 go by the key's place, not by what it types: a Czech layout types + ě š on the top
+    /// row's 1 2 3, with ⌘ too. `numberKeyCode` is a macOS virtual key code; the keypad's 1 2 3
+    /// count as well.
+    public init?(numberKeyCode: UInt16) {
+        switch numberKeyCode {
+        case 18, 83: self = .all
+        case 19, 84: self = .pullRequests
+        case 20, 85: self = .tickets
+        default: return nil
+        }
+    }
+
+    public func matches(_ item: LauncherItem) -> Bool {
+        switch (self, item.kind) {
+        case (.all, _), (.pullRequests, .pullRequest), (.pullRequests, .reviewRequest), (.tickets, .ticket): true
+        default: false
+        }
+    }
+}
+
 /// The quick launcher's list and selection: what is shown, what is selected, and whether the
 /// keyboard is in the result list or in the detail pane next to it.
 ///
 /// While the query stays, the list only grows at the bottom: rows already shown keep their
 /// place (their text may change, a looked-up title say), new ones are appended, so a lookup's
 /// answer never moves the row under the selection.
+///
+/// The filter hides rows without forgetting them: `items` and `selection` are the rows it
+/// shows, and they come back in their places when it shows them again.
 public struct LauncherState: Equatable, Sendable {
     public enum Focus: Equatable, Sendable {
         case list
@@ -13,12 +50,24 @@ public struct LauncherState: Equatable, Sendable {
     }
 
     public private(set) var query = ""
-    public private(set) var items: [LauncherItem] = []
+    public private(set) var filter = LauncherFilter.all
+    /// Every row of the query, the filter's hidden ones too.
+    private var allItems: [LauncherItem] = []
     public private(set) var selection = 0
     public private(set) var focus = Focus.list
     public private(set) var detailSelection = 0
 
     public init() {}
+
+    /// The rows the filter shows.
+    public var items: [LauncherItem] {
+        filter == .all ? allItems : allItems.filter(filter.matches)
+    }
+
+    /// How many rows `filter` would show.
+    public func count(_ filter: LauncherFilter) -> Int {
+        filter == .all ? allItems.count : allItems.count(where: filter.matches)
+    }
 
     public var selectedItem: LauncherItem? {
         items.indices.contains(selection) ? items[selection] : nil
@@ -29,7 +78,7 @@ public struct LauncherState: Equatable, Sendable {
     public mutating func setResults(_ fresh: [LauncherItem], for query: String) {
         guard query == self.query else {
             self.query = query
-            items = fresh
+            allItems = fresh
             selection = 0
             focus = .list
             detailSelection = 0
@@ -37,16 +86,30 @@ public struct LauncherState: Equatable, Sendable {
         }
         let selectedID = selectedItem.map(Self.id)
         let freshByID = Dictionary(fresh.map { (Self.id($0), $0) }) { first, _ in first }
-        var kept = items.compactMap { freshByID[Self.id($0)] }
+        var kept = allItems.compactMap { freshByID[Self.id($0)] }
         let keptIDs = Set(kept.map(Self.id))
         kept += fresh.filter { !keptIDs.contains(Self.id($0)) }
-        let oldSelection = selection
-        items = kept
-        if let selectedID, let index = items.firstIndex(where: { Self.id($0) == selectedID }) {
+        allItems = kept
+        reselect(selectedID, fallback: selection)
+    }
+
+    /// The filter chips and ⌘1–⌘3. The selected row stays selected when the filter shows it.
+    public mutating func setFilter(_ filter: LauncherFilter) {
+        guard filter != self.filter else { return }
+        let selectedID = selectedItem.map(Self.id)
+        self.filter = filter
+        reselect(selectedID, fallback: 0)
+    }
+
+    /// Selects the row `selectedID` again, or the row at `fallback` (kept in the list) when it
+    /// is gone or hidden.
+    private mutating func reselect(_ selectedID: String?, fallback: Int) {
+        let shown = items
+        if let selectedID, let index = shown.firstIndex(where: { Self.id($0) == selectedID }) {
             selection = index
         } else {
             // Another result is selected now: its detail starts from the list.
-            selection = min(oldSelection, max(items.count - 1, 0))
+            selection = min(fallback, max(shown.count - 1, 0))
             focus = .list
             detailSelection = 0
         }

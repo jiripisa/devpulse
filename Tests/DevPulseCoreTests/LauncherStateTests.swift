@@ -154,3 +154,145 @@ private func item(_ name: String, subject: LauncherItem.Subject? = nil, title: S
         #expect(state.target(secondary: false, detail: []) == nil)
     }
 }
+
+private func row(_ name: String, _ kind: LauncherItem.Kind) -> LauncherItem {
+    LauncherItem(
+        title: name, subtitle: "", kind: kind, target: .url(URL(string: "https://\(name).test")!),
+        secondary: .url(URL(string: "https://\(name).test/second")!))
+}
+
+@Suite struct LauncherFilterTests {
+    private let mixed = [
+        row("pr", .pullRequest), row("ticket", .ticket), row("review", .reviewRequest(direct: true)),
+        row("session", .session(.busy)), row("ticket2", .ticket),
+    ]
+
+    @Test func eachFilterKeepsItsKinds() {
+        #expect(mixed.filter(LauncherFilter.all.matches).count == 5)
+        #expect(mixed.filter(LauncherFilter.pullRequests.matches).map(\.title) == ["pr", "review"])
+        #expect(mixed.filter(LauncherFilter.tickets.matches).map(\.title) == ["ticket", "ticket2"])
+    }
+
+    @Test func theListShowsOnlyTheFilteredRowsAndCountsEveryFilter() {
+        var state = LauncherState()
+        state.setResults(mixed, for: "7")
+        state.setFilter(.tickets)
+        #expect(state.items.map(\.title) == ["ticket", "ticket2"])
+        #expect(state.count(.all) == 5)
+        #expect(state.count(.pullRequests) == 2)
+        #expect(state.count(.tickets) == 2)
+    }
+
+    @Test func theSelectedRowStaysSelectedWhenTheFilterKeepsIt() {
+        var state = LauncherState()
+        state.setResults(mixed, for: "7")
+        state.move(4, detailCount: 0)
+        state.setFilter(.tickets)
+        #expect(state.selectedItem?.title == "ticket2")
+        state.setFilter(.all)
+        #expect(state.selectedItem?.title == "ticket2")
+        #expect(state.items.map(\.title) == mixed.map(\.title))
+    }
+
+    @Test func aFilterThatHidesTheSelectedRowStartsAtTheTopOfTheList() {
+        var state = LauncherState()
+        state.setResults(mixed, for: "7")
+        state.toggleFocus(detailCount: 2)
+        state.move(1, detailCount: 2)
+        state.setFilter(.pullRequests)
+        #expect(state.selectedItem?.title == "pr")
+        state.setFilter(.tickets)
+        #expect(state.selection == 0)
+        #expect(state.selectedItem?.title == "ticket")
+        #expect(state.focus == .list)
+        #expect(state.detailSelection == 0)
+    }
+
+    @Test func aFilterThatHidesTheSelectedRowJumpsToTheTopFromLowerDown() {
+        var state = LauncherState()
+        state.setResults(mixed, for: "7")
+        state.move(2, detailCount: 0)
+        #expect(state.selectedItem?.title == "review")
+        state.setFilter(.tickets)
+        #expect(state.selection == 0)
+        #expect(state.selectedItem?.title == "ticket")
+    }
+
+    @Test func theFilterKeepsTheDetailWhenItKeepsTheSelectedRow() {
+        var state = LauncherState()
+        state.setResults(mixed, for: "7")
+        state.move(1, detailCount: 0)
+        state.toggleFocus(detailCount: 3)
+        state.move(2, detailCount: 3)
+        state.setFilter(.tickets)
+        #expect(state.selectedItem?.title == "ticket")
+        #expect(state.focus == .detail)
+        #expect(state.detailSelection == 2)
+    }
+
+    @Test func newResultsDroppingTheSelectedRowUnderAFilterStayWithinTheShownRows() {
+        var state = LauncherState()
+        state.setResults([row("t1", .ticket), row("p1", .pullRequest), row("t2", .ticket)], for: "7")
+        state.setFilter(.tickets)
+        state.move(1, detailCount: 0)
+        state.toggleFocus(detailCount: 1)
+        state.setResults([row("t1", .ticket), row("p1", .pullRequest)], for: "7")
+        #expect(state.items.map(\.title) == ["t1"])
+        #expect(state.selectedItem?.title == "t1")
+        #expect(state.focus == .list)
+        #expect(state.detailSelection == 0)
+    }
+
+    @Test func theFilterOutlivesANewQuery() {
+        var state = LauncherState()
+        state.setResults(mixed, for: "7")
+        state.setFilter(.pullRequests)
+        state.setResults([row("t", .ticket), row("p", .pullRequest)], for: "70")
+        #expect(state.filter == .pullRequests)
+        #expect(state.items.map(\.title) == ["p"])
+        #expect(state.selection == 0)
+    }
+
+    @Test func rowsArrivingUnderAFilterKeepTheSelectionAndTheResolversOrder() {
+        var state = LauncherState()
+        state.setResults([row("t1", .ticket), row("p1", .pullRequest)], for: "7")
+        state.setFilter(.tickets)
+        state.setResults([row("t1", .ticket), row("p1", .pullRequest), row("t2", .ticket)], for: "7")
+        state.move(1, detailCount: 0)
+        #expect(state.selectedItem?.title == "t2")
+        // A PR arriving under the ticket filter neither shows nor moves the selection.
+        state.setResults(
+            [row("t1", .ticket), row("p1", .pullRequest), row("t2", .ticket), row("p2", .pullRequest)], for: "7")
+        #expect(state.items.map(\.title) == ["t1", "t2"])
+        #expect(state.selectedItem?.title == "t2")
+        state.setFilter(.all)
+        #expect(state.items.map(\.title) == ["t1", "p1", "t2", "p2"])
+        #expect(state.selectedItem?.title == "t2")
+    }
+
+    @Test func aFilterWithNoRowsHasNothingSelected() {
+        var state = LauncherState()
+        state.setResults([row("t1", .ticket)], for: "7")
+        state.setFilter(.pullRequests)
+        #expect(state.items.isEmpty)
+        #expect(state.selectedItem == nil)
+        #expect(state.target(secondary: false, detail: []) == nil)
+        state.move(1, detailCount: 0)
+        #expect(state.selection == 0)
+    }
+}
+
+@Suite struct LauncherFilterKeyTests {
+    @Test func theNumberKeysPickTheFilterByPositionWhateverTheLayoutTypes() {
+        // The keys 1, 2 and 3 of the top row, which a Czech layout types as + ě š.
+        #expect(LauncherFilter(numberKeyCode: 18) == .all)
+        #expect(LauncherFilter(numberKeyCode: 19) == .pullRequests)
+        #expect(LauncherFilter(numberKeyCode: 20) == .tickets)
+        // The keypad's 1, 2 and 3.
+        #expect(LauncherFilter(numberKeyCode: 83) == .all)
+        #expect(LauncherFilter(numberKeyCode: 84) == .pullRequests)
+        #expect(LauncherFilter(numberKeyCode: 85) == .tickets)
+        #expect(LauncherFilter(numberKeyCode: 21) == nil)
+        #expect(LauncherFilter(numberKeyCode: 0) == nil)
+    }
+}
