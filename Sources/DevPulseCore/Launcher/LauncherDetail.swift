@@ -16,6 +16,10 @@ public struct LauncherDetail: Equatable, Sendable {
     public var title: String
     public var subtitle: String
     public var sections: [Section]
+    /// The selected result itself, for the detail's header.
+    public var item: LauncherItem
+    /// What the result is, spelled out: "Jira ticket", "Pull request", "Claude Code session".
+    public var heading: String
 
     /// The rows the keyboard moves through, in order.
     public var items: [LauncherItem] { sections.flatMap(\.items) }
@@ -31,7 +35,7 @@ extension LauncherResolver {
         var sections: [LauncherDetail.Section] = []
         // A row that says "Not found" has nothing more to show.
         if isMissing(item.subject, lookup: lookup) {
-            return LauncherDetail(title: item.title, subtitle: item.subtitle, sections: [])
+            return LauncherDetail(title: item.title, subtitle: item.subtitle, sections: [], item: item, heading: heading(item.kind))
         }
         switch item.subject {
         case .ticket(let key)? where !isOn(.github, settings):
@@ -42,7 +46,7 @@ extension LauncherResolver {
             let unreachable = !unanswered.isEmpty && unanswered.allSatisfy(lookup.unreachableSearches.contains)
             let searching = !repos(snapshot: snapshot, settings: settings).isEmpty && !unanswered.isEmpty && !unreachable
             sections.append(LauncherDetail.Section(
-                title: "Pull requests", items: pullRequestRows(for: keys, snapshot: snapshot, lookup: lookup),
+                title: "Pull requests for \(key)", items: pullRequestRows(for: keys, snapshot: snapshot, lookup: lookup),
                 isLoading: searching, emptyText: unreachable ? "GitHub could not be searched" : "No pull requests"))
             sections += relatedSection(of: ticket(key, snapshot: snapshot, lookup: lookup), snapshot: snapshot, settings: settings)
         case .pullRequest(let ref)?:
@@ -56,7 +60,7 @@ extension LauncherResolver {
                     snapshot: snapshot, settings: settings, lookup: lookup)
             }
         }
-        return LauncherDetail(title: item.title, subtitle: item.subtitle, sections: sections)
+        return LauncherDetail(title: item.title, subtitle: item.subtitle, sections: sections, item: item, heading: heading(item.kind))
     }
 
     /// What to ask Jira and GitHub before the detail is complete: a ticket's PRs in the
@@ -90,17 +94,17 @@ extension LauncherResolver {
     private static func ticketSections(
         key: String?, noKey: String, snapshot: Snapshot, settings: AppSettings, lookup: LookupResults
     ) -> [LauncherDetail.Section] {
-        guard let key else { return [LauncherDetail.Section(title: "Ticket", items: [], isLoading: false, emptyText: noKey)] }
+        guard let key else { return [LauncherDetail.Section(title: "Linked ticket", items: [], isLoading: false, emptyText: noKey)] }
         if lookup.missingTickets.contains(key) {
-            return [LauncherDetail.Section(title: "Ticket", items: [], isLoading: false, emptyText: "\(key) is not in Jira")]
+            return [LauncherDetail.Section(title: "Linked ticket", items: [], isLoading: false, emptyText: "\(key) is not in Jira")]
         }
         let found = ticket(key, snapshot: snapshot, lookup: lookup)
         guard let row = found.flatMap(item) ?? ticketLink(key, snapshot: snapshot, site: settings.jiraSite) else {
             return [LauncherDetail.Section(
-                title: "Ticket", items: [], isLoading: false, emptyText: "\(key) · set up Jira in Settings to see it")]
+                title: "Linked ticket", items: [], isLoading: false, emptyText: "\(key) · set up Jira in Settings to see it")]
         }
         let ticketSection = LauncherDetail.Section(
-            title: "Ticket", items: [plain(row)],
+            title: "Linked ticket", items: [plain(row)],
             isLoading: found == nil && isOn(.jira, settings) && !lookup.unreachableTickets.contains(key), emptyText: nil)
         return [ticketSection] + relatedSection(of: found, snapshot: snapshot, settings: settings)
     }
@@ -112,10 +116,13 @@ extension LauncherResolver {
             jiraURL(related.key, snapshot: snapshot, site: settings.jiraSite).map {
                 LauncherItem(
                     title: "\(related.key) \(related.summary)", subtitle: "\(related.relation) · \(related.status)",
-                    kind: .ticket, target: .url($0))
+                    kind: .ticket, target: .url($0), identifier: related.key, name: related.summary,
+                    caption: capitalized(related.relation),
+                    badges: [StatusBadge.ticket(status: related.status, category: related.statusCategory)])
             }
         }
-        return rows.isEmpty ? [] : [LauncherDetail.Section(title: "Related tickets", items: rows, isLoading: false, emptyText: nil)]
+        return rows.isEmpty
+            ? [] : [LauncherDetail.Section(title: "Related to \(ticket.key)", items: rows, isLoading: false, emptyText: nil)]
     }
 
     /// The key asked for, and the ticket's current key when it was moved since.
@@ -150,6 +157,20 @@ extension LauncherResolver {
         let summary = lookup.pullRequests[ref]
             ?? lookup.pullRequestsForTicket.values.lazy.flatMap { $0 }.first { $0.ref == ref }
         return summary?.jiraKey(knownProjects: Set(projects(snapshot: snapshot, settings: settings)))
+    }
+
+    private static func heading(_ kind: LauncherItem.Kind) -> String {
+        switch kind {
+        case .ticket: "Jira ticket"
+        case .pullRequest: "Pull request"
+        case .reviewRequest: "Review request"
+        case .session: "Claude Code session"
+        }
+    }
+
+    /// "is blocked by" → "Is blocked by".
+    private static func capitalized(_ text: String) -> String {
+        text.prefix(1).uppercased() + text.dropFirst()
     }
 
     private static func isMissing(_ subject: LauncherItem.Subject?, lookup: LookupResults) -> Bool {

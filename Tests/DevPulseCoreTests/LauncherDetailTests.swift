@@ -98,7 +98,7 @@ private func row(_ subject: LauncherItem.Subject?, target: OpenTarget = .url(URL
         let result = detail(row(.ticket("STORE-7")), snap, lookup)
         #expect(result.title == "Row")
         #expect(result.subtitle == "Sub")
-        #expect(result.sections.map(\.title) == ["Pull requests", "Related tickets"])
+        #expect(result.sections.map(\.title) == ["Pull requests for STORE-7", "Related to STORE-7"])
         #expect(result.sections.map(\.isLoading) == [false, false])
         #expect(result.items.map(\.title) == ["#5 PR 5", "#9 Api fix", "WA-1 Linked"])
         #expect(result.items.map(\.subtitle) == ["acme/store", "acme/api · Merged", "relates to · Done"])
@@ -108,7 +108,7 @@ private func row(_ subject: LauncherItem.Subject?, target: OpenTarget = .url(URL
     @Test func aTicketsPullRequestsLoadUntilGitHubAnswers() {
         let snap = snapshot(tickets: [ticket("STORE-7")])
         let pending = detail(row(.ticket("STORE-7")), snap)
-        #expect(pending.sections.map(\.title) == ["Pull requests"])
+        #expect(pending.sections.map(\.title) == ["Pull requests for STORE-7"])
         #expect(pending.sections[0].isLoading)
         #expect(request(row(.ticket("STORE-7")), snap)
             == LookupRequest(pullRequestSearches: [PullRequestSearch(key: "STORE-7", repos: ["acme/store", "acme/api"])]))
@@ -142,7 +142,7 @@ private func row(_ subject: LauncherItem.Subject?, target: OpenTarget = .url(URL
         off.sourceEnabled[.github] = false
         let snap = snapshot(tickets: [ticket("STORE-7", related: [relates])])
         let ticketDetail = detail(row(.ticket("STORE-7")), snap, settings: off)
-        #expect(ticketDetail.sections.map(\.title) == ["Related tickets"])
+        #expect(ticketDetail.sections.map(\.title) == ["Related to STORE-7"])
         #expect(request(row(.ticket("STORE-7")), snap, settings: off).isEmpty)
         var jiraOff = settings()
         jiraOff.sourceEnabled[.jira] = false
@@ -169,7 +169,7 @@ private func row(_ subject: LauncherItem.Subject?, target: OpenTarget = .url(URL
         let snap = snapshot(mine: [pr("acme/store", 5, key: "STORE-7")], linked: [ticket("STORE-7", "Seven", related: [relates])])
         let item = row(.pullRequest(PullRequestRef(repo: "acme/store", number: 5)))
         let result = detail(item, snap)
-        #expect(result.sections.map(\.title) == ["Ticket", "Related tickets"])
+        #expect(result.sections.map(\.title) == ["Linked ticket", "Related to STORE-7"])
         #expect(result.items.map(\.title) == ["STORE-7 Seven", "WA-1 Linked"])
         #expect(request(item, snap).isEmpty)
     }
