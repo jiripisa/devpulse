@@ -410,17 +410,17 @@ gh auth login</code></pre>
       <section id="launcher">
         <h2>The quick launcher</h2>
         <p>Press <kbd>⌥</kbd><kbd>Space</kbd> anywhere to open a search panel
-        in the middle of the screen. Type a number to find it everywhere,
+        in the middle of the screen. Type a number or words from a title to find them everywhere,
         <code>gh</code> for pull requests or <code>jira</code> for tickets; the
         shortcut can be changed in
         <a href="#general">General settings</a>. The results are on the left,
         and on the right is the detail of the selected one.</p>
         <figure class="fig">
-          <div class="view" style="--iw:2080;--ih:1208">
+          <div class="view" style="--iw:2080;--ih:1222">
             <img src="assets/manual/devpulse-launcher.png" alt="The quick launcher for the query gh: pull requests on the left, the selected pull request's ticket and related tickets on the right">
             <span class="mark" style="--x:14.5;--y:1.5;--w:79.5;--h:8"><b>1</b></span>
-            <span class="mark" style="--x:0.5;--y:11.3;--w:41.2;--h:81.8"><b>2</b></span>
-            <span class="mark" style="--x:42.4;--y:11.3;--w:57.1;--h:81.8"><b>3</b></span>
+            <span class="mark" style="--x:0.5;--y:12.5;--w:41.2;--h:80.5"><b>2</b></span>
+            <span class="mark" style="--x:42.4;--y:12.5;--w:57.1;--h:80.5"><b>3</b></span>
             <span class="mark" style="--x:0.5;--y:94;--w:99;--h:5.5"><b>4</b></span>
           </div>
           <figcaption>The launcher after typing <code>gh</code>.</figcaption>
@@ -429,7 +429,8 @@ gh auth login</code></pre>
           <dt><span class="n">1</span>Search field</dt>
           <dd>Next to the DevPulse mark. Type a query from the table below. Until
           you do, the panel is just this bar, like Spotlight, with the hint
-          <span class="ui">Number, gh … or jira …</span> in light grey.</dd>
+          <span class="ui">Number, words, gh … or jira …</span> in light grey. The bar is
+          Liquid Glass, like Spotlight's; the results sit on a card below it.</dd>
           <dt><span class="n">2</span>Results</dt>
           <dd>Up to 20 rows. As in the popover, a row says what it is with its icon
           and coloured label (<span class="ui">PR</span>, <span class="ui">Review</span>,
@@ -463,15 +464,22 @@ gh auth login</code></pre>
           you are in the detail.</dd>
         </dl>
         <figure class="fig">
-          <div class="view" style="--iw:2080;--ih:1208">
+          <div class="view" style="--iw:2080;--ih:1222">
             <img src="assets/manual/devpulse-launcher-number.png" alt="The quick launcher for the number 2290: a review request, a Jira ticket and a Claude Code session; on the right the session's ticket and its related tickets">
           </div>
           <figcaption>A bare number finds everything with it: here the review request #2290, the ticket STORE-2290 and the session in <code>store-2290-statement</code>, whose ticket shows on the right.</figcaption>
+        </figure>
+        <figure class="fig">
+          <div class="view" style="--iw:2080;--ih:1222">
+            <img src="assets/manual/devpulse-launcher-words.png" alt="The quick launcher for the word invoice: a pull request and a Jira ticket with invoice in the title">
+          </div>
+          <figcaption>Words find titles: <code>invoice</code> finds the pull request and the ticket with it in the title.</figcaption>
         </figure>
         <div class="table">
           <table>
             <thead><tr><th>Type</th><th>Result</th></tr></thead>
             <tbody>
+              <tr><td><code>invoice order</code></td><td>Words from a title, in any case and with or without accents: first your pull requests and review requests, your tickets and your pull requests' tickets, and the Claude Code sessions that have every word in their title, key, repository or folder. Then, once you stop typing, the tickets of your <a href="#jira">projects</a> with every word in the summary and the pull requests of your <a href="#github">repositories</a> with every word in the title, as Jira and GitHub find them. From two characters.</td></tr>
               <tr><td><code>2474</code></td><td>Everything with that number: your pull requests and review requests numbered 2474 in any repository, then your tickets and your pull requests' tickets numbered 2474 in any project (<code>STORE-2474</code>, <code>WA-2474</code>), then the Claude Code sessions whose Jira key or folder name has that number (<code>store-2474-fix</code>, but not <code>store-24740</code>). Then pull request 2474 of each of your <a href="#github">repositories</a> and ticket 2474 of each of your <a href="#jira">projects</a>, as soon as GitHub and Jira confirm that they exist.</td></tr>
               <tr><td><code>gh</code></td><td>Your pull requests, then your review requests.</td></tr>
               <tr><td><code>gh invoice</code></td><td>Those whose title or repository contains the text.</td></tr>
@@ -497,7 +505,7 @@ gh auth login</code></pre>
           </table>
         </div>
         <figure class="fig">
-          <div class="view" style="--iw:2080;--ih:1208">
+          <div class="view" style="--iw:2080;--ih:1222">
             <img src="assets/manual/devpulse-launcher-detail.png" alt="The quick launcher for the number 2474: the ticket STORE-2474, and on the right its pull request #812 and two related tickets">
           </div>
           <figcaption>The detail of the ticket STORE-2474: its pull request #812, the ticket that blocks it and one it relates to.</figcaption>
@@ -569,11 +577,12 @@ gh auth login</code></pre>
         <p><span class="ui">Settings… › General</span>:</p>
         <figure class="fig" style="max-width:34rem">
           <div class="view" style="--iw:1040;--ih:900;--zh:77">
-            <img src="assets/manual/devpulse-settings-general.png" alt="The General tab of Settings: refresh interval, launch at login, launcher shortcut and command line tool">
-            <span class="mark" style="--x:3.8;--y:28.5;--w:92.3;--h:9.2"><b>1</b></span>
-            <span class="mark" style="--x:3.8;--y:37.7;--w:92.3;--h:8"><b>2</b></span>
-            <span class="mark" style="--x:3.8;--y:48;--w:92.3;--h:8.8"><b>3</b></span>
-            <span class="mark" style="--x:3.8;--y:59.1;--w:92.3;--h:7.9"><b>4</b></span>
+            <img src="assets/manual/devpulse-settings-general.png" alt="The General tab of Settings: refresh interval, launch at login, appearance, launcher shortcut and command line tool">
+            <span class="mark" style="--x:3.8;--y:28.6;--w:92.3;--h:9"><b>1</b></span>
+            <span class="mark" style="--x:3.8;--y:37.6;--w:92.3;--h:8"><b>2</b></span>
+            <span class="mark" style="--x:3.8;--y:48;--w:92.3;--h:8.7"><b>3</b></span>
+            <span class="mark" style="--x:3.8;--y:59.1;--w:92.3;--h:8.7"><b>4</b></span>
+            <span class="mark" style="--x:3.8;--y:70.2;--w:92.3;--h:7.8"><b>5</b></span>
           </div>
           <figcaption>The General tab with the default settings and the command line tool installed.</figcaption>
         </figure>
@@ -587,7 +596,11 @@ gh auth login</code></pre>
           <dd>Starts DevPulse when you log in; on by default. If macOS wants
           your approval, a line points to <span class="ui">System Settings ›
           General › Login Items</span>.</dd>
-          <dt><span class="n">3</span>Quick launcher shortcut</dt>
+          <dt><span class="n">3</span>Appearance</dt>
+          <dd><span class="ui">System</span> (the default) follows the Mac's light or
+          dark appearance; <span class="ui">Light</span> and <span class="ui">Dark</span>
+          keep DevPulse's popover, launcher and windows in that one.</dd>
+          <dt><span class="n">4</span>Quick launcher shortcut</dt>
           <dd>Shows the current shortcut, <span class="ui">⌥Space</span> by
           default. Click it, then press the new shortcut, or <kbd>Esc</kbd> to
           cancel. A shortcut without <kbd>⌘</kbd>, <kbd>⌥</kbd> or <kbd>⌃</kbd>
@@ -596,7 +609,7 @@ gh auth login</code></pre>
           which belong to Spotlight; the recorder then waits for another
           shortcut. If another app already uses it, a red line says so; pick a
           different one.</dd>
-          <dt><span class="n">4</span>Command line tool</dt>
+          <dt><span class="n">5</span>Command line tool</dt>
           <dd><span class="ui">Install</span>, <span class="ui">Replace</span>
           or the installed path; see <a href="#cli">Command line tool</a>.</dd>
         </dl>

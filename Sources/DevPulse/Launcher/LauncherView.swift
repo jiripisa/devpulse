@@ -48,15 +48,18 @@ struct LauncherView: View {
     private static let contentHeight: CGFloat = 500
     private static let keyLineHeight: CGFloat = 38
     private static let cornerRadius: CGFloat = 18
+    /// The gap between the glass search bar and the results card under it.
+    private static let gap: CGFloat = 8
     /// How long typing pauses before Jira and GitHub are asked about the results.
     private static let lookupDelay: Duration = .milliseconds(300)
     /// How long the selection rests before the detail asks for what it does not know.
     private static let detailDelay: Duration = .milliseconds(150)
 
-    /// The panel height: the search bar alone, like Spotlight, or the bar over both panes and
-    /// the key line. Fixed while results show, so the panel does not resize as they come in.
+    /// The panel height: the search bar alone, like Spotlight, or the bar over the card with
+    /// both panes and the key line. Fixed while results show, so the panel does not resize as
+    /// they come in.
     static func height(showsContent: Bool) -> CGFloat {
-        toolbarHeight + (showsContent ? 1 + contentHeight + 1 + keyLineHeight : 0)
+        toolbarHeight + (showsContent ? gap + contentHeight + 1 + keyLineHeight : 0)
     }
 
     private var parsed: LauncherQuery { .parse(query) }
@@ -90,24 +93,26 @@ struct LauncherView: View {
     var body: some View {
         let detail = detail
         let detailItems = detail?.items ?? []
-        VStack(spacing: 0) {
+        VStack(spacing: Self.gap) {
             toolbar(detailItems: detailItems)
             if showsContent {
-                Rectangle().fill(Lookout.divider).frame(height: 1)
-                HStack(spacing: 0) {
-                    results.frame(width: Self.listWidth)
-                    Rectangle().fill(Lookout.divider).frame(width: 1)
-                    detailPane(detail)
+                VStack(spacing: 0) {
+                    HStack(spacing: 0) {
+                        results.frame(width: Self.listWidth)
+                        Rectangle().fill(Lookout.divider).frame(width: 1)
+                        detailPane(detail)
+                    }
+                    .frame(height: Self.contentHeight)
+                    Rectangle().fill(Lookout.divider).frame(height: 1)
+                    keyLine(detailItems: detailItems)
                 }
-                .frame(height: Self.contentHeight)
-                Rectangle().fill(Lookout.divider).frame(height: 1)
-                keyLine(detailItems: detailItems)
+                .background(Lookout.surface)
+                .clipShape(RoundedRectangle(cornerRadius: Self.cornerRadius))
+                .overlay(RoundedRectangle(cornerRadius: Self.cornerRadius).strokeBorder(Lookout.divider))
             }
         }
         .frame(width: Self.width, height: Self.height(showsContent: showsContent), alignment: .top)
-        .background(Lookout.surface)
-        .clipShape(RoundedRectangle(cornerRadius: Self.cornerRadius))
-        .overlay(RoundedRectangle(cornerRadius: Self.cornerRadius).strokeBorder(Lookout.divider))
+        .background { demoBackdrop }
         .onAppear { focused = true }
         // Not before: a field that takes focus with text in it selects all of it.
         .onChange(of: focused) { if focused, query.isEmpty { query = initialQuery } }
@@ -125,26 +130,35 @@ struct LauncherView: View {
         .task(id: detailRequest) { await lookUpDetail() }
     }
 
+    /// DEBUG demo only (`-DevPulseDemoBackdrop YES`): a gradient inside the panel, under the
+    /// glass, so a screenshot of the panel's window shows the glass over it. The glass otherwise
+    /// blends with what is behind the window, which a window's screenshot does not hold.
+    @ViewBuilder
+    private var demoBackdrop: some View {
+        #if DEBUG
+        if UserDefaults.standard.bool(forKey: "DevPulseDemoBackdrop") {
+            LinearGradient(
+                colors: [Color(red: 0.20, green: 0.55, blue: 0.58), Color(red: 0.13, green: 0.22, blue: 0.40)],
+                startPoint: .topLeading, endPoint: .bottomTrailing)
+        }
+        #endif
+    }
+
     // MARK: Toolbar
 
-    /// The DevPulse mark, the search field and Esc: all there is until something is typed.
+    /// The DevPulse mark, the search field and Esc on Liquid Glass, like Spotlight's bar: all
+    /// there is until something is typed.
     private func toolbar(detailItems: [LauncherItem]) -> some View {
         HStack(spacing: 14) {
             BrandMark()
             Rectangle().fill(Lookout.divider).frame(width: 1, height: 26)
-            HStack(spacing: 10) {
-                Image(systemName: "magnifyingglass").foregroundStyle(Lookout.secondary)
-                field(detailItems: detailItems)
-            }
-            .padding(.horizontal, 12)
-            .frame(height: 40)
-            .background(Lookout.surface, in: RoundedRectangle(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Lookout.divider))
+            Image(systemName: "magnifyingglass").font(.system(size: 17)).foregroundStyle(Lookout.secondary)
+            field(detailItems: detailItems)
             Keycap(text: "esc")
         }
-        .padding(.horizontal, 18)
+        .padding(.horizontal, 20)
         .frame(height: Self.toolbarHeight)
-        .background(Lookout.chrome)
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: Self.cornerRadius))
     }
 
     private func field(detailItems: [LauncherItem]) -> some View {

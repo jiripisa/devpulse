@@ -54,6 +54,12 @@ private struct GeneralSettingsView: View {
                 }
             }
             Section {
+                Picker("Appearance", selection: $model.settings.appearance) {
+                    ForEach(AppAppearance.allCases, id: \.self) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.segmented)
+            }
+            Section {
                 LabeledContent("Quick launcher shortcut") {
                     HotkeyRecorder(hotkey: $model.settings.hotkey)
                 }
