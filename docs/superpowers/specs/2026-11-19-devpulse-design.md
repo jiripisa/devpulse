@@ -327,6 +327,20 @@ Code's "Install 'code' command in PATH".
 A floating, non-activating panel (`NSPanel`) opens on a global hotkey. The default is ⌥Space; it is
 configurable in Settings and must not collide with the system Spotlight shortcut.
 
+Two panes (since 0.13): the results on the left, the detail of the selected result on the right. The
+results never move under the selection: for one query they are only appended (`LauncherState`), and a
+guess (a bare number's PR in each repository, ticket in each project) shows only once GitHub or Jira
+confirms it, with "Searching Jira and GitHub…" below meanwhile. What the query names outright
+(`gh <n>`'s first repository, `jira <KEY>`, `jira <n>`'s first project) shows at once. The detail:
+for a ticket its PRs (mine and review requests linked to it, plus one GitHub search
+`"KEY" in:title,body is:pr repo:…` over the repositories) and related tickets; for a PR or a session
+its ticket (looked up when unknown) and that ticket's related tickets; up to 10 rows each, with
+"Loading…" until Jira or GitHub answers and a note when they cannot be reached. Tab / Shift-Tab move
+between the panes; Esc leaves the detail, then closes. The mouse selects only when it really moves.
+A ticket moved to another project shows its new key with "Moved from <asked key>". A lookup that
+fails (not one cut off because the selection moved on) shows the guess as "Open …" with "Jira / GitHub
+could not be reached"; a source switched off in Settings is never asked.
+
 | Typed | Result |
 |---|---|
 | `<number>` | everything with that number: my PRs and review requests in any repo, my tickets and my PRs' tickets in any project, sessions whose key or folder has it; then the PR in each of the Settings' GitHub repositories and the ticket in each of its Jira projects (up to 10 each; empty = the repos of my PRs / projects of my tickets). Those rows are looked up after a 300 ms typing pause (one Jira bulk fetch for all keys, one GitHub GraphQL request with an aliased `repository { pullRequest }` per repo, answers cached 5 min) to show title and state; ones that do not exist are dropped |
@@ -338,8 +352,7 @@ configurable in Settings and must not collide with the system Spotlight shortcut
 | `jira <text>` | filters by summary |
 | `jira <KEY-123>` | opens that ticket, even if it is not in my list; looked up like a bare number's rows, and "Not found in Jira" when it does not exist |
 | `jira <123>` | ticket 123 of each Jira project in Settings; the first project's row stays (as "Not found") when it does not exist. Without projects: those of my tickets, most tickets first. |
-| (rest on a row) | after the selection was moved (arrows or mouse) and rests 500 ms on a ticket or PR, indented child rows open under it: a ticket's PRs (mine and review requests linked to it, plus one GitHub GraphQL search `"KEY" is:pr repo:…` over the Settings repositories, cached 5 min) and related tickets; a PR's ticket (looked up if unknown) and that ticket's related tickets. Up to 10 PRs and 10 related tickets; children do not expand. Resting on another result folds them in the same step as it expands (folding earlier would shift rows under a moving mouse). A moved ticket expands by the key asked for and lists the PRs of both keys. The search is limited to `in:title,body`. |
-| `Esc` | closes the panel |
+| `Esc` | leaves the detail, then closes the panel |
 | `⌘Enter` | opens the linked Jira ticket of a PR |
 
 ## 6. Approaches considered

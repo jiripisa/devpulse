@@ -33,11 +33,48 @@ final class LauncherPanelController {
             },
             onClose: { [weak self] in self?.close() },
             onHeight: { [weak panel] height in panel?.setContentHeight(height) }))
-        panel.setContentHeight(LauncherView.height(rows: 0))
+        panel.setContentHeight(LauncherView.height(showsContent: false))
         panel.center(on: NSScreen.screens.first { $0.frame.contains(NSEvent.mouseLocation) } ?? NSScreen.main)
         self.panel = panel
         panel.makeKeyAndOrderFront(nil)
+        #if DEBUG
+        playDemoKeys(into: panel)
+        #endif
     }
+
+    #if DEBUG
+    /// `-DevPulseDemoKeys tab,down,…` (DEBUG demo only): presses these keys inside this panel
+    /// once the results are there, through the panel's own event dispatch, so the text field's
+    /// real key handling runs. Nothing goes to the system or to another app.
+    private func playDemoKeys(into panel: NSPanel) {
+        guard let list = UserDefaults.standard.string(forKey: "DevPulseDemoKeys") else { return }
+        let keys = list.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak panel] in
+            guard let panel else { return }
+            for name in keys {
+                guard let key = Self.demoKey(name) else { fatalError("-DevPulseDemoKeys: no key \(name)") }
+                for type in [NSEvent.EventType.keyDown, .keyUp] {
+                    let event = NSEvent.keyEvent(
+                        with: type, location: .zero, modifierFlags: key.flags, timestamp: ProcessInfo.processInfo.systemUptime,
+                        windowNumber: panel.windowNumber, context: nil, characters: key.characters,
+                        charactersIgnoringModifiers: key.characters, isARepeat: false, keyCode: key.code)
+                    if let event { panel.sendEvent(event) }
+                }
+            }
+        }
+    }
+
+    private static func demoKey(_ name: String) -> (code: UInt16, characters: String, flags: NSEvent.ModifierFlags)? {
+        func function(_ value: Int) -> String { String(Character(UnicodeScalar(value)!)) }
+        switch name {
+        case "tab": return (48, "\t", [])
+        case "backtab": return (48, "\u{19}", [.shift])
+        case "down": return (125, function(NSDownArrowFunctionKey), [.numericPad, .function])
+        case "up": return (126, function(NSUpArrowFunctionKey), [.numericPad, .function])
+        default: return nil
+        }
+    }
+    #endif
 
     func close() {
         guard let panel else { return }
@@ -50,7 +87,7 @@ final class LauncherPanelController {
 }
 
 private final class LauncherPanel: NSPanel {
-    static let width: CGFloat = 640
+    static let width = LauncherView.width
     var onClose: (() -> Void)?
     /// The top edge stays where it is while the list grows and shrinks.
     private var top: CGFloat?

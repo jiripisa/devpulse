@@ -112,6 +112,11 @@ public struct LookupResults: Equatable, Sendable {
     public var missingPullRequests: Set<PullRequestRef> = []
     /// The PRs GitHub's search found for a ticket key.
     public var pullRequestsForTicket: [String: [PullRequestSummary]] = [:]
+    /// The keys whose last lookup or PR search failed (offline, a source switched off): the
+    /// detail stops waiting for them.
+    public var unreachableTickets: Set<String> = []
+    public var unreachablePullRequests: Set<PullRequestRef> = []
+    public var unreachableSearches: Set<String> = []
 
     public init() {}
 }
@@ -172,11 +177,23 @@ public final class LauncherLookup {
         _ = await (tickets, pullRequests, searched)
     }
 
+    /// A lookup given up (the launcher moved on or closed) says nothing about Jira or GitHub.
+    private static func isCancellation(_ error: any Error) -> Bool {
+        error is CancellationError || (error as? URLError)?.code == .cancelled || Task.isCancelled
+    }
+
     private func search(_ searches: [PullRequestSearch]) async {
         for search in searches {
             searchesInFlight.insert(search)
             defer { searchesInFlight.remove(search) }
-            guard let found = try? await searchPullRequests(search) else { continue }
+            let found: [PullRequestSummary]
+            do {
+                found = try await searchPullRequests(search)
+            } catch {
+                if !Self.isCancellation(error) { results.unreachableSearches.insert(search.key) }
+                continue
+            }
+            results.unreachableSearches.remove(search.key)
             searchedAt[search] = now()
             results.pullRequestsForTicket[search.key] = found
         }
@@ -186,7 +203,14 @@ public final class LauncherLookup {
         guard !keys.isEmpty else { return }
         ticketsInFlight.formUnion(keys)
         defer { ticketsInFlight.subtract(keys) }
-        guard let answer = try? await fetchTickets(keys) else { return }
+        let answer: TicketLookup
+        do {
+            answer = try await fetchTickets(keys)
+        } catch {
+            if !Self.isCancellation(error) { results.unreachableTickets.formUnion(keys) }
+            return
+        }
+        results.unreachableTickets.subtract(keys)
         let byKey = Dictionary(answer.tickets.map { ($0.key, $0) }) { first, _ in first }
         // A ticket moved to another project comes back under its new key: when exactly one
         // asked-for key is unaccounted for and exactly one ticket was not asked for, they are
@@ -212,7 +236,14 @@ public final class LauncherLookup {
         guard !refs.isEmpty else { return }
         pullRequestsInFlight.formUnion(refs)
         defer { pullRequestsInFlight.subtract(refs) }
-        guard let answer = try? await fetchPullRequests(refs) else { return }
+        let answer: PullRequestLookup
+        do {
+            answer = try await fetchPullRequests(refs)
+        } catch {
+            if !Self.isCancellation(error) { results.unreachablePullRequests.formUnion(refs) }
+            return
+        }
+        results.unreachablePullRequests.subtract(refs)
         let moment = now()
         for ref in refs {
             pullRequestsFetchedAt[ref] = moment
@@ -228,13 +259,3 @@ public final class LauncherLookup {
     }
 }
 
-/// Where the launcher's selection goes when its rows change while the query stays: a lookup
-/// can add titles or drop rows under the selection.
-public enum LauncherSelection {
-    /// The new index of the row that was selected, when it is still listed; else the old index,
-    /// clamped to the new rows.
-    public static func index<Row: Equatable>(keeping selection: Int, from old: [Row], to new: [Row]) -> Int {
-        if old.indices.contains(selection), let moved = new.firstIndex(of: old[selection]) { return moved }
-        return min(selection, max(new.count - 1, 0))
-    }
-}

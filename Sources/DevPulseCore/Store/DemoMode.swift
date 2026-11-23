@@ -7,8 +7,8 @@ import Foundation
 /// What a demo opens at launch, from `-DevPulseDemoOpen <what>`: no hotkey and no click on the
 /// menu bar needed.
 public enum DemoOpen: Equatable, Sendable {
-    /// The launcher panel with this query typed in, and with the row `select` selected as if the
-    /// user had moved there, so it expands.
+    /// The launcher panel with this query typed in, and with the row `select` selected, so its
+    /// detail shows.
     case launcher(query: String, select: Int? = nil)
     /// The popover's content in a plain window at its real size.
     case popover

@@ -95,19 +95,22 @@ final class AppModel {
             appVersion: version)
         weakStore = store
         self.store = store
-        // The demo never talks to Jira or GitHub: its rows stay "Open …".
+        // The demo never talks to Jira or GitHub: anything not in its snapshot does not exist.
         let isDemo = demo != nil
         launcherLookup = LauncherLookup(
             fetchTickets: { [weak store] keys in
-                guard !isDemo, let store else { throw LookupUnavailable() }
+                if isDemo { return TicketLookup(tickets: [], missingKeys: Set(keys)) }
+                guard let store else { throw LookupUnavailable() }
                 return try await store.lookUpTickets(keys: keys)
             },
             fetchPullRequests: { [weak store] refs in
-                guard !isDemo, let store else { throw LookupUnavailable() }
+                if isDemo { return PullRequestLookup(missing: Set(refs)) }
+                guard let store else { throw LookupUnavailable() }
                 return try await store.lookUpPullRequests(refs)
             },
             searchPullRequests: { [weak store] search in
-                guard !isDemo, let store else { throw LookupUnavailable() }
+                if isDemo { return [] }
+                guard let store else { throw LookupUnavailable() }
                 return try await store.searchPullRequests(search)
             })
         snapshot = demo ?? store.snapshot

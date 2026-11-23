@@ -84,7 +84,11 @@ private final class FakeLookups: Sendable {
         let lookup = fake.lookup()
         let request = LookupRequest(ticketKeys: ["WA-7"], pullRequests: [store])
         await lookup.resolve(request)
-        #expect(lookup.results == LookupResults())
+        // Nothing found or missing is remembered; only that Jira and GitHub could not be reached.
+        var expected = LookupResults()
+        expected.unreachableTickets = ["WA-7"]
+        expected.unreachablePullRequests = [store]
+        #expect(lookup.results == expected)
         await lookup.resolve(request)
         #expect(fake.ticketCalls.withLock { $0.count } == 2)
         #expect(fake.pullRequestCalls.withLock { $0.count } == 2)
@@ -163,6 +167,44 @@ private final class FakeLookups: Sendable {
         #expect(fake.searchCalls.withLock { $0.count } == 2)
     }
 
+    @Test func aFailedLookupIsMarkedUnreachableUntilOneSucceeds() async {
+        let fake = FakeLookups()
+        fake.tickets.withLock { $0 = .failure(Offline()) }
+        fake.searches.withLock { $0 = .failure(Offline()) }
+        let lookup = fake.lookup(ttl: 0)
+        let search = PullRequestSearch(key: "STORE-7", repos: ["acme/store"])
+        await lookup.resolve(LookupRequest(ticketKeys: ["WA-7"], pullRequestSearches: [search]))
+        #expect(lookup.results.unreachableTickets == ["WA-7"])
+        #expect(lookup.results.unreachableSearches == ["STORE-7"])
+        fake.tickets.withLock { $0 = .success(TicketLookup(tickets: [makeTicket(key: "WA-7")], missingKeys: [])) }
+        fake.searches.withLock { $0 = .success([]) }
+        await lookup.resolve(LookupRequest(ticketKeys: ["WA-7"], pullRequestSearches: [search]))
+        #expect(lookup.results.unreachableTickets.isEmpty)
+        #expect(lookup.results.unreachableSearches.isEmpty)
+    }
+
+    @Test func aCancelledLookupIsNotUnreachable() async {
+        let fake = FakeLookups()
+        fake.tickets.withLock { $0 = .failure(CancellationError()) }
+        fake.searches.withLock { $0 = .failure(URLError(.cancelled)) }
+        fake.pullRequests.withLock { $0 = .failure(CancellationError()) }
+        let lookup = fake.lookup()
+        let search = PullRequestSearch(key: "STORE-7", repos: ["acme/store"])
+        await lookup.resolve(LookupRequest(ticketKeys: ["WA-7"], pullRequests: [store], pullRequestSearches: [search]))
+        #expect(lookup.results == LookupResults())
+    }
+
+    @Test func aFailedPullRequestLookupIsUnreachable() async {
+        let fake = FakeLookups()
+        fake.pullRequests.withLock { $0 = .failure(Offline()) }
+        let lookup = fake.lookup(ttl: 0)
+        await lookup.resolve(LookupRequest(pullRequests: [store]))
+        #expect(lookup.results.unreachablePullRequests == [store])
+        fake.pullRequests.withLock { $0 = .success(PullRequestLookup()) }
+        await lookup.resolve(LookupRequest(pullRequests: [store]))
+        #expect(lookup.results.unreachablePullRequests.isEmpty)
+    }
+
     @Test func aFailedSearchRemembersNothing() async {
         let fake = FakeLookups()
         fake.searches.withLock { $0 = .failure(Offline()) }
@@ -174,6 +216,7 @@ private final class FakeLookups: Sendable {
         #expect(lookup.results.pullRequestsForTicket.isEmpty)
     }
 
+
     @Test func anEmptyRequestAsksNothing() async {
         let fake = FakeLookups()
         await fake.lookup().resolve(LookupRequest())
@@ -182,28 +225,3 @@ private final class FakeLookups: Sendable {
     }
 }
 
-@Suite struct LauncherSelectionTests {
-    private let a = OpenTarget.url(URL(string: "https://a.test")!)
-    private let b = OpenTarget.url(URL(string: "https://b.test")!)
-    private let c = OpenTarget.url(URL(string: "https://c.test")!)
-
-    @Test func keepsTheSelectedRowWhenRowsAboveItGo() {
-        #expect(LauncherSelection.index(keeping: 2, from: [a, b, c], to: [a, c]) == 1)
-        #expect(LauncherSelection.index(keeping: 0, from: [a, b], to: [b, a]) == 1)
-    }
-
-    @Test func keepsTheSelectedRowByIdWhenChildrenFold() {
-        let open = ["a", "a>x", "a>y", "b"]
-        let folded = ["a", "b"]
-        #expect(LauncherSelection.index(keeping: 3, from: open, to: folded) == 1)
-        #expect(LauncherSelection.index(keeping: 0, from: folded, to: open) == 0)
-        #expect(LauncherSelection.index(keeping: 1, from: folded, to: ["a", "b>x", "b"]) == 2)
-    }
-
-    @Test func clampsWhenTheSelectedRowIsGone() {
-        #expect(LauncherSelection.index(keeping: 2, from: [a, b, c], to: [a, b]) == 1)
-        #expect(LauncherSelection.index(keeping: 1, from: [a, b], to: [c, a]) == 1)
-        #expect(LauncherSelection.index(keeping: 1, from: [a, b], to: []) == 0)
-        #expect(LauncherSelection.index(keeping: 5, from: [a], to: [a, b]) == 1)
-    }
-}
