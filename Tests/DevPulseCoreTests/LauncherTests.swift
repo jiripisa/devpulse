@@ -111,8 +111,9 @@ private func url(_ string: String) -> OpenTarget { .url(URL(string: string)!) }
 
     @Test func ghNumberPrefillsTheDefaultRepoFromTheMostFrequentOne() {
         let snap = snapshot(mine: [makePR(repo: "a/x", number: 1), makePR(repo: "b/y", number: 2), makePR(repo: "b/y", number: 3)])
-        #expect(items("gh 999", snap).map(\.target)
-            == [url("https://github.com/b/y/pull/999"), url("https://github.com/a/x/pull/999")])
+        // Only the first repository's row shows at once; the others are guesses until GitHub
+        // confirms them.
+        #expect(items("gh 999", snap).map(\.target) == [url("https://github.com/b/y/pull/999")])
         // An explicit default wins and is not written back.
         var settings = AppSettings()
         settings.githubRepos = ["a/x"]
@@ -174,9 +175,7 @@ private func url(_ string: String) -> OpenTarget { .url(URL(string: string)!) }
 
     @Test func jiraNumberPrefillsTheDefaultProjectFromTheMostFrequentOne() {
         let snap = snapshot(tickets: ["WA-1", "STORE-2", "STORE-3"].map { makeTicket(key: $0) })
-        #expect(items("jira 2290", snap).map(\.target) == [
-            url("https://acme.atlassian.net/browse/STORE-2290"), url("https://acme.atlassian.net/browse/WA-2290"),
-        ])
+        #expect(items("jira 2290", snap).map(\.target) == [url("https://acme.atlassian.net/browse/STORE-2290")])
         #expect(items("jira 2290", snapshot()).isEmpty)
     }
 
@@ -255,10 +254,8 @@ private func url(_ string: String) -> OpenTarget { .url(URL(string: string)!) }
                 session(pid: 1, cwd: "/work/store-2474"), session(pid: 2, cwd: "/work/x", jiraKey: "STORE-2474"),
                 session(pid: 3, cwd: "/work/1247"), session(pid: 4, cwd: "/work/v247-b"),
             ])
-        // Only the session matches; the rest are the fallbacks (most frequent repo and project).
-        #expect(items("247", snap).map(\.target) == [
-            .session(pid: 4), url("https://github.com/acme/app/pull/247"), url("https://acme.atlassian.net/browse/STORE-247"),
-        ])
+        // Only the session matches; the repo's and project's 247 are guesses, not shown unless found.
+        #expect(items("247", snap).map(\.target) == [.session(pid: 4)])
     }
 
     @Test func listsPullRequestsThenTicketsThenSessions() {
@@ -268,12 +265,20 @@ private func url(_ string: String) -> OpenTarget { .url(URL(string: string)!) }
         #expect(items("12", snap).map(\.kind) == [.reviewRequest(direct: false), .ticket, .session(.idle)])
     }
 
-    @Test func addsFallbackRowsForTheDefaultRepoAndProject() {
+    @Test func guessesForTheRepoAndProjectShowOnlyOnceFound() {
         var settings = AppSettings()
         settings.githubRepos = ["acme/store"]
         settings.jiraProjects = ["STORE"]
-        let result = items("2474", snapshot(), settings)
-        #expect(result.map(\.title) == ["Open acme/store#2474", "Open STORE-2474"])
+        #expect(items("2474", snapshot(), settings).isEmpty)
+        let ref = PullRequestRef(repo: "acme/store", number: 2474)
+        var lookup = LookupResults()
+        lookup.pullRequests[ref] = PullRequestSummary(
+            repo: "acme/store", number: 2474, title: "Checkout", state: .open, url: "https://github.com/acme/store/pull/2474")
+        var ticket = makeTicket(key: "STORE-2474")
+        ticket.summary = "Fix"
+        lookup.tickets["STORE-2474"] = ticket
+        let result = LauncherResolver.items(for: .parse("2474"), snapshot: snapshot(), settings: settings, lookup: lookup)
+        #expect(result.map(\.title) == ["#2474 Checkout", "STORE-2474 Fix"])
         #expect(result.map(\.target) == [
             url("https://github.com/acme/store/pull/2474"), url("https://acme.atlassian.net/browse/STORE-2474"),
         ])
@@ -284,8 +289,10 @@ private func url(_ string: String) -> OpenTarget { .url(URL(string: string)!) }
         let snap = snapshot(
             mine: [makePR(repo: "a/x", number: 1), makePR(repo: "b/y", number: 2), makePR(repo: "b/y", number: 3)],
             tickets: ["WA-1", "STORE-2", "STORE-3"].map { makeTicket(key: $0) })
-        #expect(items("2474", snap).map(\.title)
-            == ["Open b/y#2474", "Open a/x#2474", "Open STORE-2474", "Open WA-2474"])
+        let request = LauncherResolver.lookupRequest(for: .parse("2474"), snapshot: snap, settings: AppSettings())
+        #expect(request.pullRequests.map(\.repo) == ["b/y", "a/x"])
+        #expect(request.ticketKeys == ["STORE-2474", "WA-2474"])
+        #expect(items("2474", snap).isEmpty)
     }
 
     @Test func fallbacksAreLeftOutWhenTheirItemIsListed() {
@@ -296,11 +303,12 @@ private func url(_ string: String) -> OpenTarget { .url(URL(string: string)!) }
         #expect(items("2474", snap, settings).map(\.title) == ["#2474 PR 2474", "STORE-2474 S"])
         // A match in another repo or project keeps the fallback.
         let other = snapshot(mine: [makePR(repo: "acme/api", number: 2474)], tickets: [makeTicket(key: "WA-2474")])
-        #expect(items("2474", other, settings).map(\.title)
-            == ["#2474 PR 2474", "WA-2474 S", "Open acme/store#2474", "Open STORE-2474"])
+        #expect(items("2474", other, settings).map(\.title) == ["#2474 PR 2474", "WA-2474 S"])
+        #expect(LauncherResolver.lookupRequest(for: .parse("2474"), snapshot: other, settings: settings) == LookupRequest(
+            ticketKeys: ["STORE-2474"], pullRequests: [PullRequestRef(repo: "acme/store", number: 2474)]))
         // The repo compares without case, like `gh`.
         let upper = snapshot(mine: [makePR(repo: "Acme/Store", number: 2474)])
-        #expect(items("2474", upper, settings).map(\.title) == ["#2474 PR 2474", "Open STORE-2474"])
+        #expect(LauncherResolver.lookupRequest(for: .parse("2474"), snapshot: upper, settings: settings).pullRequests.isEmpty)
     }
 
     @Test func theJiraFallbackNeedsASite() {
@@ -351,7 +359,7 @@ private func url(_ string: String) -> OpenTarget { .url(URL(string: string)!) }
         let snap = snapshot(tickets: [makeTicket(key: "STORE-5")])
         #expect(request("2474", snap, settings()) == LookupRequest(
             ticketKeys: ["STORE-2474", "WA-2474"], pullRequests: [PullRequestRef(repo: "acme/store", number: 2474)]))
-        #expect(items("2474", snap, settings()).map(\.title) == ["Open acme/store#2474", "Open STORE-2474", "Open WA-2474"])
+        #expect(items("2474", snap, settings()).isEmpty)
     }
 
     @Test func knownTicketsAndPullRequestsNeedNoLookup() {
@@ -359,7 +367,7 @@ private func url(_ string: String) -> OpenTarget { .url(URL(string: string)!) }
         snap.linkedTickets = [ticket("WA-2474", "Fix login")]
         #expect(request("2474", snap, settings()) == LookupRequest(ticketKeys: ["STORE-2474"], pullRequests: []))
         // A PR's ticket that is not mine is listed like mine.
-        #expect(items("2474", snap, settings()).map(\.title) == ["#2474 PR 2474", "WA-2474 Fix login", "Open STORE-2474"])
+        #expect(items("2474", snap, settings()).map(\.title) == ["#2474 PR 2474", "WA-2474 Fix login"])
     }
 
     @Test func foundRowsShowTheTitleAndMissingOnesAreLeftOut() {

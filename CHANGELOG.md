@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- The quick launcher has two panes: the results on the left and, on the right, the detail of the
+  selected one. A ticket's detail lists its pull requests and related tickets; a pull request's
+  or a Claude Code session's lists its ticket and that ticket's related tickets. Tab moves into
+  the detail and back, and Enter opens the selected row. The expanding rows of 0.12 are gone.
+- The results no longer move while you use the arrow keys: what Jira and GitHub find is added at
+  the bottom, a line there says while they are being asked, and tickets or pull requests that do
+  not exist are never shown first.
+- Moving the mouse over the launcher no longer redraws it at every move, and the mouse selects a
+  row only when it really moves.
+
 ## 0.12.1 — 2026-11-23
 
 - Opening a Claude Code session (from the menu, the quick launcher or the terminal UI) switches

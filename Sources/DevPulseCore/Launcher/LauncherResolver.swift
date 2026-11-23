@@ -62,14 +62,14 @@ public enum LauncherResolver {
                     found?.subject = .ticket(key)
                     return found
                 }
-                guard let link = ticketLink(key, snapshot: snapshot, site: site) else { return nil }
-                guard lookup.missingTickets.contains(key) else { return link }
-                return typed ? notFound(link, "Not found in Jira") : nil
+                // A guess (a bare number in each project) shows only once Jira confirms it, so
+                // the list never shows rows that then vanish; what was typed shows at once.
+                guard typed, let link = ticketLink(key, snapshot: snapshot, site: site) else { return nil }
+                return lookup.missingTickets.contains(key) ? notFound(link, "Not found in Jira") : link
             case .pullRequest(let ref, let typed):
                 if let found = lookup.pullRequests[ref] { return item(found) }
-                guard let link = pullRequestLink(repo: ref.repo, number: ref.number) else { return nil }
-                guard lookup.missingPullRequests.contains(ref) else { return link }
-                return typed ? notFound(link, "Not found on GitHub") : nil
+                guard typed, let link = pullRequestLink(repo: ref.repo, number: ref.number) else { return nil }
+                return lookup.missingPullRequests.contains(ref) ? notFound(link, "Not found on GitHub") : link
             }
         }
         return Array(items.prefix(maxItems))
@@ -93,7 +93,8 @@ public enum LauncherResolver {
 
     /// A planned row: one the snapshot knows, or a ticket or PR it does not, shown by what the
     /// lookup found. `typed` rows are what the query names outright (`jira WA-9`, `gh 9`): they
-    /// stay when they do not exist, saying so; the guesses of a bare number go.
+    /// show at once and stay when they do not exist, saying so; the guesses of a bare number
+    /// show only once found.
     private enum Row {
         case item(LauncherItem)
         case ticket(key: String, typed: Bool)

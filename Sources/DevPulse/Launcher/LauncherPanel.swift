@@ -33,7 +33,7 @@ final class LauncherPanelController {
             },
             onClose: { [weak self] in self?.close() },
             onHeight: { [weak panel] height in panel?.setContentHeight(height) }))
-        panel.setContentHeight(LauncherView.height(rows: 0))
+        panel.setContentHeight(LauncherView.height(showsContent: false))
         panel.center(on: NSScreen.screens.first { $0.frame.contains(NSEvent.mouseLocation) } ?? NSScreen.main)
         self.panel = panel
         panel.makeKeyAndOrderFront(nil)
@@ -50,7 +50,7 @@ final class LauncherPanelController {
 }
 
 private final class LauncherPanel: NSPanel {
-    static let width: CGFloat = 640
+    static let width = LauncherView.width
     var onClose: (() -> Void)?
     /// The top edge stays where it is while the list grows and shrinks.
     private var top: CGFloat?

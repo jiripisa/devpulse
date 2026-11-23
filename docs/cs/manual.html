@@ -400,51 +400,60 @@ gh auth login</code></pre>
       <section id="launcher">
         <h2>Rychlé hledání</h2>
         <p>Stiskněte kdekoli <kbd>⌥</kbd><kbd>Space</kbd> a uprostřed obrazovky
-        se otevře vyhledávací panel. Napište číslo, které se pak hledá všude,
+        se otevře vyhledávací panel. Napište číslo a najdete ho všude,
         <code>gh</code> pro pull requesty nebo <code>jira</code> pro tikety;
-        zkratku změníte v
-        <a href="#general">obecných nastaveních</a>.</p>
+        zkratku změníte v <a href="#general">obecných nastaveních</a>. Vlevo jsou
+        výsledky, vpravo detail vybraného výsledku.</p>
         <figure class="fig">
-          <div class="view" style="--iw:1280;--ih:774">
-            <img src="../assets/manual/devpulse-launcher.png" alt="Rychlé hledání se seznamem pull requestů pro dotaz gh">
-            <span class="mark" style="--x:1;--y:1;--w:98;--h:13"><b>1</b></span>
-            <span class="mark" style="--x:1;--y:15.5;--w:98;--h:83.5"><b>2</b></span>
+          <div class="view" style="--iw:1720;--ih:866">
+            <img src="../assets/manual/devpulse-launcher.png" alt="Rychlé hledání pro dotaz gh: vlevo pull requesty, vpravo tiket vybraného pull requestu a související tikety">
+            <span class="mark" style="--x:1;--y:1;--w:98;--h:11.5"><b>1</b></span>
+            <span class="mark" style="--x:0.7;--y:14;--w:43.4;--h:85"><b>2</b></span>
+            <span class="mark" style="--x:44.8;--y:14;--w:54.5;--h:85"><b>3</b></span>
           </div>
           <figcaption>Rychlé hledání po napsání <code>gh</code>.</figcaption>
         </figure>
         <dl class="controls">
           <dt><span class="n">1</span>Vyhledávací pole</dt>
-          <dd>Sem napište dotaz podle tabulky níže. Dokud nic nenapíšete,
-          ukazuje světle šedou nápovědu <span class="ui">Number, gh … or
-          jira …</span>.</dd>
+          <dd>Sem napište dotaz podle tabulky níže. Dokud nic nenapíšete, ukazuje
+          světle šedou nápovědu <span class="ui">Number, gh … or jira …</span>.</dd>
           <dt><span class="n">2</span>Výsledky</dt>
-          <dd>Nejvýš 20 řádků. Ikona říká, co řádek je: pull request
-          (rozvětvená šipka), žádost o review (jedna nebo dvě postavy jako
-          v okénku), tiket z Jiry, nebo session Claude Code (její stav jako
-          v okénku). Pod názvem je repozitář, stav tiketu, stav a složka
-          session nebo, u řádku, který otevře číslo či klíč, pro který žádnou
-          položku nemáte, adresa, kterou otevře. Vybraný řádek je
-          zvýrazněný.</dd>
+          <dd>Nejvýš 20 řádků. Ikona říká, co řádek je: pull request (rozvětvená
+          šipka), žádost o review (jedna nebo dvě postavy jako v okénku),
+          tiket z Jiry, nebo session Claude Code (její stav jako v okénku). Pod názvem je repozitář, stav tiketu, nebo stav
+          a složka session. Seznam se vám pod rukama nehýbe: co DevPulse najde
+          v Jiře a na GitHubu, když přestanete psát, přibude dole, a mezitím
+          tam svítí <span class="ui">Searching Jira and GitHub…</span>.</dd>
+          <dt><span class="n">3</span>Detail</dt>
+          <dd>O čem vybraný výsledek je. U tiketu jeho pull requesty (vaše
+          a žádosti o review navázané na tiket a ty, které GitHub najde
+          s klíčem tiketu v názvu nebo popisu ve vašich
+          <a href="#github">repozitářích</a>), za nimi související tikety
+          s druhem vazby (<span class="ui">blocks</span>,
+          <span class="ui">relates to</span> …) a stavem. U pull requestu
+          nebo session Claude Code jejich tiket a za ním související tikety
+          tohoto tiketu. Dokud Jira nebo GitHub neodpoví, svítí
+          <span class="ui">Loading…</span>.</dd>
         </dl>
         <figure class="fig">
-          <div class="view" style="--iw:1280;--ih:498">
-            <img src="../assets/manual/devpulse-launcher-number.png" alt="Rychlé hledání pro číslo 2290: žádost o review, tiket z Jiry, session Claude Code a řádek pro repozitář z nastavení">
+          <div class="view" style="--iw:1720;--ih:866">
+            <img src="../assets/manual/devpulse-launcher-number.png" alt="Rychlé hledání pro číslo 2290: žádost o review, tiket z Jiry a session Claude Code; vpravo tiket session a jeho související tikety">
           </div>
-          <figcaption>Samotné číslo najde všechno, co ho nese: tady žádost o review #2290, tiket STORE-2290, session ve složce <code>store-2290-statement</code> a nakonec řádek, který otevře 2290 v repozitáři z nastavení.</figcaption>
+          <figcaption>Samotné číslo najde všechno, co ho nese: tady žádost o review #2290, tiket STORE-2290 a session ve složce <code>store-2290-statement</code>, jejíž tiket je vpravo.</figcaption>
         </figure>
         <div class="table">
           <table>
             <thead><tr><th>Napíšete</th><th>Výsledek</th></tr></thead>
             <tbody>
-              <tr><td><code>2474</code></td><td>Všechno s tímto číslem: vaše pull requesty a žádosti o review s číslem 2474 v libovolném repozitáři, za nimi vaše tikety a tikety vašich pull requestů s číslem 2474 v libovolném projektu (<code>STORE-2474</code>, <code>WA-2474</code>) a sessions Claude Code, jejichž klíč z Jiry nebo název složky toto číslo obsahuje (<code>store-2474-fix</code>, ale ne <code>store-24740</code>). Nakonec pull request 2474 v každém z vašich <a href="#github">repozitářů</a> a tiket 2474 v každém z vašich <a href="#jira">projektů</a> (<code>STORE-2474</code>, <code>WA-2474</code>), pokud už v seznamu nejsou. Jakmile přestanete psát, DevPulse tyto řádky dohledá: ukážou název a stav a tikety nebo pull requesty, které neexistují, zmizí.</td></tr>
+              <tr><td><code>2474</code></td><td>Všechno s tímto číslem: vaše pull requesty a žádosti o review s číslem 2474 v libovolném repozitáři, za nimi vaše tikety a tikety vašich pull requestů s číslem 2474 v libovolném projektu (<code>STORE-2474</code>, <code>WA-2474</code>) a sessions Claude Code, jejichž klíč z Jiry nebo název složky toto číslo obsahuje (<code>store-2474-fix</code>, ale ne <code>store-24740</code>). Pak pull request 2474 v každém z vašich <a href="#github">repozitářů</a> a tiket 2474 v každém z vašich <a href="#jira">projektů</a>, jakmile GitHub a Jira potvrdí, že existují.</td></tr>
               <tr><td><code>gh</code></td><td>Vaše pull requesty, za nimi žádosti o review.</td></tr>
               <tr><td><code>gh invoice</code></td><td>Ty, jejichž název nebo repozitář text obsahuje.</td></tr>
-              <tr><td><code>gh 812</code></td><td>Vaše pull requesty a žádosti o review s tímto číslem, za nimi pull request 812 v každém z vašich <a href="#github">repozitářů</a> s názvem a stavem. Řádek prvního repozitáře zůstane, i když pull request neexistuje, jako <span class="ui">Not found on GitHub</span>.</td></tr>
+              <tr><td><code>gh 812</code></td><td>Vaše pull requesty a žádosti o review s tímto číslem, pak pull request 812 ve vašem prvním <a href="#github">repozitáři</a> hned (<span class="ui">Not found on GitHub</span>, když neexistuje) a v ostatních, jakmile je GitHub najde.</td></tr>
               <tr><td><code>gh webapp 455</code></td><td>Pull request 455 v daném repozitáři: stačí název jednoho z vašich <a href="#github">repozitářů</a> nebo repozitáře, ve kterém máte pull requesty, nebo celé <code>owner/name</code>.</td></tr>
               <tr><td><code>jira</code></td><td>Vaše tikety.</td></tr>
               <tr><td><code>jira export</code></td><td>Ty, jejichž název nebo klíč text obsahuje.</td></tr>
               <tr><td><code>jira STORE-2290</code></td><td>Tento tiket, i když ve vašem seznamu není, s názvem a stavem, nebo <span class="ui">Not found in Jira</span>.</td></tr>
-              <tr><td><code>jira 2290</code></td><td>Tiket 2290 v každém z vašich <a href="#jira">projektů</a>. Řádek prvního projektu zůstane, i když tiket neexistuje.</td></tr>
+              <tr><td><code>jira 2290</code></td><td>Tiket 2290 ve vašem prvním <a href="#jira">projektu</a> hned (<span class="ui">Not found in Jira</span>, když neexistuje) a v ostatních projektech, jakmile je Jira najde.</td></tr>
             </tbody>
           </table>
         </div>
@@ -452,29 +461,19 @@ gh auth login</code></pre>
           <table>
             <thead><tr><th>Klávesa</th><th>Akce</th></tr></thead>
             <tbody>
-              <tr><td><kbd>↑</kbd> <kbd>↓</kbd> nebo myš</td><td>Posun výběru. Když se na tiketu nebo pull requestu na půl vteřiny zastavíte, rozbalí se (viz níže).</td></tr>
-              <tr><td><kbd>Enter</kbd> nebo kliknutí</td><td>Otevřít vybraný řádek: pull request nebo tiket v prohlížeči, u session Claude Code přenést dopředu její okno Ghostty.</td></tr>
+              <tr><td><kbd>↑</kbd> <kbd>↓</kbd> nebo myš</td><td>Posun výběru ve výsledcích, nebo po <kbd>Tab</kbd> v detailu.</td></tr>
+              <tr><td><kbd>Tab</kbd>, <kbd>Shift</kbd>-<kbd>Tab</kbd></td><td>Přechod do detailu a zpět do výsledků.</td></tr>
+              <tr><td><kbd>Enter</kbd> nebo kliknutí</td><td>Otevřít vybraný řádek: pull request nebo tiket v prohlížeči, u session Claude Code přenést dopředu její okno a tab v Ghostty.</td></tr>
               <tr><td><kbd>⌘</kbd><kbd>Enter</kbd></td><td>Otevřít tiket z Jiry navázaný na vybraný pull request.</td></tr>
-              <tr><td><kbd>Esc</kbd></td><td>Zavřít panel.</td></tr>
+              <tr><td><kbd>Esc</kbd></td><td>Z detailu zpět do výsledků; ve výsledcích zavřít panel.</td></tr>
             </tbody>
           </table>
         </div>
-        <h3>Rozbalení výsledku</h3>
-        <p>Přejděte na tiket nebo pull request (šipkami nebo myší) a na půl vteřiny se zastavte:
-        pod ním se otevřou odsazené řádky. Šipkami do nich můžete sjet a <kbd>Enter</kbd> řádek
-        otevře. Když se zastavíte na jiném výsledku, nahradí je jeho řádky.</p>
-        <ul>
-          <li><b>Pod tiketem:</b> jeho pull requesty, za nimi související tikety s druhem vazby
-          (<span class="ui">blocks</span>, <span class="ui">relates to</span> …) a stavem. Pull
-          requesty jsou vaše vlastní a žádosti o review navázané na tiket a ty, které GitHub najde
-          s klíčem tiketu v názvu nebo popisu ve vašich <a href="#github">repozitářích</a>.</li>
-          <li><b>Pod pull requestem:</b> jeho tiket, za ním související tikety tohoto tiketu.</li>
-        </ul>
         <figure class="fig">
-          <div class="view" style="--iw:1280;--ih:498">
-            <img src="../assets/manual/devpulse-launcher-expand.png" alt="Rychlé hledání s rozbaleným tiketem STORE-2474: jeho pull request #812 a dva související tikety odsazené pod ním">
+          <div class="view" style="--iw:1720;--ih:866">
+            <img src="../assets/manual/devpulse-launcher-detail.png" alt="Rychlé hledání pro číslo 2474: tiket STORE-2474 a vpravo jeho pull request #812 a dva související tikety">
           </div>
-          <figcaption>Rozbalený tiket STORE-2474: jeho pull request #812, tiket, který ho blokuje, a jeden související.</figcaption>
+          <figcaption>Detail tiketu STORE-2474: jeho pull request #812, tiket, který ho blokuje, a jeden související.</figcaption>
         </figure>
       </section>
 

@@ -112,6 +112,10 @@ public struct LookupResults: Equatable, Sendable {
     public var missingPullRequests: Set<PullRequestRef> = []
     /// The PRs GitHub's search found for a ticket key.
     public var pullRequestsForTicket: [String: [PullRequestSummary]] = [:]
+    /// The keys whose last lookup or PR search failed (offline, a source switched off): the
+    /// detail stops waiting for them.
+    public var unreachableTickets: Set<String> = []
+    public var unreachableSearches: Set<String> = []
 
     public init() {}
 }
@@ -176,7 +180,11 @@ public final class LauncherLookup {
         for search in searches {
             searchesInFlight.insert(search)
             defer { searchesInFlight.remove(search) }
-            guard let found = try? await searchPullRequests(search) else { continue }
+            guard let found = try? await searchPullRequests(search) else {
+                results.unreachableSearches.insert(search.key)
+                continue
+            }
+            results.unreachableSearches.remove(search.key)
             searchedAt[search] = now()
             results.pullRequestsForTicket[search.key] = found
         }
@@ -186,7 +194,11 @@ public final class LauncherLookup {
         guard !keys.isEmpty else { return }
         ticketsInFlight.formUnion(keys)
         defer { ticketsInFlight.subtract(keys) }
-        guard let answer = try? await fetchTickets(keys) else { return }
+        guard let answer = try? await fetchTickets(keys) else {
+            results.unreachableTickets.formUnion(keys)
+            return
+        }
+        results.unreachableTickets.subtract(keys)
         let byKey = Dictionary(answer.tickets.map { ($0.key, $0) }) { first, _ in first }
         // A ticket moved to another project comes back under its new key: when exactly one
         // asked-for key is unaccounted for and exactly one ticket was not asked for, they are
@@ -228,13 +240,3 @@ public final class LauncherLookup {
     }
 }
 
-/// Where the launcher's selection goes when its rows change while the query stays: a lookup
-/// can add titles or drop rows under the selection.
-public enum LauncherSelection {
-    /// The new index of the row that was selected, when it is still listed; else the old index,
-    /// clamped to the new rows.
-    public static func index<Row: Equatable>(keeping selection: Int, from old: [Row], to new: [Row]) -> Int {
-        if old.indices.contains(selection), let moved = new.firstIndex(of: old[selection]) { return moved }
-        return min(selection, max(new.count - 1, 0))
-    }
-}
