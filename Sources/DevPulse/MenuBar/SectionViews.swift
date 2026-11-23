@@ -1,7 +1,8 @@
 import DevPulseCore
 import SwiftUI
 
-/// A titled list with its source's state (age, or the error) on the right.
+/// A titled list with its source's state (age, or the error) on the right; the header sits on
+/// the chrome colour, the rows on the reading surface.
 struct SectionView<Rows: View>: View {
     let title: String
     let count: Int
@@ -15,25 +16,30 @@ struct SectionView<Rows: View>: View {
     @ViewBuilder let rows: Rows
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(title).font(.subheadline.weight(.semibold))
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(title).font(.system(size: 14, weight: .semibold)).foregroundStyle(Lookout.primary)
                 if count > 0 {
-                    Text("\(count)").font(.caption).foregroundStyle(.secondary)
+                    Text("\(count)").font(.system(size: 12, weight: .medium)).monospacedDigit()
+                        .foregroundStyle(Lookout.secondary)
                 }
                 Spacer(minLength: 8)
                 if showsStatus {
                     Text(SourceStatusText.text(for: status, now: now))
-                        .font(.caption)
-                        .foregroundStyle(status.state == .error ? AnyShapeStyle(.red) : AnyShapeStyle(.secondary))
+                        .font(.system(size: 11))
+                        .foregroundStyle(status.state == .error ? Lookout.failure : Lookout.secondary)
                         .lineLimit(2)
                         .multilineTextAlignment(.trailing)
                 }
             }
-            .padding(.horizontal, 6)
+            .padding(.horizontal, 16)
+            .frame(minHeight: 30)
+            .background(Lookout.chrome)
+            .overlay(alignment: .top) { Rectangle().fill(Lookout.divider).frame(height: 1) }
+            .overlay(alignment: .bottom) { Rectangle().fill(Lookout.divider).frame(height: 1) }
 
             if count > 0 {
-                rows
+                VStack(spacing: 0) { rows }.padding(.vertical, 2)
             } else {
                 placeholder
             }
@@ -46,20 +52,19 @@ struct SectionView<Rows: View>: View {
         case .setUp:
             Button("Set up in Settings…") { onSetUp?() }
                 .buttonStyle(.link)
-                .font(.caption)
-                .padding(.horizontal, 6)
+                .font(.system(size: 12))
+                .padding(.horizontal, 16).padding(.vertical, 10)
         case .text(let text):
-            emptyLine(text)
+            Text(text).font(.system(size: 12)).foregroundStyle(Lookout.secondary)
+                .padding(.horizontal, 16).padding(.vertical, 10)
         }
-    }
-
-    private func emptyLine(_ text: String) -> some View {
-        Text(text).font(.caption).foregroundStyle(.tertiary).padding(.horizontal, 6)
     }
 }
 
-/// A full-width plain button with a hover highlight.
+/// A full-width plain button with a hover highlight; `attention` marks a row that waits for
+/// the user with an amber bar and wash.
 struct RowButton<Label: View>: View {
+    var attention = false
     let action: () -> Void
     @ViewBuilder let label: Label
     @State private var isHovered = false
@@ -67,14 +72,40 @@ struct RowButton<Label: View>: View {
     var body: some View {
         Button(action: action) {
             label
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 10)
+                .frame(maxWidth: .infinity, minHeight: 46, alignment: .leading)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .padding(.horizontal, 6)
-        .padding(.vertical, 3)
-        .background(isHovered ? Color.primary.opacity(0.08) : .clear, in: .rect(cornerRadius: 5))
+        .background(background)
+        .overlay(alignment: .leading) {
+            if attention { Rectangle().fill(Lookout.attention).frame(width: 3) }
+        }
         .onHover { isHovered = $0 }
+    }
+
+    private var background: Color {
+        if isHovered { return Lookout.selection }
+        return attention ? Lookout.attentionWash : .clear
+    }
+}
+
+/// The two lines of a row: the name, and under it the kind in its colour with the identifiers.
+private struct RowText: View {
+    let name: String
+    let kind: LauncherItem.Kind
+    let identifiers: [String]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(name).font(.system(size: 13.5)).foregroundStyle(Lookout.primary).lineLimit(1)
+            HStack(spacing: 8) {
+                Text(kind.label).font(.system(size: 11.5, weight: .semibold)).foregroundStyle(Lookout.color(kind))
+                ForEach(identifiers, id: \.self) {
+                    Text($0).font(.system(size: 11.5)).monospacedDigit().foregroundStyle(Lookout.secondary).lineLimit(1)
+                }
+            }
+        }
     }
 }
 
@@ -84,48 +115,34 @@ struct PullRequestRow: View {
     var isReviewRequest = false
     let action: () -> Void
 
+    private var kind: LauncherItem.Kind { isReviewRequest ? .reviewRequest(direct: pr.requestedDirectly) : .pullRequest }
+
     var body: some View {
         RowButton(action: action) {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                leadingIcon.frame(width: 14)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(pr.title).lineLimit(1)
-                    Text(details).font(.caption).foregroundStyle(.secondary).lineLimit(1)
-                }
+            HStack(spacing: 8) {
+                KindIcon(kind: kind)
+                RowText(name: pr.title, kind: kind, identifiers: identifiers)
+                Spacer(minLength: 8)
+                BadgeStack(badges: StatusBadge.pullRequest(pr), size: 11.5)
             }
         }
-        .help("\(pr.repo) #\(pr.number) — \(pr.title)")
+        .help(help)
     }
 
-    @ViewBuilder
-    private var leadingIcon: some View {
-        if isReviewRequest {
-            ReviewRequestIcon(direct: pr.requestedDirectly)
-        } else {
-            switch pr.checks {
-            case .success: Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
-            case .failure, .error: Image(systemName: "xmark.circle.fill").foregroundStyle(.red)
-            case .pending: Image(systemName: "clock").foregroundStyle(.yellow)
-            case .none: Image(systemName: "circle").foregroundStyle(.tertiary)
-            }
-        }
-    }
-
-    private var details: String {
+    private var identifiers: [String] {
         let repoName = pr.repo.split(separator: "/").last.map(String.init) ?? pr.repo
-        var parts = ["\(repoName) #\(pr.number)"]
-        if let key = pr.jiraKey { parts.append(key) }
-        switch pr.reviewDecision {
-        case .approved: parts.append("approved")
-        case .changesRequested: parts.append("changes requested")
-        case .reviewRequired, .none: break
-        }
+        return ["\(repoName) #\(pr.number)"] + [pr.jiraKey].compactMap { $0 }
+    }
+
+    private var help: String {
+        var lines = ["\(pr.repo) #\(pr.number) — \(pr.title)"]
         if pr.commentCount > 0 {
             var comments = "\(pr.commentCount) comment\(pr.commentCount == 1 ? "" : "s")"
             if let last = pr.lastCommentAt { comments += ", last \(RelativeAge.text(since: last, now: now))" }
-            parts.append(comments)
+            lines.append(comments)
         }
-        return parts.joined(separator: " · ")
+        if isReviewRequest { lines.append(pr.requestedDirectly ? "Requested from you" : "Requested from your team") }
+        return lines.joined(separator: "\n")
     }
 }
 
@@ -135,11 +152,11 @@ struct TicketRow: View {
 
     var body: some View {
         RowButton(action: action) {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text(ticket.key).font(.caption.monospaced().weight(.medium))
-                Text(ticket.summary).lineLimit(1)
-                Spacer(minLength: 4)
-                Text(ticket.status).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+            HStack(spacing: 8) {
+                KindIcon(kind: .ticket)
+                RowText(name: ticket.summary, kind: .ticket, identifiers: [ticket.key])
+                Spacer(minLength: 8)
+                BadgeStack(badges: [StatusBadge.ticket(status: ticket.status, category: ticket.statusCategory)], size: 11.5)
             }
         }
         .help("\(ticket.key) — \(ticket.summary)")
@@ -151,50 +168,21 @@ struct SessionRow: View {
     let action: () -> Void
 
     var body: some View {
-        RowButton(action: action) {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                SessionStatusIcon(status: session.status).frame(width: 14)
-                VStack(alignment: .leading, spacing: 1) {
-                    HStack(spacing: 6) {
-                        Text(session.name).lineLimit(1)
-                        if let key = session.jiraKey {
-                            Text(key).font(.caption.monospaced()).foregroundStyle(.secondary)
-                        }
-                    }
-                    Text(details).font(.caption).foregroundStyle(.secondary).lineLimit(1)
-                }
+        RowButton(attention: session.status == .waiting, action: action) {
+            HStack(spacing: 8) {
+                KindIcon(kind: .session(session.status))
+                RowText(name: session.name, kind: .session(session.status), identifiers: identifiers)
+                Spacer(minLength: 8)
+                BadgeStack(badges: [StatusBadge.session(session.status)], size: 11.5)
             }
         }
         .help(session.cwd)
     }
 
-    private var details: String {
-        let cwd = (session.cwd as NSString).abbreviatingWithTildeInPath
-        return "\(session.stateText) · \(cwd)"
-    }
-}
-
-/// One person: requested from me; two people: from one of my teams. The launcher uses it too.
-struct ReviewRequestIcon: View {
-    let direct: Bool
-
-    var body: some View {
-        Image(systemName: direct ? "person.fill" : "person.2")
-            .foregroundStyle(direct ? AnyShapeStyle(.orange) : AnyShapeStyle(.secondary))
-            .help(direct ? "Requested from you" : "Requested from your team")
-    }
-}
-
-/// A Claude Code session's state; the launcher uses it too.
-struct SessionStatusIcon: View {
-    let status: SessionStatus
-
-    var body: some View {
-        switch status {
-        case .waiting: Image(systemName: "circle.fill").foregroundStyle(.orange)
-        case .busy: Image(systemName: "circle.lefthalf.filled").foregroundStyle(.blue)
-        case .idle: Image(systemName: "circle").foregroundStyle(.secondary)
-        case .unknown: Image(systemName: "questionmark.circle").foregroundStyle(.tertiary)
-        }
+    /// Its Jira key, and what it waits for.
+    private var identifiers: [String] {
+        let waitingFor = session.status == .waiting ? session.waitingFor.map { $0.prefix(1).uppercased() + $0.dropFirst() } : nil
+        let parts = [session.jiraKey, waitingFor].compactMap { $0 }
+        return parts.isEmpty ? [(session.cwd as NSString).abbreviatingWithTildeInPath] : parts
     }
 }

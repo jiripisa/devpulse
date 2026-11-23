@@ -203,7 +203,11 @@ gh auth login</code></pre>
 
       <section id="popover">
         <h2>The menu bar</h2>
-        <p>The DevPulse icon is a sonar dial: a ring with a dot and a short line. Click it to open the popover.</p>
+        <p>The DevPulse icon is a sonar dial: a ring with a dot and a short line. Click it to open the popover.
+        Every row says what it is on the left, with an icon and a coloured label
+        (<span class="ui">PR</span> violet, <span class="ui">Review</span> magenta,
+        <span class="ui">Jira</span> blue, <span class="ui">Claude</span> cyan), and its state on the
+        right, as a shape and a word. The launcher uses the same marks.</p>
         <figure class="fig" style="max-width:28rem">
           <div class="view" style="--iw:760;--ih:1330">
             <img src="assets/manual/devpulse-popover.png" alt="The DevPulse popover with pull requests, review requests, Jira tickets and three Claude Code sessions">
@@ -230,23 +234,30 @@ gh auth login</code></pre>
           Jira section that is not set up shows <span class="ui">Set up in
           Settings…</span>, which opens the Jira tab.</dd>
           <dt><span class="n">3</span>Pull request</dt>
-          <dd>The icon is the CI state: a green check for passed, a red cross
-          for failed, a yellow clock for running, an empty circle for no
-          checks. Below the title: the repository and number, the linked Jira
-          key, the review state (<span class="ui">approved</span>,
-          <span class="ui">changes requested</span>) and the comments.
-          Click it to open the pull request on GitHub.</dd>
+          <dd>Your own pull request: a branch icon and <span class="ui">PR</span>.
+          Below the title: the repository and number and the linked Jira key.
+          On the right, the CI state (<span class="ui">CI passing</span>,
+          <span class="ui">CI failing</span>, <span class="ui">CI pending</span>) and,
+          separately, the review state (<span class="ui">Approved</span>,
+          <span class="ui">Changes requested</span>, <span class="ui">Review required</span>).
+          Hover over it to see the comments. Click it to open the pull request on GitHub.</dd>
           <dt><span class="n">4</span>Review request</dt>
-          <dd>One person: the review was requested from you. Two people: from
-          one of your teams (only with <span class="ui">Include team review
-          requests</span>). Click it to open the pull request.</dd>
+          <dd>A person with a check and <span class="ui">Review</span>: the review
+          was requested from you. Two people and <span class="ui">Team review</span>:
+          from one of your teams (only with <span class="ui">Include team review
+          requests</span>). On the right, its CI and review state. Click it to open
+          the pull request.</dd>
           <dt><span class="n">5</span>Jira ticket</dt>
-          <dd>Key, summary and status. Click it to open the ticket in Jira.</dd>
+          <dd>A ticket icon and <span class="ui">Jira</span>, the summary, the key
+          below it, and the status on the right: an empty circle for to do, a half
+          circle for in progress, a diamond for in review, a check for done. Click
+          it to open the ticket in Jira.</dd>
           <dt><span class="n">6</span>Claude Code session</dt>
-          <dd>The icon is the state: orange dot for waiting for your input,
-          blue half circle for working, empty circle for idle. Next to the name
-          is the Jira key found in its folder name; below are the state and the
-          folder. Click it to bring the session's Ghostty window to the front;
+          <dd>A terminal icon and <span class="ui">Claude</span>, the folder's
+          name, and below it the Jira key found in the folder name and what the
+          session waits for. On the right: <span class="ui">Working</span>,
+          <span class="ui">Waiting for input</span> or <span class="ui">Idle</span>; a
+          session waiting for you also has an amber bar and background. Click it to bring the session's Ghostty window to the front;
           when the window has tabs, DevPulse switches to the session's tab.
           The first time, macOS asks whether DevPulse may control Ghostty;
           without that permission DevPulse only activates Ghostty.</dd>
@@ -415,29 +426,40 @@ gh auth login</code></pre>
         </figure>
         <dl class="controls">
           <dt><span class="n">1</span>Search field</dt>
-          <dd>Type a query from the table below. Until you do, it shows the
-          hint <span class="ui">Number, gh … or jira …</span> in light grey.</dd>
+          <dd>Next to the DevPulse mark. Type a query from the table below. Until
+          you do, the panel is just this bar, like Spotlight, with the hint
+          <span class="ui">Number, gh … or jira …</span> in light grey.</dd>
           <dt><span class="n">2</span>Results</dt>
-          <dd>Up to 20 rows. The icon says what a row is: a pull request (a
-          branching arrow), a review request (one or two people, as in the
-          popover), a Jira ticket, or a Claude Code session (its state, as in
-          the popover). Below the title: the repository, the ticket's status,
-          or the session's state and folder. The list does not move under you:
+          <dd>Up to 20 rows. As in the popover, a row says what it is with its icon
+          and coloured label (<span class="ui">PR</span>, <span class="ui">Review</span>,
+          <span class="ui">Jira</span>, <span class="ui">Claude</span>) and the
+          repository and number or the ticket key, shows the name below, and its state
+          on the right. The selected row is filled, and framed while the keyboard is in
+          the results. The list does not move under you:
           what DevPulse finds in Jira and on GitHub after you stop typing is
           added at the bottom, and <span class="ui">Searching Jira and GitHub…</span>
           shows there meanwhile. A ticket that was moved to another project
           shows its new key and <span class="ui">Moved from</span> the key you
           looked for. When Jira or GitHub cannot be reached, the rows say so.</dd>
           <dt><span class="n">3</span>Detail</dt>
-          <dd>What the selected result is about. For a ticket: its pull
-          requests (yours and your review requests linked to it, and those
-          GitHub finds with the ticket's key in the title or description in
-          your <a href="#github">repositories</a>), then its related tickets
-          with how they relate (<span class="ui">blocks</span>,
-          <span class="ui">relates to</span> …) and their status. For a pull
-          request or a Claude Code session: its ticket, then that ticket's
-          related tickets. <span class="ui">Loading…</span> shows while Jira or
-          GitHub answers.</dd>
+          <dd>At the top: what the selected result is (<span class="ui">Jira
+          ticket</span>, <span class="ui">Pull request</span>, <span class="ui">Review
+          request</span>, <span class="ui">Claude Code session</span>), its state,
+          its name and identifier, and a button that opens it (<span class="ui">Open
+          in Jira</span>, <span class="ui">Open on GitHub</span>, <span class="ui">Open
+          in Ghostty</span>). Below, joined by a thin line: for a ticket,
+          <span class="ui">Pull requests for</span> it (yours and your review
+          requests linked to it, and those GitHub finds with the ticket's key in the
+          title or description in your <a href="#github">repositories</a>), then
+          <span class="ui">Related to</span> it, with how each ticket relates
+          (<span class="ui">Is blocked by</span>, <span class="ui">Relates to</span> …)
+          and its status. For a pull request or a Claude Code session: its
+          <span class="ui">Linked ticket</span>, then that ticket's related tickets.
+          <span class="ui">Loading…</span> shows while Jira or GitHub answers.</dd>
+          <dt><span class="n">4</span>Keys</dt>
+          <dd>The keys that work now. <kbd>↵</kbd> says where Enter goes for the
+          selected row, and <kbd>esc</kbd> says <span class="ui">Back</span> while
+          you are in the detail.</dd>
         </dl>
         <figure class="fig">
           <div class="view" style="--iw:1720;--ih:866">

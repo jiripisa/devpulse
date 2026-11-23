@@ -204,7 +204,11 @@ gh auth login</code></pre>
 
       <section id="popover">
         <h2>Menu bar</h2>
-        <p>Ikona DevPulse je ciferník sonaru: kroužek s tečkou a krátkou čárkou. Kliknutím na ni otevřete okénko.</p>
+        <p>Ikona DevPulse je ciferník sonaru: kroužek s tečkou a krátkou čárkou. Kliknutím na ni otevřete okénko.
+        Každý řádek vlevo říká, co je zač, ikonou a barevným štítkem
+        (<span class="ui">PR</span> fialově, <span class="ui">Review</span> purpurově,
+        <span class="ui">Jira</span> modře, <span class="ui">Claude</span> tyrkysově), a vpravo
+        ukazuje svůj stav tvarem a slovem. Rychlé hledání používá stejné značky.</p>
         <figure class="fig" style="max-width:28rem">
           <div class="view" style="--iw:760;--ih:1330">
             <img src="../assets/manual/devpulse-popover.png" alt="Okénko DevPulse s pull requesty, žádostmi o review, tikety z Jiry a třemi sessions Claude Code">
@@ -231,23 +235,29 @@ gh auth login</code></pre>
           část Jira, která ještě není nastavená, ukazuje odkaz
           <span class="ui">Set up in Settings…</span> na záložku Jira.</dd>
           <dt><span class="n">3</span>Pull request</dt>
-          <dd>Ikona ukazuje stav CI: zelená fajfka znamená, že CI prošlo,
-          červený křížek, že selhalo, žluté hodiny, že ještě běží, a prázdné
-          kolečko, že pull request žádné kontroly nemá. Pod názvem je
-          repozitář s číslem, navázaný klíč z Jiry, stav review
-          (<span class="ui">approved</span>, <span class="ui">changes requested</span>)
-          a komentáře. Kliknutím otevřete pull request na GitHubu.</dd>
+          <dd>Váš vlastní pull request: ikona větve a <span class="ui">PR</span>.
+          Pod názvem je repozitář s číslem a navázaný klíč z Jiry. Vpravo je stav
+          CI (<span class="ui">CI passing</span>, <span class="ui">CI failing</span>,
+          <span class="ui">CI pending</span>) a zvlášť stav review
+          (<span class="ui">Approved</span>, <span class="ui">Changes requested</span>,
+          <span class="ui">Review required</span>). Když na řádek najedete myší, uvidíte
+          komentáře. Kliknutím otevřete pull request na GitHubu.</dd>
           <dt><span class="n">4</span>Žádost o review</dt>
-          <dd>Jedna postava: review chtějí po vás. Dvě postavy: po některém
-          z vašich týmů (jen se zapnutým <span class="ui">Include team review
-          requests</span>). Kliknutím otevřete pull request.</dd>
+          <dd>Postava s fajfkou a <span class="ui">Review</span>: review chtějí po
+          vás. Dvě postavy a <span class="ui">Team review</span>: po některém z vašich
+          týmů (jen se zapnutým <span class="ui">Include team review requests</span>).
+          Vpravo je stav CI a review. Kliknutím otevřete pull request.</dd>
           <dt><span class="n">5</span>Tiket z Jiry</dt>
-          <dd>Klíč, název a stav. Kliknutím otevřete tiket v Jiře.</dd>
+          <dd>Ikona tiketu a <span class="ui">Jira</span>, název, pod ním klíč
+          a vpravo stav: prázdné kolečko pro to do, půlkolečko pro rozpracovaný,
+          kosočtverec pro v review, fajfka pro hotový. Kliknutím otevřete tiket
+          v Jiře.</dd>
           <dt><span class="n">6</span>Session Claude Code</dt>
-          <dd>Ikona ukazuje stav: oranžová tečka znamená, že session čeká na
-          váš vstup, modré půlkolečko, že pracuje, a prázdné kolečko, že nic
-          nedělá. Vedle jména je klíč z Jiry
-          nalezený v názvu složky, pod ním stav a složka. Kliknutím přenesete
+          <dd>Ikona terminálu a <span class="ui">Claude</span>, název složky a pod
+          ním klíč z Jiry nalezený v názvu složky a to, na co session čeká. Vpravo
+          <span class="ui">Working</span>, <span class="ui">Waiting for input</span>
+          nebo <span class="ui">Idle</span>; session, která čeká na vás, má navíc
+          oranžový proužek a podklad. Kliknutím přenesete
           okno Ghostty s touto session dopředu; když má okno taby, DevPulse
           přepne na tab této session. Poprvé se macOS zeptá, jestli
           smí DevPulse ovládat Ghostty; bez toho svolení DevPulse Ghostty jen
@@ -415,28 +425,40 @@ gh auth login</code></pre>
         </figure>
         <dl class="controls">
           <dt><span class="n">1</span>Vyhledávací pole</dt>
-          <dd>Sem napište dotaz podle tabulky níže. Dokud nic nenapíšete, ukazuje
-          světle šedou nápovědu <span class="ui">Number, gh … or jira …</span>.</dd>
+          <dd>Vedle značky DevPulse. Sem napište dotaz podle tabulky níže. Dokud
+          nic nenapíšete, je panel jen tenhle pruh, jako Spotlight, se světle šedou
+          nápovědou <span class="ui">Number, gh … or jira …</span>.</dd>
           <dt><span class="n">2</span>Výsledky</dt>
-          <dd>Nejvýš 20 řádků. Ikona říká, co řádek je: pull request (rozvětvená
-          šipka), žádost o review (jedna nebo dvě postavy jako v okénku),
-          tiket z Jiry, nebo session Claude Code (její stav jako v okénku). Pod názvem je repozitář, stav tiketu, nebo stav
-          a složka session. Seznam se vám pod rukama nehýbe: co DevPulse najde
+          <dd>Nejvýš 20 řádků. Stejně jako v okénku řádek říká, co je zač, ikonou
+          a barevným štítkem (<span class="ui">PR</span>, <span class="ui">Review</span>,
+          <span class="ui">Jira</span>, <span class="ui">Claude</span>) s repozitářem
+          a číslem nebo klíčem tiketu, pod tím je název a vpravo stav. Vybraný řádek
+          má podklad, a dokud jste ve výsledcích, i rámeček. Seznam se vám pod rukama
+          nehýbe: co DevPulse najde
           v Jiře a na GitHubu, když přestanete psát, přibude dole, a mezitím
           tam svítí <span class="ui">Searching Jira and GitHub…</span>. Tiket
           přesunutý do jiného projektu ukáže svůj nový klíč a
           <span class="ui">Moved from</span> s klíčem, který jste hledali. Když
           Jira nebo GitHub nejsou dostupné, řádky to napíšou.</dd>
           <dt><span class="n">3</span>Detail</dt>
-          <dd>O čem vybraný výsledek je. U tiketu jeho pull requesty (vaše
-          a žádosti o review navázané na tiket a ty, které GitHub najde
-          s klíčem tiketu v názvu nebo popisu ve vašich
-          <a href="#github">repozitářích</a>), za nimi související tikety
-          s druhem vazby (<span class="ui">blocks</span>,
-          <span class="ui">relates to</span> …) a stavem. U pull requestu
-          nebo session Claude Code jejich tiket a za ním související tikety
-          tohoto tiketu. Dokud Jira nebo GitHub neodpoví, svítí
+          <dd>Nahoře je, co vybraný výsledek je (<span class="ui">Jira ticket</span>,
+          <span class="ui">Pull request</span>, <span class="ui">Review request</span>,
+          <span class="ui">Claude Code session</span>), jeho stav, název
+          a identifikátor a tlačítko, které ho otevře (<span class="ui">Open in
+          Jira</span>, <span class="ui">Open on GitHub</span>, <span class="ui">Open in
+          Ghostty</span>). Pod tím, propojené tenkou čarou: u tiketu jeho
+          <span class="ui">Pull requests for</span> (vaše a žádosti o review navázané
+          na tiket a ty, které GitHub najde s klíčem tiketu v názvu nebo popisu ve
+          vašich <a href="#github">repozitářích</a>), za nimi <span class="ui">Related
+          to</span> s druhem vazby (<span class="ui">Is blocked by</span>,
+          <span class="ui">Relates to</span> …) a stavem. U pull requestu nebo session
+          Claude Code jejich <span class="ui">Linked ticket</span> a za ním související
+          tikety tohoto tiketu. Dokud Jira nebo GitHub neodpoví, svítí
           <span class="ui">Loading…</span>.</dd>
+          <dt><span class="n">4</span>Klávesy</dt>
+          <dd>Klávesy, které teď fungují. U <kbd>↵</kbd> je napsané, kam Enter
+          vybraný řádek otevře, a <kbd>esc</kbd> v detailu ukazuje
+          <span class="ui">Back</span>.</dd>
         </dl>
         <figure class="fig">
           <div class="view" style="--iw:1720;--ih:866">

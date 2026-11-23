@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- A new look, "Lookout", for the menu bar popover and the quick launcher. Every row says what it
+  is on the left, with an icon and a coloured label (PR, Review, Jira, Claude), and its state
+  on the right as a shape and a word; a pull request shows its CI and its review state
+  separately. A Claude Code session waiting for you stands out with an amber bar.
+- The quick launcher is a Spotlight-like panel with the DevPulse mark next to the search field:
+  only the search bar until you type, then the results, the detail with a button that opens the
+  item and its related items joined by a thin line, and a line of keys at the bottom that says
+  where Enter goes.
+
 ## 0.13.1 — 2026-11-23
 
 - In the quick launcher, → moves into the detail like Tab, and ← goes back to the results like

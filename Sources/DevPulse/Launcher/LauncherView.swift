@@ -40,21 +40,23 @@ struct LauncherView: View {
         initialSelection = select
     }
 
-    static let width: CGFloat = 860
-    private static let listWidth: CGFloat = 380
+    static let width: CGFloat = 1040
+    /// The results' share of the width; the detail gets the rest.
+    private static let listWidth: CGFloat = 436
     private static let placeholder = "Number, gh … or jira …"
-    private static let headerHeight: CGFloat = 56
-    private static let rowHeight: CGFloat = 46
-    private static let visibleRows = 8
+    private static let toolbarHeight: CGFloat = 64
+    private static let contentHeight: CGFloat = 500
+    private static let keyLineHeight: CGFloat = 38
+    private static let cornerRadius: CGFloat = 18
     /// How long typing pauses before Jira and GitHub are asked about the results.
     private static let lookupDelay: Duration = .milliseconds(300)
     /// How long the selection rests before the detail asks for what it does not know.
     private static let detailDelay: Duration = .milliseconds(150)
 
-    /// The panel height: the field alone, or the field over both panes. Fixed while results
-    /// show, so the panel does not resize as they come in.
+    /// The panel height: the search bar alone, like Spotlight, or the bar over both panes and
+    /// the key line. Fixed while results show, so the panel does not resize as they come in.
     static func height(showsContent: Bool) -> CGFloat {
-        headerHeight + (showsContent ? 1 + CGFloat(visibleRows) * rowHeight + 8 : 0)
+        toolbarHeight + (showsContent ? 1 + contentHeight + 1 + keyLineHeight : 0)
     }
 
     private var parsed: LauncherQuery { .parse(query) }
@@ -89,19 +91,23 @@ struct LauncherView: View {
         let detail = detail
         let detailItems = detail?.items ?? []
         VStack(spacing: 0) {
-            field(detailItems: detailItems)
+            toolbar(detailItems: detailItems)
             if showsContent {
-                Divider()
+                Rectangle().fill(Lookout.divider).frame(height: 1)
                 HStack(spacing: 0) {
-                    list.frame(width: Self.listWidth)
-                    Divider()
+                    results.frame(width: Self.listWidth)
+                    Rectangle().fill(Lookout.divider).frame(width: 1)
                     detailPane(detail)
                 }
+                .frame(height: Self.contentHeight)
+                Rectangle().fill(Lookout.divider).frame(height: 1)
+                keyLine(detailItems: detailItems)
             }
         }
         .frame(width: Self.width, height: Self.height(showsContent: showsContent), alignment: .top)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
-        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .background(Lookout.surface)
+        .clipShape(RoundedRectangle(cornerRadius: Self.cornerRadius))
+        .overlay(RoundedRectangle(cornerRadius: Self.cornerRadius).strokeBorder(Lookout.divider))
         .onAppear { focused = true }
         // Not before: a field that takes focus with text in it selects all of it.
         .onChange(of: focused) { if focused, query.isEmpty { query = initialQuery } }
@@ -119,85 +125,117 @@ struct LauncherView: View {
         .task(id: detailRequest) { await lookUpDetail() }
     }
 
-    // MARK: Field
+    // MARK: Toolbar
 
-    private func field(detailItems: [LauncherItem]) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-            TextField(Self.placeholder, text: $query, prompt: Text(""))
-                .textFieldStyle(.plain)
-                .font(.system(size: 20))
-                .focused($focused)
-                // Its own lighter text: the field's placeholder looked like typed input.
-                .overlay(alignment: .leading) {
-                    if query.isEmpty {
-                        Text(Self.placeholder)
-                            .font(.system(size: 20, weight: .light))
-                            .foregroundStyle(.tertiary)
-                            .allowsHitTesting(false)
-                            .accessibilityHidden(true)
-                    }
-                }
-                .onKeyPress(.upArrow) {
-                    state.move(-1, detailCount: detailItems.count)
-                    return .handled
-                }
-                .onKeyPress(.downArrow) {
-                    state.move(1, detailCount: detailItems.count)
-                    return .handled
-                }
-                // → and ← like Tab and Shift-Tab; otherwise they move the caret.
-                .onKeyPress(.rightArrow) {
-                    state.enterDetail(detailCount: detailItems.count) ? .handled : .ignored
-                }
-                .onKeyPress(.leftArrow) { state.leaveDetail() ? .handled : .ignored }
-                // Tab into the detail and back; Shift-Tab arrives as a back tab.
-                .onKeyPress(keys: [.tab, KeyEquivalent("\u{19}")], phases: .down) { press in
-                    let back = press.key == KeyEquivalent("\u{19}") || press.modifiers.contains(.shift)
-                    if back {
-                        if state.focus == .detail { state.toggleFocus(detailCount: detailItems.count) }
-                    } else {
-                        state.toggleFocus(detailCount: detailItems.count)
-                    }
-                    return .handled
-                }
-                .onKeyPress(.return, phases: .down) { press in
-                    if let target = state.target(secondary: press.modifiers.contains(.command), detail: detailItems) {
-                        onOpen(target)
-                    }
-                    return .handled
-                }
-                .onKeyPress(.escape) {
-                    if state.escape() { onClose() }
-                    return .handled
-                }
+    /// The DevPulse mark, the search field and Esc: all there is until something is typed.
+    private func toolbar(detailItems: [LauncherItem]) -> some View {
+        HStack(spacing: 14) {
+            BrandMark()
+            Rectangle().fill(Lookout.divider).frame(width: 1, height: 26)
+            HStack(spacing: 10) {
+                Image(systemName: "magnifyingglass").foregroundStyle(Lookout.secondary)
+                field(detailItems: detailItems)
+            }
+            .padding(.horizontal, 12)
+            .frame(height: 40)
+            .background(Lookout.surface, in: RoundedRectangle(cornerRadius: 10))
+            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Lookout.divider))
+            Keycap(text: "esc")
         }
-        .padding(.horizontal, 16)
-        .frame(height: Self.headerHeight)
+        .padding(.horizontal, 18)
+        .frame(height: Self.toolbarHeight)
+        .background(Lookout.chrome)
     }
 
-    // MARK: List
-
-    private var list: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    ForEach(Array(state.items.enumerated()), id: \.offset) { index, item in
-                        row(item, selected: index == state.selection, active: state.focus == .list)
-                            .id(index)
-                            .onTapGesture { onOpen(item.target) }
-                            .onContinuousHover { phase in
-                                if case .active = phase, mouse.moved(),
-                                   index != state.selection || state.focus != .list {
-                                    state.select(index)
-                                }
-                            }
-                    }
-                    footer
+    private func field(detailItems: [LauncherItem]) -> some View {
+        TextField(Self.placeholder, text: $query, prompt: Text(""))
+            .textFieldStyle(.plain)
+            .font(.system(size: 19))
+            .foregroundStyle(Lookout.primary)
+            .focused($focused)
+            // Its own lighter text: the field's placeholder looked like typed input.
+            .overlay(alignment: .leading) {
+                if query.isEmpty {
+                    Text(Self.placeholder)
+                        .font(.system(size: 19, weight: .light))
+                        .foregroundStyle(Lookout.secondary.opacity(0.7))
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
                 }
-                .padding(.vertical, 4)
             }
-            .onChange(of: state.selection) { proxy.scrollTo(state.selection) }
+            .onKeyPress(.upArrow) {
+                state.move(-1, detailCount: detailItems.count)
+                return .handled
+            }
+            .onKeyPress(.downArrow) {
+                state.move(1, detailCount: detailItems.count)
+                return .handled
+            }
+            // → and ← like Tab and Shift-Tab; otherwise they move the caret.
+            .onKeyPress(.rightArrow) {
+                state.enterDetail(detailCount: detailItems.count) ? .handled : .ignored
+            }
+            .onKeyPress(.leftArrow) { state.leaveDetail() ? .handled : .ignored }
+            // Tab into the detail and back; Shift-Tab arrives as a back tab.
+            .onKeyPress(keys: [.tab, KeyEquivalent("\u{19}")], phases: .down) { press in
+                let back = press.key == KeyEquivalent("\u{19}") || press.modifiers.contains(.shift)
+                if back {
+                    if state.focus == .detail { state.toggleFocus(detailCount: detailItems.count) }
+                } else {
+                    state.toggleFocus(detailCount: detailItems.count)
+                }
+                return .handled
+            }
+            .onKeyPress(.return, phases: .down) { press in
+                if let target = state.target(secondary: press.modifiers.contains(.command), detail: detailItems) {
+                    onOpen(target)
+                }
+                return .handled
+            }
+            .onKeyPress(.escape) {
+                if state.escape() { onClose() }
+                return .handled
+            }
+    }
+
+    // MARK: Results
+
+    private var results: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 8) {
+                Text("Results").font(.system(size: 15, weight: .semibold)).foregroundStyle(Lookout.primary)
+                if !state.items.isEmpty {
+                    Text("\(state.items.count)")
+                        .font(.system(size: 12, weight: .medium)).monospacedDigit()
+                        .foregroundStyle(Lookout.secondary)
+                        .padding(.horizontal, 7).padding(.vertical, 1)
+                        .background(Lookout.chrome, in: Capsule())
+                }
+            }
+            .padding(.horizontal, 18)
+            .frame(height: 42)
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(spacing: 4) {
+                        ForEach(Array(state.items.enumerated()), id: \.offset) { index, item in
+                            ResultRow(
+                                item: item, selected: index == state.selection, focused: state.focus == .list)
+                                .id(index)
+                                .onTapGesture { onOpen(item.target) }
+                                .onContinuousHover { phase in
+                                    if case .active = phase, mouse.moved(),
+                                       index != state.selection || state.focus != .list {
+                                        state.select(index)
+                                    }
+                                }
+                        }
+                        footer
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.bottom, 10)
+                }
+                .onChange(of: state.selection) { proxy.scrollTo(state.selection) }
+            }
         }
     }
 
@@ -206,33 +244,15 @@ struct LauncherView: View {
         if searching {
             HStack(spacing: 8) {
                 ProgressView().controlSize(.small)
-                Text("Searching Jira and GitHub…").font(.caption).foregroundStyle(.secondary)
+                Text("Searching Jira and GitHub…").font(.system(size: 12)).foregroundStyle(Lookout.secondary)
             }
-            .frame(maxWidth: .infinity, minHeight: 36, alignment: .leading)
-            .padding(.horizontal, 18)
+            .frame(maxWidth: .infinity, minHeight: 40, alignment: .leading)
+            .padding(.horizontal, 10)
         } else if state.items.isEmpty {
-            Text("No results").font(.callout).foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, minHeight: 36, alignment: .leading)
-                .padding(.horizontal, 18)
+            Text("No results").font(.system(size: 13)).foregroundStyle(Lookout.secondary)
+                .frame(maxWidth: .infinity, minHeight: 40, alignment: .leading)
+                .padding(.horizontal, 10)
         }
-    }
-
-    private func row(_ item: LauncherItem, selected: Bool, active: Bool) -> some View {
-        HStack(spacing: 10) {
-            icon(item.kind).frame(width: 18)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(item.title).lineLimit(1)
-                Text(item.subtitle).font(.caption).foregroundStyle(.secondary).lineLimit(1)
-            }
-        }
-        .frame(maxWidth: .infinity, minHeight: Self.rowHeight, alignment: .leading)
-        .padding(.horizontal, 12)
-        .background(
-            selected ? Color.accentColor.opacity(active ? 0.25 : 0.12) : .clear,
-            in: RoundedRectangle(cornerRadius: 8))
-        .padding(.horizontal, 6)
-        .contentShape(Rectangle())
-        .help(item.title)
     }
 
     // MARK: Detail
@@ -244,15 +264,13 @@ struct LauncherView: View {
             let count = detail.items.count
             ScrollViewReader { proxy in
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(detail.title).font(.title3.weight(.semibold)).lineLimit(3)
-                        Text(detail.subtitle).font(.callout).foregroundStyle(.secondary).lineLimit(1)
+                    VStack(alignment: .leading, spacing: 0) {
+                        detailHeader(detail)
                         ForEach(Array(detail.sections.enumerated()), id: \.offset) { number, section in
                             sectionView(section, offset: offsets[number], count: count)
                         }
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
+                    .padding(24)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .onChange(of: state.detailSelection) { proxy.scrollTo("detail-\(state.detailSelection)") }
@@ -260,6 +278,47 @@ struct LauncherView: View {
         } else {
             Color.clear.frame(maxWidth: .infinity)
         }
+    }
+
+    /// What the selected result is, its name and identifier, its status, and how to open it.
+    private func detailHeader(_ detail: LauncherDetail) -> some View {
+        let item = detail.item
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                KindIcon(kind: item.kind, size: 16)
+                Text(detail.heading).font(.system(size: 14, weight: .semibold)).foregroundStyle(Lookout.primary)
+                Spacer(minLength: 12)
+                BadgeStack(badges: item.badges, size: 13)
+            }
+            HStack(alignment: .top, spacing: 16) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(item.name ?? item.title)
+                        .font(.system(size: 22, weight: .semibold)).foregroundStyle(Lookout.primary)
+                        .lineLimit(3).fixedSize(horizontal: false, vertical: true)
+                    if let identifier = item.identifier {
+                        Text(identifier)
+                            .font(.system(size: 13, design: .monospaced)).foregroundStyle(Lookout.secondary)
+                            .lineLimit(1).truncationMode(.middle)
+                    }
+                }
+                Spacer(minLength: 8)
+                Button { onOpen(item.target) } label: {
+                    HStack(spacing: 6) {
+                        Text(item.openLabel)
+                        Image(systemName: "return")
+                    }
+                    .font(.system(size: 13))
+                    .foregroundStyle(Lookout.primary)
+                    .padding(.horizontal, 12)
+                    .frame(height: 30)
+                    .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Lookout.divider))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.top, 6)
+        }
+        .padding(.bottom, 18)
+        .overlay(alignment: .bottom) { Rectangle().fill(Lookout.divider).frame(height: 1) }
     }
 
     private func sectionOffsets(_ detail: LauncherDetail) -> [Int] {
@@ -272,15 +331,17 @@ struct LauncherView: View {
         return offsets
     }
 
+    /// A titled group of related rows, tied together by a thin tree line on the left.
     private func sectionView(_ section: LauncherDetail.Section, offset: Int, count: Int) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text(section.title.uppercased())
-                .font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
-                .padding(.top, 14).padding(.bottom, 4)
+            Text(section.title)
+                .font(.system(size: 15, weight: .semibold)).foregroundStyle(Lookout.primary)
+                .padding(.top, 20).padding(.bottom, 8)
             ForEach(Array(section.items.enumerated()), id: \.offset) { index, item in
                 let flat = offset + index
-                row(item, selected: state.focus == .detail && state.detailSelection == flat, active: true)
-                    .padding(.horizontal, -6)
+                DetailRow(
+                    item: item, selected: state.focus == .detail && state.detailSelection == flat,
+                    isLast: index == section.items.count - 1 && !section.isLoading)
                     .id("detail-\(flat)")
                     .onTapGesture { onOpen(item.target) }
                     .onContinuousHover { phase in
@@ -293,26 +354,40 @@ struct LauncherView: View {
             if section.isLoading {
                 HStack(spacing: 8) {
                     ProgressView().controlSize(.small)
-                    Text("Loading…").font(.caption).foregroundStyle(.secondary)
+                    Text("Loading…").font(.system(size: 12)).foregroundStyle(Lookout.secondary)
                 }
-                .padding(.vertical, 6)
+                .padding(.leading, 22).padding(.vertical, 8)
             } else if section.items.isEmpty, let empty = section.emptyText {
-                Text(empty).font(.callout).foregroundStyle(.tertiary).padding(.vertical, 6)
+                Text(empty).font(.system(size: 13)).foregroundStyle(Lookout.secondary)
+                    .padding(.leading, 22).padding(.vertical, 6)
             }
         }
     }
 
-    // MARK: Icons
+    // MARK: Key line
 
-    /// What the row is, so a bare number's mixed results read apart; the popover's icons
-    /// where it has one.
-    @ViewBuilder
-    private func icon(_ kind: LauncherItem.Kind) -> some View {
-        switch kind {
-        case .pullRequest: Image(systemName: "arrow.triangle.pull").foregroundStyle(.secondary).help("Pull request")
-        case .reviewRequest(let direct): ReviewRequestIcon(direct: direct)
-        case .ticket: Image(systemName: "ticket").foregroundStyle(.secondary).help("Jira ticket")
-        case .session(let status): SessionStatusIcon(status: status).help("Claude Code session")
+    /// The keys that work now; Enter says where it goes for the focused row.
+    private func keyLine(detailItems: [LauncherItem]) -> some View {
+        let focusedRow: LauncherItem? = switch state.focus {
+        case .list: state.selectedItem
+        case .detail: detailItems.indices.contains(state.detailSelection) ? detailItems[state.detailSelection] : nil
+        }
+        return HStack(spacing: 18) {
+            keyHint(["↑", "↓"], "Navigate")
+            keyHint(["tab"], "Switch pane")
+            if let focusedRow { keyHint(["↵"], focusedRow.openLabel) }
+            Spacer()
+            keyHint(["esc"], state.focus == .detail ? "Back" : "Close")
+        }
+        .padding(.horizontal, 18)
+        .frame(height: Self.keyLineHeight)
+        .background(Lookout.chrome)
+    }
+
+    private func keyHint(_ keys: [String], _ text: String) -> some View {
+        HStack(spacing: 6) {
+            HStack(spacing: 2) { ForEach(keys, id: \.self) { Keycap(text: $0) } }
+            Text(text).font(.system(size: 12)).foregroundStyle(Lookout.secondary)
         }
     }
 
@@ -363,5 +438,94 @@ private final class MouseTracker {
         defer { last = now }
         guard let last else { return false }
         return last != now
+    }
+}
+
+/// A result: the kind's icon, the kind and identifier over the name, and the status on the
+/// right. The selected row is filled; while the keyboard is in the results it also has a frame.
+private struct ResultRow: View {
+    let item: LauncherItem
+    let selected: Bool
+    let focused: Bool
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 10) {
+            KindIcon(kind: item.kind)
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 8) {
+                    Text(item.kind.label).font(.system(size: 12, weight: .semibold)).foregroundStyle(Lookout.color(item.kind))
+                    if let identifier = item.identifier {
+                        Text(identifier).font(.system(size: 12)).monospacedDigit().foregroundStyle(Lookout.secondary)
+                            .lineLimit(1).truncationMode(.middle)
+                    }
+                }
+                Text(item.name ?? item.title).font(.system(size: 14)).foregroundStyle(Lookout.primary).lineLimit(1)
+            }
+            Spacer(minLength: 8)
+            BadgeStack(badges: item.badges, size: 12)
+        }
+        .padding(.horizontal, 10)
+        .frame(maxWidth: .infinity, minHeight: 62, alignment: .leading)
+        .background(selected ? Lookout.selection : .clear, in: RoundedRectangle(cornerRadius: 10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .strokeBorder(selected && focused ? Lookout.interaction : .clear, lineWidth: 1.5))
+        .contentShape(Rectangle())
+        .help(item.title)
+    }
+}
+
+/// A row of the detail: a tree line on the left, how it relates, its identifier and name, and
+/// its status.
+private struct DetailRow: View {
+    let item: LauncherItem
+    let selected: Bool
+    let isLast: Bool
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 0) {
+            TreeLine(isLast: isLast).frame(width: 22)
+            HStack(alignment: .center, spacing: 10) {
+                KindIcon(kind: item.kind, size: 16)
+                VStack(alignment: .leading, spacing: 2) {
+                    if let caption = item.caption {
+                        Text(caption).font(.system(size: 12)).foregroundStyle(Lookout.secondary)
+                    }
+                    if let identifier = item.identifier {
+                        Text(identifier).font(.system(size: 14, weight: .semibold)).monospacedDigit()
+                            .foregroundStyle(Lookout.primary).lineLimit(1).truncationMode(.middle)
+                    }
+                    Text(item.name ?? item.title).font(.system(size: 13))
+                        .foregroundStyle(item.identifier == nil ? Lookout.primary : Lookout.secondary).lineLimit(1)
+                }
+                Spacer(minLength: 8)
+                BadgeStack(badges: item.badges, size: 12)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(selected ? Lookout.selection : .clear, in: RoundedRectangle(cornerRadius: 8))
+            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(selected ? Lookout.interaction : .clear, lineWidth: 1.5))
+        }
+        .contentShape(Rectangle())
+        .help(item.title)
+    }
+}
+
+/// The thin rule that ties a section's rows: down the left, with a tick to each row.
+private struct TreeLine: View {
+    let isLast: Bool
+
+    var body: some View {
+        GeometryReader { geometry in
+            Path { path in
+                let x: CGFloat = 6
+                let mid = geometry.size.height / 2
+                path.move(to: CGPoint(x: x, y: 0))
+                path.addLine(to: CGPoint(x: x, y: isLast ? mid : geometry.size.height))
+                path.move(to: CGPoint(x: x, y: mid))
+                path.addLine(to: CGPoint(x: geometry.size.width - 2, y: mid))
+            }
+            .stroke(Lookout.divider, lineWidth: 1.5)
+        }
     }
 }

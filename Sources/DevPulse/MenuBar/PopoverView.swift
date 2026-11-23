@@ -6,49 +6,51 @@ import SwiftUI
 struct PopoverView: View {
     let model: AppModel
     /// The lists scroll above this height. The demo window lifts it so a screenshot shows them all.
-    var maxListHeight: CGFloat = 520
+    var maxListHeight: CGFloat = 640
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
-            Divider()
             // One shared clock for every relative time; it ticks only while the window is shown.
             TimelineView(.everyMinute) { context in
                 ScrollView {
                     sections(now: context.date)
-                        .padding(.vertical, 6)
                 }
                 .frame(maxHeight: maxListHeight)
                 .fixedSize(horizontal: false, vertical: true)
             }
-            Divider()
+            Rectangle().fill(Lookout.divider).frame(height: 1)
             footer
         }
-        .frame(width: 380)
+        .frame(width: 520)
+        .background(Lookout.surface)
     }
 
     private var header: some View {
-        HStack {
-            Text("DevPulse").font(.headline)
+        HStack(spacing: 10) {
+            BrandMark(size: 18)
             Spacer()
             if model.isRefreshing {
                 ProgressView().controlSize(.small)
             }
             Button(action: model.refreshAll) {
-                Image(systemName: "arrow.clockwise")
+                Image(systemName: "arrow.clockwise").font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(Lookout.secondary)
+                    .frame(width: 28, height: 28)
+                    .contentShape(Rectangle())
             }
-            .buttonStyle(.borderless)
+            .buttonStyle(.plain)
             .help("Refresh now")
             .disabled(model.isRefreshing)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 16)
+        .frame(height: 52)
     }
 
     @ViewBuilder
     private func sections(now: Date) -> some View {
         let snapshot = model.snapshot
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 0) {
             SectionView(
                 title: "My pull requests", count: snapshot.myPullRequests.count,
                 status: snapshot.sources.github, now: now, emptyText: "No open pull requests"
@@ -84,7 +86,6 @@ struct PopoverView: View {
                 }
             }
         }
-        .padding(.horizontal, 6)
     }
 
     private var footer: some View {
@@ -93,9 +94,12 @@ struct PopoverView: View {
             Spacer()
             Button("Quit DevPulse") { NSApp.terminate(nil) }
         }
-        .buttonStyle(.borderless)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .buttonStyle(.plain)
+        .font(.system(size: 13))
+        .foregroundStyle(Lookout.primary)
+        .padding(.horizontal, 16)
+        .frame(height: 40)
+        .background(Lookout.chrome)
     }
 
     private func open(_ url: String) {

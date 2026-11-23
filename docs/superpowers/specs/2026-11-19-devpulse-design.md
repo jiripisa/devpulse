@@ -322,6 +322,18 @@ Code's "Install 'code' command in PATH".
 - Because it is a symlink into the bundle, every app update also updates the CLI. No separate
   install or upgrade step is needed.
 
+### 5.6a Look ("Lookout", since 0.14)
+
+The popover and the launcher share one visual language (designed with Codex, proposal kept outside
+the repo): every row shows its kind on the left (icon and label in an identity colour: Jira blue,
+PR violet, Review magenta, Claude cyan) and its state on the right as a shape plus a word
+(`StatusBadge` in the core); a PR's CI and review state are separate badges. Colours come in light
+and dark values (`Lookout` in the app). A session waiting for input gets an amber bar and wash.
+The launcher is a borderless Spotlight-like panel (1040 pt wide): the DevPulse mark and the search
+field; once something is typed, results (with a count), the detail (heading, state, name,
+identifier, an "Open in …" button, sections joined by a tree line) and a key line naming where
+Enter goes.
+
 ### 5.7 Quick launcher (approach X, chosen)
 
 A floating, non-activating panel (`NSPanel`) opens on a global hotkey. The default is ⌥Space; it is
