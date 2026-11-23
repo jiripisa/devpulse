@@ -5,13 +5,13 @@
     <link>https://jiripisa.github.io/devpulse/</link>
     <description>DevPulse updates</description>
     <item>
-      <title>DevPulse 0.12.1</title>
-      <sparkle:version>0.12.1</sparkle:version>
-      <sparkle:shortVersionString>0.12.1</sparkle:shortVersionString>
+      <title>DevPulse 0.13.0</title>
+      <sparkle:version>0.13.0</sparkle:version>
+      <sparkle:shortVersionString>0.13.0</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>27.0</sparkle:minimumSystemVersion>
-      <pubDate>Mon, 23 Nov 2026 07:47:42 +0000</pubDate>
-      <description><![CDATA[<ul><li>Opening a Claude Code session (from the menu, the quick launcher or the terminal UI) switches to its tab when its Ghostty window has several; before, only the window came to the front.</li></ul>]]></description>
-      <enclosure url="https://github.com/jiripisa/devpulse/releases/download/v0.12.1/DevPulse-0.12.1.dmg" type="application/octet-stream" sparkle:edSignature="8tLxpqaxopKoYQSLSVDzCf5pFGeha273mWOf5gmEnlZwqcnOvjY261QZaRGCphvIrfgRkGc/FO8cVPt5ntgcDg==" length="5721293"/>
+      <pubDate>Mon, 23 Nov 2026 08:51:46 +0000</pubDate>
+      <description><![CDATA[<ul><li>The quick launcher has two panes: the results on the left and, on the right, the detail of the selected one. A ticket&#x27;s detail lists its pull requests and related tickets; a pull request&#x27;s or a Claude Code session&#x27;s lists its ticket and that ticket&#x27;s related tickets. Tab moves into the detail and back, and Enter opens the selected row. The expanding rows of 0.12 are gone.</li><li>The results no longer move while you use the arrow keys: what Jira and GitHub find is added at the bottom, and a line there says while they are being asked. A bare number&#x27;s tickets and pull requests from your other projects and repositories show only once Jira or GitHub confirms them, so rows no longer appear and then vanish.</li><li>A ticket that was moved to another project shows its new key and &quot;Moved from&quot; the number you typed. When Jira or GitHub cannot be reached, the rows say so instead of showing nothing.</li><li>Moving the mouse over the launcher no longer redraws it at every move, and the mouse selects a row only when it really moves.</li></ul>]]></description>
+      <enclosure url="https://github.com/jiripisa/devpulse/releases/download/v0.13.0/DevPulse-0.13.0.dmg" type="application/octet-stream" sparkle:edSignature="ktLMORBFWWF8uYtuVy2Yz2wPdQ74J//OvuVJIqN9Bg0I+gbhYUMHIzEPyDy4DdmIPCKP43z8R99LEADyZKkwAQ==" length="5773217"/>
     </item>
   </channel>
 </rss>
