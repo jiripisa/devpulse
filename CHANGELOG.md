@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.13.1 — 2026-11-23
+
+- In the quick launcher, → moves into the detail like Tab, and ← goes back to the results like
+  Shift-Tab or Esc. When the detail is empty, → and ← move the cursor in the search field.
+
 ## 0.13.0 — 2026-11-23
 
 - The quick launcher has two panes: the results on the left and, on the right, the detail of the

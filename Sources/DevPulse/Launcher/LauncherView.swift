@@ -146,6 +146,11 @@ struct LauncherView: View {
                     state.move(1, detailCount: detailItems.count)
                     return .handled
                 }
+                // → and ← like Tab and Shift-Tab; otherwise they move the caret.
+                .onKeyPress(.rightArrow) {
+                    state.enterDetail(detailCount: detailItems.count) ? .handled : .ignored
+                }
+                .onKeyPress(.leftArrow) { state.leaveDetail() ? .handled : .ignored }
                 // Tab into the detail and back; Shift-Tab arrives as a back tab.
                 .onKeyPress(keys: [.tab, KeyEquivalent("\u{19}")], phases: .down) { press in
                     let back = press.key == KeyEquivalent("\u{19}") || press.modifiers.contains(.shift)

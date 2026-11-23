@@ -87,6 +87,24 @@ private func item(_ name: String, subject: LauncherItem.Subject? = nil, title: S
         #expect(state.focus == .list)
     }
 
+    @Test func rightArrowEntersTheDetailAndLeftArrowLeavesIt() {
+        var state = LauncherState()
+        state.setResults([item("a")], for: "q")
+        // With nothing in the detail, → and ← belong to the text field's caret.
+        #expect(state.enterDetail(detailCount: 0) == false)
+        #expect(state.leaveDetail() == false)
+        #expect(state.enterDetail(detailCount: 2) == true)
+        #expect(state.focus == .detail)
+        #expect(state.detailSelection == 0)
+        state.move(1, detailCount: 2)
+        // → again stays in the detail and keeps the row; the caret does not move either.
+        #expect(state.enterDetail(detailCount: 2) == true)
+        #expect(state.detailSelection == 1)
+        #expect(state.leaveDetail() == true)
+        #expect(state.focus == .list)
+        #expect(state.leaveDetail() == false)
+    }
+
     @Test func selectingAnotherResultLeavesTheDetail() {
         var state = LauncherState()
         state.setResults([item("a"), item("b")], for: "q")
