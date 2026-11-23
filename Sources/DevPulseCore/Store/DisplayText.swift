@@ -12,6 +12,25 @@ extension ClaudeSession {
     }
 }
 
+extension ClaudeSession {
+    /// What a row shows next to "Claude": the Jira key, and what it waits for; without either,
+    /// the folder (with `~` for the home folder).
+    public var rowIdentifiers: [String] {
+        let waiting = status == .waiting ? waitingFor.map { $0.prefix(1).uppercased() + $0.dropFirst() } : nil
+        let parts = [jiraKey, waiting].compactMap { $0 }
+        return parts.isEmpty ? [(cwd as NSString).abbreviatingWithTildeInPath] : parts
+    }
+}
+
+extension PullRequest {
+    /// What a row shows next to "PR": the repository without its owner and the number, and the
+    /// linked Jira key.
+    public var rowIdentifiers: [String] {
+        let name = repo.split(separator: "/").last.map(String.init) ?? repo
+        return ["\(name) #\(number)"] + [jiraKey].compactMap { $0 }
+    }
+}
+
 /// Short relative times for the UI: "just now", "2 min ago", "3 h ago", "1 d ago".
 public enum RelativeAge {
     public static func text(since date: Date, now: Date) -> String {

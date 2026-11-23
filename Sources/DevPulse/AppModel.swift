@@ -171,6 +171,12 @@ final class AppModel {
     /// without the hotkey or a click on the menu bar. Something not understood stops the app.
     private func openDemoWindow() {
         #if DEBUG
+        // `-DevPulseDemoAppearance dark|light`: the demo's screenshots in either appearance.
+        switch UserDefaults.standard.string(forKey: "DevPulseDemoAppearance") {
+        case "dark": NSApp.appearance = NSAppearance(named: .darkAqua)
+        case "light": NSApp.appearance = NSAppearance(named: .aqua)
+        default: break
+        }
         guard let argument = UserDefaults.standard.string(forKey: "DevPulseDemoOpen") else { return }
         switch DemoOpen(argument: argument) {
         case .launcher(let query, let select):

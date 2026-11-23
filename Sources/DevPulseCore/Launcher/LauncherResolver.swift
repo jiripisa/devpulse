@@ -24,13 +24,28 @@ public struct LauncherItem: Equatable, Sendable {
     public var target: OpenTarget
     /// What ⌘Enter opens (a PR's linked Jira ticket).
     public var secondary: OpenTarget?
-    /// What the row expands into; nil for sessions, for a "Not found" row and for an
-    /// expanded row's children.
+    /// The ticket or PR the row shows, whose detail the launcher can show; nil for sessions and
+    /// for the detail's own rows.
     public var subject: Subject?
+
+    // How the row reads in the launcher: a line with the kind and its identifier, the name
+    // under it, and the status on the right; `title` and `subtitle` say the same in one string
+    // each (help text, VoiceOver, tests).
+
+    /// `acme/store #812 · STORE-2474`, `STORE-2474`.
+    public var identifier: String?
+    /// The same, short enough for the result list: `store #812 · STORE-2474`.
+    public var compactIdentifier: String?
+    /// The PR's or ticket's title, the session's name.
+    public var name: String?
+    /// A small line above, e.g. how a related ticket relates: "Is blocked by".
+    public var caption: String?
+    public var badges: [StatusBadge]
 
     public init(
         title: String, subtitle: String, kind: Kind, target: OpenTarget, secondary: OpenTarget? = nil,
-        subject: Subject? = nil
+        subject: Subject? = nil, identifier: String? = nil, compactIdentifier: String? = nil, name: String? = nil,
+        caption: String? = nil, badges: [StatusBadge] = []
     ) {
         self.title = title
         self.subtitle = subtitle
@@ -38,6 +53,19 @@ public struct LauncherItem: Equatable, Sendable {
         self.target = target
         self.secondary = secondary
         self.subject = subject
+        self.identifier = identifier
+        self.compactIdentifier = compactIdentifier ?? identifier
+        self.name = name
+        self.caption = caption
+        self.badges = badges
+    }
+
+    /// What Enter does with the row, for the launcher's key line.
+    public var openLabel: String {
+        switch target {
+        case .session: "Open in Ghostty"
+        case .url(let url): url.host()?.hasSuffix("github.com") == true ? "Open on GitHub" : "Open in Jira"
+        }
     }
 }
 
@@ -129,6 +157,7 @@ public enum LauncherResolver {
     private static func notFound(_ link: LauncherItem, _ text: String) -> LauncherItem {
         var item = link
         item.subtitle = text
+        item.badges = [StatusBadge(text: text, glyph: .exclamation, tone: .secondary)]
         return item
     }
 
@@ -160,6 +189,11 @@ public enum LauncherResolver {
     }
 
     /// My PRs first, then the review requests; a PR in both lists shows once, as mine.
+    /// `store #9` for `acme/store`, number 9.
+    static func compact(repo: String, number: Int) -> String {
+        "\(repo.split(separator: "/").last.map(String.init) ?? repo) #\(number)"
+    }
+
     static func knownPullRequests(_ snapshot: Snapshot) -> [PullRequest] {
         var seen = Set<String>()
         return (snapshot.myPullRequests + snapshot.reviewRequests).filter { seen.insert($0.id).inserted }
@@ -187,7 +221,9 @@ public enum LauncherResolver {
         guard let url = URL(string: "https://github.com/\(repo)/pull/\(number)") else { return nil }
         return LauncherItem(
             title: "Open \(repo)#\(number)", subtitle: url.absoluteString, kind: .pullRequest, target: .url(url),
-            subject: .pullRequest(PullRequestRef(repo: repo, number: number)))
+            subject: .pullRequest(PullRequestRef(repo: repo, number: number)),
+            identifier: "\(repo) #\(number)", compactIdentifier: Self.compact(repo: repo, number: number),
+            name: "Open on GitHub")
     }
 
     /// A full `owner/name` as typed, or the configured repository or the repo of a known PR
@@ -207,8 +243,12 @@ public enum LauncherResolver {
             title: "#\(pr.number) \(pr.title)", subtitle: pr.repo,
             kind: isMine ? .pullRequest : .reviewRequest(direct: pr.requestedDirectly), target: .url(url),
             secondary: pr.jiraKey.flatMap { jiraURL($0, snapshot: snapshot, site: nil) }.map { .url($0) },
-            subject: .pullRequest(PullRequestRef(repo: pr.repo, number: pr.number)))
+            subject: .pullRequest(PullRequestRef(repo: pr.repo, number: pr.number)),
+            identifier: (["\(pr.repo) #\(pr.number)"] + [pr.jiraKey].compactMap { $0 }).joined(separator: " · "),
+            compactIdentifier: pr.rowIdentifiers.joined(separator: " · "),
+            name: pr.title, badges: StatusBadge.pullRequest(pr))
     }
+
 
     // MARK: Jira
 
@@ -260,7 +300,8 @@ public enum LauncherResolver {
     static func ticketLink(_ key: String, snapshot: Snapshot, site: URL?) -> LauncherItem? {
         guard let url = jiraURL(key, snapshot: snapshot, site: site) else { return nil }
         return LauncherItem(
-            title: "Open \(key)", subtitle: url.absoluteString, kind: .ticket, target: .url(url), subject: .ticket(key))
+            title: "Open \(key)", subtitle: url.absoluteString, kind: .ticket, target: .url(url), subject: .ticket(key),
+            identifier: key, name: "Open in Jira")
     }
 
     /// A PR the lookup found: its title, and its repo and state.
@@ -268,7 +309,9 @@ public enum LauncherResolver {
         URL(string: pr.url).map {
             LauncherItem(
                 title: "#\(pr.number) \(pr.title)", subtitle: "\(pr.repo) · \(pr.state.text)",
-                kind: .pullRequest, target: .url($0), subject: .pullRequest(pr.ref))
+                kind: .pullRequest, target: .url($0), subject: .pullRequest(pr.ref),
+                identifier: "\(pr.repo) #\(pr.number)", compactIdentifier: compact(repo: pr.repo, number: pr.number),
+                name: pr.title, badges: [StatusBadge.pullRequest(pr.state)])
         }
     }
 
@@ -276,7 +319,8 @@ public enum LauncherResolver {
         URL(string: ticket.url).map {
             LauncherItem(
                 title: "\(ticket.key) \(ticket.summary)", subtitle: ticket.status, kind: .ticket, target: .url($0),
-                subject: .ticket(ticket.key))
+                subject: .ticket(ticket.key), identifier: ticket.key, name: ticket.summary,
+                badges: [StatusBadge.ticket(status: ticket.status, category: ticket.statusCategory)])
         }
     }
 
@@ -319,6 +363,8 @@ public enum LauncherResolver {
         return LauncherItem(
             title: [session.name, session.jiraKey].compactMap { $0 }.joined(separator: " "),
             subtitle: "Claude Code session · \(session.stateText) · \(cwd)",
-            kind: .session(session.status), target: .session(pid: session.pid))
+            kind: .session(session.status), target: .session(pid: session.pid),
+            identifier: session.rowIdentifiers.joined(separator: " · "), name: session.name,
+            badges: [StatusBadge.session(session.status)])
     }
 }
