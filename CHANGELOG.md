@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.12.1 — 2026-11-23
 
 - Opening a Claude Code session (from the menu, the quick launcher or the terminal UI) switches
   to its tab when its Ghostty window has several; before, only the window came to the front.
