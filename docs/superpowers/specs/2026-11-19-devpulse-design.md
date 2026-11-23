@@ -338,6 +338,7 @@ configurable in Settings and must not collide with the system Spotlight shortcut
 | `jira <text>` | filters by summary |
 | `jira <KEY-123>` | opens that ticket, even if it is not in my list; looked up like a bare number's rows, and "Not found in Jira" when it does not exist |
 | `jira <123>` | ticket 123 of each Jira project in Settings; the first project's row stays (as "Not found") when it does not exist. Without projects: those of my tickets, most tickets first. |
+| (rest on a row) | after the selection was moved (arrows or mouse) and rests 500 ms on a ticket or PR, indented child rows open under it: a ticket's PRs (mine and review requests linked to it, plus one GitHub GraphQL search `"KEY" is:pr repo:…` over the Settings repositories, cached 5 min) and related tickets; a PR's ticket (looked up if unknown) and that ticket's related tickets. Up to 10 PRs and 10 related tickets; children do not expand. Moving to another result folds them. |
 | `Esc` | closes the panel |
 | `⌘Enter` | opens the linked Jira ticket of a PR |
 

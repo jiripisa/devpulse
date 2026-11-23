@@ -7,14 +7,15 @@ import Foundation
 /// What a demo opens at launch, from `-DevPulseDemoOpen <what>`: no hotkey and no click on the
 /// menu bar needed.
 public enum DemoOpen: Equatable, Sendable {
-    /// The launcher panel with this query typed in.
-    case launcher(query: String)
+    /// The launcher panel with this query typed in, and with the row `select` selected as if the
+    /// user had moved there, so it expands.
+    case launcher(query: String, select: Int? = nil)
     /// The popover's content in a plain window at its real size.
     case popover
     /// The Settings window on the tab with this name (`general`, `jira`, …).
     case settings(tab: String)
 
-    /// `launcher:<query>`, `popover` or `settings:<tab>`; nil for anything else.
+    /// `launcher:<query>[@<row>]`, `popover` or `settings:<tab>`; nil for anything else.
     public init?(argument: String) {
         if argument == "popover" {
             self = .popover
@@ -23,7 +24,12 @@ public enum DemoOpen: Equatable, Sendable {
         guard let colon = argument.firstIndex(of: ":") else { return nil }
         let value = String(argument[argument.index(after: colon)...])
         switch argument[..<colon] {
-        case "launcher": self = .launcher(query: value)
+        case "launcher":
+            if let at = value.lastIndex(of: "@"), let row = Int(value[value.index(after: at)...]) {
+                self = .launcher(query: String(value[..<at]), select: row)
+            } else {
+                self = .launcher(query: value)
+            }
         case "settings" where !value.isEmpty: self = .settings(tab: value)
         default: return nil
         }

@@ -449,13 +449,31 @@ gh auth login</code></pre>
           <table>
             <thead><tr><th>Key</th><th>Action</th></tr></thead>
             <tbody>
-              <tr><td><kbd>↑</kbd> <kbd>↓</kbd></td><td>Move the selection.</td></tr>
+              <tr><td><kbd>↑</kbd> <kbd>↓</kbd> or the mouse</td><td>Move the selection. Rest on a ticket or pull request for half a second to expand it (see below).</td></tr>
               <tr><td><kbd>Enter</kbd> or a click</td><td>Open the selected row: a pull request or ticket in the browser; for a Claude Code session, bring its Ghostty window to the front.</td></tr>
               <tr><td><kbd>⌘</kbd><kbd>Enter</kbd></td><td>Open the Jira ticket linked to the selected pull request.</td></tr>
               <tr><td><kbd>Esc</kbd></td><td>Close the launcher.</td></tr>
             </tbody>
           </table>
         </div>
+        <h3>Expanding a result</h3>
+        <p>Move to a ticket or a pull request (with the arrow keys or the mouse) and stop there for
+        half a second: indented rows open under it. Move into them with the arrow keys and press
+        <kbd>Enter</kbd> to open one. Moving to another result folds them away again.</p>
+        <ul>
+          <li><b>Under a ticket:</b> its pull requests, then its related tickets with how they
+          relate (<span class="ui">blocks</span>, <span class="ui">relates to</span> …) and their
+          status. The pull requests are your own and your review requests linked to the ticket,
+          and those GitHub finds with the ticket's key in the title or description in your
+          <a href="#github">repositories</a>.</li>
+          <li><b>Under a pull request:</b> its ticket, then that ticket's related tickets.</li>
+        </ul>
+        <figure class="fig">
+          <div class="view" style="--iw:1280;--ih:498">
+            <img src="assets/manual/devpulse-launcher-expand.png" alt="The quick launcher with the ticket STORE-2474 expanded: its pull request #812 and two related tickets, indented under it">
+          </div>
+          <figcaption>The ticket STORE-2474 expanded: its pull request #812, the ticket that blocks it and one it relates to.</figcaption>
+        </figure>
       </section>
 
       <section id="notifications">

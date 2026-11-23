@@ -234,6 +234,39 @@ struct GitHubTests {
         #expect(transport.requests.withLock { $0.isEmpty })
     }
 
+    @Test("Searches a ticket's PRs in the repositories with one GraphQL request")
+    func pullRequestSearch() async throws {
+        let body = Data("""
+            { "data": { "search": { "nodes": [
+                { "number": 5, "title": "STORE-7 checkout", "state": "OPEN", "isDraft": true,
+                  "url": "https://github.com/acme/store/pull/5", "headRefName": "feature/STORE-7",
+                  "repository": { "nameWithOwner": "acme/store" } },
+                { } ] } } }
+            """.utf8)
+        let transport = FakeTransport(body: body)
+        let source = GitHubSource(tokens: FakeTokens(), transport: transport)
+        let found = try await source.searchPullRequests(PullRequestSearch(key: "STORE-7", repos: ["acme/store", "acme/api"]))
+        #expect(found == [PullRequestSummary(
+            repo: "acme/store", number: 5, title: "STORE-7 checkout", state: .draft,
+            url: "https://github.com/acme/store/pull/5", headBranch: "feature/STORE-7")])
+        let request = try #require(transport.requests.withLock { $0.first })
+        let json = try #require(JSONSerialization.jsonObject(with: request.httpBody ?? Data()) as? [String: Any])
+        let query = try #require(json["query"] as? String)
+        #expect(!query.contains("acme") && !query.contains("STORE"))
+        let variables = try #require(json["variables"] as? [String: Any])
+        #expect(variables["q"] as? String == #""STORE-7" is:pr repo:acme/store repo:acme/api"#)
+    }
+
+    @Test("A search with a bad key or no usable repository sends nothing")
+    func pullRequestSearchInvalid() async throws {
+        let transport = FakeTransport(body: Data())
+        let source = GitHubSource(tokens: FakeTokens(), transport: transport)
+        #expect(try await source.searchPullRequests(PullRequestSearch(key: "store 7", repos: ["acme/store"])).isEmpty)
+        #expect(try await source.searchPullRequests(PullRequestSearch(key: "STORE-7", repos: [])).isEmpty)
+        #expect(try await source.searchPullRequests(PullRequestSearch(key: "STORE-7", repos: ["a b/c"])).isEmpty)
+        #expect(transport.requests.withLock { $0.isEmpty })
+    }
+
     @Test("Aliases the answer leaves out are neither found nor missing")
     func pullRequestLookupPartial() async throws {
         let body = Data(#"{ "data": { } }"#.utf8)

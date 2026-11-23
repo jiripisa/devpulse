@@ -14,6 +14,8 @@ private final class FakeLookups: Sendable {
     let pullRequests = Mutex<Result<PullRequestLookup, any Error>>(.success(PullRequestLookup()))
     let ticketCalls = Mutex<[[String]]>([])
     let pullRequestCalls = Mutex<[[PullRequestRef]]>([])
+    let searches = Mutex<Result<[PullRequestSummary], any Error>>(.success([]))
+    let searchCalls = Mutex<[PullRequestSearch]>([])
     let clock = Mutex(Date(timeIntervalSince1970: 1_000))
 
     @MainActor func lookup(ttl: TimeInterval = 300) -> LauncherLookup {
@@ -29,6 +31,10 @@ private final class FakeLookups: Sendable {
             fetchPullRequests: { refs in
                 self.pullRequestCalls.withLock { $0.append(refs) }
                 return try self.pullRequests.withLock { $0 }.get()
+            },
+            searchPullRequests: { search in
+                self.searchCalls.withLock { $0.append(search) }
+                return try self.searches.withLock { $0 }.get()
             })
     }
 
@@ -141,6 +147,31 @@ private final class FakeLookups: Sendable {
         #expect(fake.ticketCalls.withLock { $0.count } == 1)
         fake.gate.withLock { $0 }?.resume()
         await first.value
+    }
+
+    @Test func searchesATicketsPullRequestsOnceForTheTTL() async {
+        let fake = FakeLookups()
+        fake.searches.withLock { $0 = .success([summary("Seven")]) }
+        let lookup = fake.lookup(ttl: 300)
+        let search = PullRequestSearch(key: "STORE-7", repos: ["acme/store"])
+        await lookup.resolve(LookupRequest(pullRequestSearches: [search]))
+        await lookup.resolve(LookupRequest(pullRequestSearches: [search]))
+        #expect(fake.searchCalls.withLock { $0 } == [search])
+        #expect(lookup.results.pullRequestsForTicket["STORE-7"]?.map(\.title) == ["Seven"])
+        // Other repositories are another search.
+        await lookup.resolve(LookupRequest(pullRequestSearches: [PullRequestSearch(key: "STORE-7", repos: ["acme/api"])]))
+        #expect(fake.searchCalls.withLock { $0.count } == 2)
+    }
+
+    @Test func aFailedSearchRemembersNothing() async {
+        let fake = FakeLookups()
+        fake.searches.withLock { $0 = .failure(Offline()) }
+        let lookup = fake.lookup()
+        let search = PullRequestSearch(key: "STORE-7", repos: ["acme/store"])
+        await lookup.resolve(LookupRequest(pullRequestSearches: [search]))
+        await lookup.resolve(LookupRequest(pullRequestSearches: [search]))
+        #expect(fake.searchCalls.withLock { $0.count } == 2)
+        #expect(lookup.results.pullRequestsForTicket.isEmpty)
     }
 
     @Test func anEmptyRequestAsksNothing() async {

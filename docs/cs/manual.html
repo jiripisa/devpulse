@@ -451,13 +451,30 @@ gh auth login</code></pre>
           <table>
             <thead><tr><th>Klávesa</th><th>Akce</th></tr></thead>
             <tbody>
-              <tr><td><kbd>↑</kbd> <kbd>↓</kbd></td><td>Posun výběru.</td></tr>
+              <tr><td><kbd>↑</kbd> <kbd>↓</kbd> nebo myš</td><td>Posun výběru. Když se na tiketu nebo pull requestu na půl vteřiny zastavíte, rozbalí se (viz níže).</td></tr>
               <tr><td><kbd>Enter</kbd> nebo kliknutí</td><td>Otevřít vybraný řádek: pull request nebo tiket v prohlížeči, u session Claude Code přenést dopředu její okno Ghostty.</td></tr>
               <tr><td><kbd>⌘</kbd><kbd>Enter</kbd></td><td>Otevřít tiket z Jiry navázaný na vybraný pull request.</td></tr>
               <tr><td><kbd>Esc</kbd></td><td>Zavřít panel.</td></tr>
             </tbody>
           </table>
         </div>
+        <h3>Rozbalení výsledku</h3>
+        <p>Přejděte na tiket nebo pull request (šipkami nebo myší) a na půl vteřiny se zastavte:
+        pod ním se otevřou odsazené řádky. Šipkami do nich můžete sjet a <kbd>Enter</kbd> řádek
+        otevře. Když přejdete na jiný výsledek, zase se zavřou.</p>
+        <ul>
+          <li><b>Pod tiketem:</b> jeho pull requesty, za nimi související tikety s druhem vazby
+          (<span class="ui">blocks</span>, <span class="ui">relates to</span> …) a stavem. Pull
+          requesty jsou vaše vlastní a žádosti o review navázané na tiket a ty, které GitHub najde
+          s klíčem tiketu v názvu nebo popisu ve vašich <a href="#github">repozitářích</a>.</li>
+          <li><b>Pod pull requestem:</b> jeho tiket, za ním související tikety tohoto tiketu.</li>
+        </ul>
+        <figure class="fig">
+          <div class="view" style="--iw:1280;--ih:498">
+            <img src="../assets/manual/devpulse-launcher-expand.png" alt="Rychlé hledání s rozbaleným tiketem STORE-2474: jeho pull request #812 a dva související tikety odsazené pod ním">
+          </div>
+          <figcaption>Rozbalený tiket STORE-2474: jeho pull request #812, tiket, který ho blokuje, a jeden související.</figcaption>
+        </figure>
       </section>
 
       <section id="notifications">
