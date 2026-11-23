@@ -5,13 +5,13 @@
     <link>https://jiripisa.github.io/devpulse/</link>
     <description>DevPulse updates</description>
     <item>
-      <title>DevPulse 0.15.0</title>
-      <sparkle:version>0.15.0</sparkle:version>
-      <sparkle:shortVersionString>0.15.0</sparkle:shortVersionString>
+      <title>DevPulse 0.16.0</title>
+      <sparkle:version>0.16.0</sparkle:version>
+      <sparkle:shortVersionString>0.16.0</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>27.0</sparkle:minimumSystemVersion>
-      <pubDate>Mon, 23 Nov 2026 20:03:27 +0000</pubDate>
-      <description><![CDATA[<ul><li>Search the quick launcher by words from a title: it finds your pull requests, tickets and Claude Code sessions with every word at once, then the tickets of your Jira projects and the pull requests of your repositories with those words, as Jira and GitHub answer. Case and accents do not matter.</li><li>Settings › General › Appearance: System, Light or Dark for the popover, the launcher and the windows.</li><li>The launcher&#x27;s search bar is Liquid Glass, like Spotlight&#x27;s; the results sit on a card below it.</li></ul>]]></description>
-      <enclosure url="https://github.com/jiripisa/devpulse/releases/download/v0.15.0/DevPulse-0.15.0.dmg" type="application/octet-stream" sparkle:edSignature="TF/E7jAaytMQdUuXo2TK9WmqqbZ/UAokwe7FQFL9rPvu2u9t8OrC1Y8gnQXt23DZD1uOappZ2HyUboN4qJyVBQ==" length="5894088"/>
+      <pubDate>Mon, 23 Nov 2026 22:55:51 +0000</pubDate>
+      <description><![CDATA[<ul><li>The quick launcher&#x27;s results can be filtered: All, PR or Jira next to Results, each with its count; click one or press ⌘1, ⌘2 or ⌘3.</li><li>Settings › General: the refresh interval sits right by its arrows, which no longer show a focus ring when the window opens.</li></ul>]]></description>
+      <enclosure url="https://github.com/jiripisa/devpulse/releases/download/v0.16.0/DevPulse-0.16.0.dmg" type="application/octet-stream" sparkle:edSignature="Rwxvedjn6icKB7CaKsJhF/8FjlEgOtO0CQBimdtSIX+8ay93g8ITYK/WmAbiHBmSaXUgVlCNpWvuaLi0KVk0DQ==" length="5927446"/>
     </item>
   </channel>
 </rss>

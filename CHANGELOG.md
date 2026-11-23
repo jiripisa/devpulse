@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.16.0 — 2026-11-23
 
 - The quick launcher's results can be filtered: All, PR or Jira next to Results, each with its
   count; click one or press ⌘1, ⌘2 or ⌘3.
