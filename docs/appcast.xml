@@ -5,13 +5,13 @@
     <link>https://jiripisa.github.io/devpulse/</link>
     <description>DevPulse updates</description>
     <item>
-      <title>DevPulse 0.11.0</title>
-      <sparkle:version>0.11.0</sparkle:version>
-      <sparkle:shortVersionString>0.11.0</sparkle:shortVersionString>
+      <title>DevPulse 0.12.0</title>
+      <sparkle:version>0.12.0</sparkle:version>
+      <sparkle:shortVersionString>0.12.0</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>27.0</sparkle:minimumSystemVersion>
-      <pubDate>Sun, 22 Nov 2026 23:25:27 +0000</pubDate>
-      <description><![CDATA[<ul><li>Settings › GitHub › Repositories: list the repositories (<code>owner/name</code>, or a pasted GitHub address) in which the quick launcher looks up a bare number and <code>gh &lt;number&gt;</code>; it shows a row for each of them with the pull request&#x27;s title and state. It replaces the single default repository, and your earlier choice is kept as the first entry.</li><li><code>gh &lt;name&gt; &lt;number&gt;</code> also knows the repositories from that list by their name.</li><li>The quick launcher asks GitHub about all those pull requests in one request.</li></ul>]]></description>
-      <enclosure url="https://github.com/jiripisa/devpulse/releases/download/v0.11.0/DevPulse-0.11.0.dmg" type="application/octet-stream" sparkle:edSignature="M7Bql3bo1Q5WPRVvkkrlZ37Mgp/9WhPoDcwtI+QdkOEhCgHMbkgyGkz9BQ6MFHXhy1XiB+6Xf7Z1IVsiwfNQAA==" length="5649962"/>
+      <pubDate>Mon, 23 Nov 2026 00:50:39 +0000</pubDate>
+      <description><![CDATA[<ul><li>In the quick launcher, move to a ticket or a pull request and rest there for half a second: it expands. A ticket shows its pull requests (yours, and those GitHub finds with its key in your repositories) and its related tickets; a pull request shows its ticket and that ticket&#x27;s related tickets. The arrow keys move into the indented rows, and Enter opens one.</li><li>The mouse moves the launcher&#x27;s selection too.</li></ul>]]></description>
+      <enclosure url="https://github.com/jiripisa/devpulse/releases/download/v0.12.0/DevPulse-0.12.0.dmg" type="application/octet-stream" sparkle:edSignature="j3unMoFSsjjMK61ZqnE7xFzpR7IxP0grB9xA/ZIhlLHFe9pAZ6dZIOb3vqPsZXy6fjj7bzFUDj2UDTILphaYDA==" length="5720787"/>
     </item>
   </channel>
 </rss>
