@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.13.0 — 2026-11-23
 
 - The quick launcher has two panes: the results on the left and, on the right, the detail of the
   selected one. A ticket's detail lists its pull requests and related tickets; a pull request's
