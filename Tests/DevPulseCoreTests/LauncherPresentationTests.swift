@@ -92,8 +92,14 @@ private func settings() -> AppSettings {
         let detail = LauncherResolver.detail(for: row, snapshot: snap, settings: settings(), lookup: LookupResults())
         #expect(detail.heading == "Review request")
         #expect(detail.sections.map(\.title) == ["Linked ticket"])
-        let session = LauncherItem(title: "s", subtitle: "", kind: .session(.idle), target: .session(pid: 1))
-        #expect(LauncherResolver.detail(for: session, snapshot: snap, settings: settings(), lookup: LookupResults()).heading
-            == "Claude Code session")
+        let session = LauncherItem(
+            title: "s", subtitle: "", kind: .session(.idle), target: .session(pid: 1), identifier: "STORE-7")
+        let withSession = snapshot(sessions: [ClaudeSession(
+            pid: 1, name: "s", cwd: "/work/store-7", status: .idle, jiraKey: "STORE-7", updatedAt: Date(timeIntervalSince1970: 0))])
+        let sessionDetail = LauncherResolver.detail(for: session, snapshot: withSession, settings: settings(), lookup: LookupResults())
+        #expect(sessionDetail.heading == "Claude Code session")
+        // A session's header line is its folder; a ticket's or PR's is its identifier.
+        #expect(sessionDetail.subheading == "/work/store-7")
+        #expect(detail.subheading == "acme/store #5 · STORE-7")
     }
 }

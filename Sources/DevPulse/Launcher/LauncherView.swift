@@ -295,8 +295,8 @@ struct LauncherView: View {
                     Text(item.name ?? item.title)
                         .font(.system(size: 22, weight: .semibold)).foregroundStyle(Lookout.primary)
                         .lineLimit(3).fixedSize(horizontal: false, vertical: true)
-                    if let identifier = item.identifier {
-                        Text(identifier)
+                    if let subheading = detail.subheading {
+                        Text(subheading)
                             .font(.system(size: 13, design: .monospaced)).foregroundStyle(Lookout.secondary)
                             .lineLimit(1).truncationMode(.middle)
                     }
@@ -455,8 +455,11 @@ private struct ResultRow: View {
                 HStack(spacing: 8) {
                     Text(item.kind.label).font(.system(size: 12, weight: .semibold)).foregroundStyle(Lookout.color(item.kind))
                     if let identifier = item.identifier {
-                        Text(identifier).font(.system(size: 12)).monospacedDigit().foregroundStyle(Lookout.secondary)
-                            .lineLimit(1).truncationMode(.middle)
+                        // The list keeps the number: the repository goes without its owner
+                        // here, the detail shows it in full.
+                        Text(identifier.replacing(/^[^\/\s]+\//, with: ""))
+                            .font(.system(size: 12)).monospacedDigit().foregroundStyle(Lookout.secondary)
+                            .lineLimit(1).truncationMode(.tail)
                     }
                 }
                 Text(item.name ?? item.title).font(.system(size: 14)).foregroundStyle(Lookout.primary).lineLimit(1)

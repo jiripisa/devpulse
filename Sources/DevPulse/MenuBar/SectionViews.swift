@@ -72,7 +72,8 @@ struct RowButton<Label: View>: View {
     var body: some View {
         Button(action: action) {
             label
-                .padding(.horizontal, 10)
+                .padding(.leading, 8)
+                .padding(.trailing, 16)
                 .frame(maxWidth: .infinity, minHeight: 46, alignment: .leading)
                 .contentShape(Rectangle())
         }

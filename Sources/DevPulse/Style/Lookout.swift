@@ -49,7 +49,7 @@ enum Lookout {
     static func symbol(_ kind: LauncherItem.Kind) -> String {
         switch kind {
         case .ticket: "ticket"
-        case .pullRequest: "arrow.triangle.branch"
+        case .pullRequest: "arrow.triangle.pull"
         case .reviewRequest(let direct): direct ? "person.crop.circle.badge.checkmark" : "person.2"
         case .session: "apple.terminal"
         }

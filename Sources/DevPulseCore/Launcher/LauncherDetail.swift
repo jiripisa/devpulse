@@ -20,6 +20,8 @@ public struct LauncherDetail: Equatable, Sendable {
     public var item: LauncherItem
     /// What the result is, spelled out: "Jira ticket", "Pull request", "Claude Code session".
     public var heading: String
+    /// The line under the name: a session's folder, else the identifier.
+    public var subheading: String?
 
     /// The rows the keyboard moves through, in order.
     public var items: [LauncherItem] { sections.flatMap(\.items) }
@@ -35,7 +37,9 @@ extension LauncherResolver {
         var sections: [LauncherDetail.Section] = []
         // A row that says "Not found" has nothing more to show.
         if isMissing(item.subject, lookup: lookup) {
-            return LauncherDetail(title: item.title, subtitle: item.subtitle, sections: [], item: item, heading: heading(item.kind))
+            return LauncherDetail(
+                title: item.title, subtitle: item.subtitle, sections: [], item: item, heading: heading(item.kind),
+                subheading: item.identifier)
         }
         switch item.subject {
         case .ticket(let key)? where !isOn(.github, settings):
@@ -60,7 +64,13 @@ extension LauncherResolver {
                     snapshot: snapshot, settings: settings, lookup: lookup)
             }
         }
-        return LauncherDetail(title: item.title, subtitle: item.subtitle, sections: sections, item: item, heading: heading(item.kind))
+        var subheading = item.identifier
+        if case .session(let pid) = item.target, let session = snapshot.sessions.first(where: { $0.pid == pid }) {
+            subheading = (session.cwd as NSString).abbreviatingWithTildeInPath
+        }
+        return LauncherDetail(
+            title: item.title, subtitle: item.subtitle, sections: sections, item: item, heading: heading(item.kind),
+            subheading: subheading)
     }
 
     /// What to ask Jira and GitHub before the detail is complete: a ticket's PRs in the

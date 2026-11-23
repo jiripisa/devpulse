@@ -145,7 +145,7 @@ A demo runs next to an installed DevPulse without touching it:
   Keychain; Save and Test Connection refuse. General shows launch at login on and the command
   line tool installed. Remove the suite afterwards: `defaults delete io.jp4.devpulse.demo`.
 - `-DevPulseDemoOpen <what>` opens a window right after launch, so no hotkey or menu bar click
-  is needed: `launcher:<query>` (the launcher with the query typed in; `launcher:<query>@<row>` also selects that row, so its detail shows; `-DevPulseDemoKeys tab,down,…` then presses those keys (`tab`, `backtab`, `up`, `down`, `left`, `right`) inside the demo's own launcher panel, never in another app), `popover` (the popover's
+  is needed: `launcher:<query>` (the launcher with the query typed in; `launcher:<query>@<row>` also selects that row, so its detail shows; `-DevPulseDemoAppearance dark` or `light` draws it in that appearance; `-DevPulseDemoKeys tab,down,…` then presses those keys (`tab`, `backtab`, `up`, `down`, `left`, `right`) inside the demo's own launcher panel, never in another app), `popover` (the popover's
   content in a plain window at its real size) or `settings:<tab>` (`general`, `github`,
   `jira`, `notifications`, `updates`).
 - The terminal client of a debug build connects to the socket in `DEVPULSE_SOCKET` and then
