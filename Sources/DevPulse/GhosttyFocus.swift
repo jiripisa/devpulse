@@ -5,8 +5,10 @@
 // `tab` and `terminal` elements; every `terminal` (one surface, i.e. a tab or a split) exposes
 // `id` (stable), `tty` (e.g. `/dev/ttys006`), `pid` (the foreground process) and
 // `working directory`, and responds to `focus` ("Focus a terminal, bringing its window to the
-// front"). `get {id, tty, pid, working directory} of every terminal` lists them all in one
-// Apple Event; `whose` clauses work.
+// front"). `focus` does not switch tabs: windows have `tab` elements with `select tab`, so the
+// script (`GhosttyScript`) selects the terminal's tab first.
+// `get {id, tty, pid, working directory} of every terminal` lists them all in one Apple Event;
+// `whose` clauses work.
 //
 // A session is matched by the tty of its pid (sysctl, as `ps -o tty=`), then by the terminal's
 // foreground pid (claude itself), then by a working directory only one terminal has
@@ -24,7 +26,7 @@ import DevPulseCore
 import os
 
 enum GhosttyFocus {
-    static let bundleID = "com.mitchellh.ghostty"
+    static let bundleID = GhosttyScript.bundleID
 
     /// Apple Events block until Ghostty answers (or the user answers the consent prompt), so they
     /// run here, never on the main thread. One queue keeps the scripts serialized.
@@ -42,15 +44,10 @@ enum GhosttyFocus {
             log.info("No Ghostty terminal matches session \(sessionPid, privacy: .public) (\(terminals.count, privacy: .public) terminals)")
             return false
         }
-        let script = """
-            tell application id "\(bundleID)"
-                with timeout of 5 seconds
-                    focus (first terminal whose id is "\(escaped(id))")
-                    activate
-                end timeout
-            end tell
-            """
-        return run(script) != nil
+        // Switches to the terminal's tab too; a Ghostty without tabs in its dictionary fails
+        // that script, and the plain focus still brings the window to the front.
+        if run(GhosttyScript.focus(terminalID: id)) != nil { return true }
+        return run(GhosttyScript.focusTerminalOnly(terminalID: id)) != nil
     }
 
     /// The fallback: brings Ghostty to the front, but never launches it.
@@ -111,7 +108,4 @@ enum GhosttyFocus {
         return result
     }
 
-    private static func escaped(_ text: String) -> String {
-        text.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
-    }
 }

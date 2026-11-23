@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Opening a Claude Code session (from the menu, the quick launcher or the terminal UI) switches
+  to its tab when its Ghostty window has several; before, only the window came to the front.
+
 ## 0.12.0 — 2026-11-23
 
 - In the quick launcher, move to a ticket or a pull request and rest there for half a second:
