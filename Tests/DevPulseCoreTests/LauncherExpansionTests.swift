@@ -118,6 +118,38 @@ private func settings(repos: [String] = ["acme/store", "acme/api"], projects: [S
         #expect(children(.pullRequest(ref), snapshot(), lookup).map(\.title) == ["WA-3 Three", "WA-1 Linked"])
     }
 
+    @Test func aMovedTicketKeepsItsOldKeyAndListsThePullRequestsOfBoth() {
+        // `OLD-3` was moved and is now `NEW-9`: the row keeps the key that was asked for.
+        var lookup = LookupResults()
+        lookup.tickets["OLD-3"] = ticket("NEW-9", "Moved", related: [relates])
+        lookup.pullRequestsForTicket["OLD-3"] = [summary("acme/store", 1, "Old")]
+        lookup.pullRequestsForTicket["NEW-9"] = [summary("acme/store", 2, "New"), summary("acme/store", 1, "Old")]
+        let rows = LauncherResolver.items(for: .parse("jira OLD-3"), snapshot: snapshot(), settings: settings(), lookup: lookup)
+        #expect(rows.map(\.title) == ["NEW-9 Moved"])
+        #expect(rows.map(\.subject) == [.ticket("OLD-3")])
+        let snap = snapshot(mine: [pr("acme/api", 5, key: "OLD-3")])
+        #expect(children(.ticket("OLD-3"), snap, lookup).map(\.title) == ["#5 PR 5", "#1 Old", "#2 New", "WA-1 Linked"])
+        let request = LauncherResolver.childLookupRequest(for: .ticket("OLD-3"), snapshot: snap, settings: settings(), lookup: lookup)
+        #expect(request.pullRequestSearches.map(\.key) == ["OLD-3", "NEW-9"])
+    }
+
+    @Test func aPullRequestTakesItsTicketKeyFromTheTitle() {
+        let ref = PullRequestRef(repo: "acme/api", number: 9)
+        var lookup = LookupResults()
+        lookup.pullRequests[ref] = summary("acme/api", 9, "WA-4 Faster login", branch: "fix-login")
+        lookup.tickets["WA-4"] = ticket("WA-4", "Four")
+        #expect(children(.pullRequest(ref), snapshot(), lookup).map(\.title) == ["WA-4 Four"])
+    }
+
+    @Test func aPullRequestWhoseTicketDoesNotExistHasNoChildren() {
+        let ref = PullRequestRef(repo: "acme/api", number: 9)
+        var lookup = LookupResults()
+        lookup.pullRequests[ref] = summary("acme/api", 9, "Fix", branch: "WA-4-login")
+        lookup.missingTickets = ["WA-4"]
+        #expect(children(.pullRequest(ref), snapshot(), lookup).isEmpty)
+        #expect(LauncherResolver.childLookupRequest(for: .pullRequest(ref), snapshot: snapshot(), settings: settings(), lookup: lookup).isEmpty)
+    }
+
     @Test func aPullRequestWithoutATicketHasNoChildren() {
         let snap = snapshot(mine: [pr("acme/store", 5)])
         #expect(children(.pullRequest(PullRequestRef(repo: "acme/store", number: 5)), snap).isEmpty)

@@ -64,7 +64,9 @@ enum GitHubQuery {
     /// The search for the PRs that name a Jira key in these repositories; the search text is a
     /// variable, like the lookup's values.
     static func searchBody(key: String, repos: [String]) throws -> Data {
-        let text = (["\"\(key)\" is:pr"] + repos.map { "repo:\($0)" }).joined(separator: " ")
+        // Title and description only: a key someone mentioned in a comment does not make it the
+        // ticket's PR.
+        let text = (["\"\(key)\" in:title,body is:pr"] + repos.map { "repo:\($0)" }).joined(separator: " ")
         let query = """
             query($q: String!) { search(query: $q, type: ISSUE, first: \(maxSearchResults)) { nodes { \
             ... on PullRequest { number title state isDraft url headRefName repository { nameWithOwner } } } } }

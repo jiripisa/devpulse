@@ -55,7 +55,13 @@ public enum LauncherResolver {
             case .item(let item):
                 return item
             case .ticket(let key, let typed):
-                if let ticket = lookup.tickets[key] { return item(ticket) }
+                if let ticket = lookup.tickets[key] {
+                    // A moved ticket shows its new key but expands by the one asked for, whose
+                    // PRs still carry it.
+                    var found = item(ticket)
+                    found?.subject = .ticket(key)
+                    return found
+                }
                 guard let link = ticketLink(key, snapshot: snapshot, site: site) else { return nil }
                 guard lookup.missingTickets.contains(key) else { return link }
                 return typed ? notFound(link, "Not found in Jira") : nil

@@ -254,7 +254,20 @@ struct GitHubTests {
         let query = try #require(json["query"] as? String)
         #expect(!query.contains("acme") && !query.contains("STORE"))
         let variables = try #require(json["variables"] as? [String: Any])
-        #expect(variables["q"] as? String == #""STORE-7" is:pr repo:acme/store repo:acme/api"#)
+        #expect(variables["q"] as? String == #""STORE-7" in:title,body is:pr repo:acme/store repo:acme/api"#)
+    }
+
+    @Test("A search retries a 401 once and throws GraphQL errors without data")
+    func pullRequestSearchFailures() async throws {
+        let search = PullRequestSearch(key: "STORE-7", repos: ["acme/store"])
+        let empty = Data(#"{ "data": { "search": { "nodes": [] } } }"#.utf8)
+        let tokens = FakeTokens()
+        let retried = GitHubSource(tokens: tokens, transport: FakeTransport(statuses: [401, 200], body: empty))
+        #expect(try await retried.searchPullRequests(search).isEmpty)
+        #expect(tokens.calls.withLock { $0 } == [false, true])
+        let noData = Data(#"{ "data": null, "errors": [ { "message": "API rate limit exceeded" } ] }"#.utf8)
+        let limited = GitHubSource(tokens: FakeTokens(), transport: FakeTransport(body: noData))
+        await #expect(throws: GitHubError.graphQL(["API rate limit exceeded"])) { try await limited.searchPullRequests(search) }
     }
 
     @Test("A search with a bad key or no usable repository sends nothing")

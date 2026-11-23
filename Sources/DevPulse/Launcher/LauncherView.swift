@@ -77,11 +77,11 @@ struct LauncherView: View {
         var subject: LauncherItem.Subject?
     }
 
-    /// Expands the selected result once the selection has rested on it; moving to another
-    /// result folds the expanded one at once.
+    /// Expands the result the selection rests on, folding the one expanded before in the same
+    /// step. Not earlier: folding as soon as the mouse leaves would pull the next result up
+    /// under a mouse still moving down, and it would land rows further on.
     private func expand(_ subject: LauncherItem.Subject?) async {
-        if subject != expanded { expanded = nil }
-        guard let subject else { return }
+        guard subject != expanded else { return }
         do {
             try await Task.sleep(for: Self.expandDelay)
         } catch {

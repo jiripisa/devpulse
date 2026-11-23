@@ -13,10 +13,12 @@ extension LauncherResolver {
         let items: [LauncherItem]
         switch subject {
         case .ticket(let key):
-            items = pullRequestRows(for: key, snapshot: snapshot, lookup: lookup)
+            items = pullRequestRows(for: keys(of: key, snapshot: snapshot, lookup: lookup), snapshot: snapshot, lookup: lookup)
                 + relatedRows(of: ticket(key, snapshot: snapshot, lookup: lookup), snapshot: snapshot, settings: settings)
         case .pullRequest(let ref):
-            guard let key = ticketKey(of: ref, snapshot: snapshot, settings: settings, lookup: lookup) else { return [] }
+            guard let key = ticketKey(of: ref, snapshot: snapshot, settings: settings, lookup: lookup),
+                  !lookup.missingTickets.contains(key)
+            else { return [] }
             let found = ticket(key, snapshot: snapshot, lookup: lookup)
             let row = found.flatMap(item) ?? ticketLink(key, snapshot: snapshot, site: settings.jiraSite)
             items = (row.map { [$0] } ?? []) + relatedRows(of: found, snapshot: snapshot, settings: settings)
@@ -36,9 +38,12 @@ extension LauncherResolver {
         switch subject {
         case .ticket(let key):
             let repos = repos(snapshot: snapshot, settings: settings)
-            return repos.isEmpty ? LookupRequest() : LookupRequest(pullRequestSearches: [PullRequestSearch(key: key, repos: repos)])
+            guard !repos.isEmpty else { return LookupRequest() }
+            return LookupRequest(
+                pullRequestSearches: keys(of: key, snapshot: snapshot, lookup: lookup).map { PullRequestSearch(key: $0, repos: repos) })
         case .pullRequest(let ref):
             guard let key = ticketKey(of: ref, snapshot: snapshot, settings: settings, lookup: lookup),
+                  !lookup.missingTickets.contains(key),
                   ticket(key, snapshot: snapshot, lookup: lookup) == nil,
                   jiraURL(key, snapshot: snapshot, site: settings.jiraSite) != nil
             else { return LookupRequest() }
@@ -46,11 +51,18 @@ extension LauncherResolver {
         }
     }
 
-    /// My PRs and review requests linked to the ticket, then those GitHub's search found; each once.
-    private static func pullRequestRows(for key: String, snapshot: Snapshot, lookup: LookupResults) -> [LauncherItem] {
-        let known = knownPullRequests(snapshot).filter { $0.jiraKey == key }
-        let knownRefs = Set(known.map { PullRequestRef(repo: $0.repo, number: $0.number) })
-        let searched = (lookup.pullRequestsForTicket[key] ?? []).filter { !knownRefs.contains($0.ref) }
+    /// The key asked for, and the ticket's current key when it was moved since.
+    private static func keys(of key: String, snapshot: Snapshot, lookup: LookupResults) -> [String] {
+        guard let current = ticket(key, snapshot: snapshot, lookup: lookup)?.key, current != key else { return [key] }
+        return [key, current]
+    }
+
+    /// My PRs and review requests linked to the ticket (under any of its keys), then those
+    /// GitHub's search found; each once.
+    private static func pullRequestRows(for keys: [String], snapshot: Snapshot, lookup: LookupResults) -> [LauncherItem] {
+        let known = knownPullRequests(snapshot).filter { $0.jiraKey.map(keys.contains) ?? false }
+        var seen = Set(known.map { PullRequestRef(repo: $0.repo, number: $0.number) })
+        let searched = keys.flatMap { lookup.pullRequestsForTicket[$0] ?? [] }.filter { seen.insert($0.ref).inserted }
         let rows = known.compactMap { item($0, snapshot: snapshot) } + searched.compactMap(item)
         return Array(rows.prefix(maxChildren))
     }

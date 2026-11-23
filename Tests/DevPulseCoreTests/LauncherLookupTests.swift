@@ -192,6 +192,14 @@ private final class FakeLookups: Sendable {
         #expect(LauncherSelection.index(keeping: 0, from: [a, b], to: [b, a]) == 1)
     }
 
+    @Test func keepsTheSelectedRowByIdWhenChildrenFold() {
+        let open = ["a", "a>x", "a>y", "b"]
+        let folded = ["a", "b"]
+        #expect(LauncherSelection.index(keeping: 3, from: open, to: folded) == 1)
+        #expect(LauncherSelection.index(keeping: 0, from: folded, to: open) == 0)
+        #expect(LauncherSelection.index(keeping: 1, from: folded, to: ["a", "b>x", "b"]) == 2)
+    }
+
     @Test func clampsWhenTheSelectedRowIsGone() {
         #expect(LauncherSelection.index(keeping: 2, from: [a, b, c], to: [a, b]) == 1)
         #expect(LauncherSelection.index(keeping: 1, from: [a, b], to: [c, a]) == 1)
