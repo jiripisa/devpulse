@@ -56,11 +56,15 @@ private func row(_ subject: LauncherItem.Subject?, target: OpenTarget = .url(URL
         ])
     }
 
-    @Test func aNotFoundRowHasNoSubject() {
+    @Test func aNotFoundRowKeepsItsSubjectButHasNoDetail() {
         var lookup = LookupResults()
         lookup.missingTickets = ["STORE-9"]
         let items = LauncherResolver.items(for: .parse("jira STORE-9"), snapshot: snapshot(), settings: settings(), lookup: lookup)
-        #expect(items.map(\.subject) == [nil])
+        #expect(items.map(\.subject) == [.ticket("STORE-9")])
+        #expect(items.map(\.subtitle) == ["Not found in Jira"])
+        let detail = LauncherResolver.detail(for: items[0], snapshot: snapshot(), settings: settings(), lookup: lookup)
+        #expect(detail.sections.isEmpty)
+        #expect(LauncherResolver.detailLookupRequest(for: items[0], snapshot: snapshot(), settings: settings(), lookup: lookup).isEmpty)
     }
 
     @Test func aMovedTicketKeepsTheKeyAskedFor() {
@@ -133,6 +137,24 @@ private func row(_ subject: LauncherItem.Subject?, target: OpenTarget = .url(URL
         #expect(!prDetail.sections[0].isLoading)
     }
 
+    @Test func aSwitchedOffSourceShowsNothingAndAsksNothing() {
+        var off = settings()
+        off.sourceEnabled[.github] = false
+        let snap = snapshot(tickets: [ticket("STORE-7", related: [relates])])
+        let ticketDetail = detail(row(.ticket("STORE-7")), snap, settings: off)
+        #expect(ticketDetail.sections.map(\.title) == ["Related tickets"])
+        #expect(request(row(.ticket("STORE-7")), snap, settings: off).isEmpty)
+        var jiraOff = settings()
+        jiraOff.sourceEnabled[.jira] = false
+        let ref = PullRequestRef(repo: "acme/api", number: 9)
+        var lookup = LookupResults()
+        lookup.pullRequests[ref] = summary("acme/api", 9, "Fix", branch: "WA-3-x")
+        let prDetail = detail(row(.pullRequest(ref)), snapshot(), lookup, settings: jiraOff)
+        #expect(prDetail.items.map(\.title) == ["Open WA-3"])
+        #expect(!prDetail.sections[0].isLoading)
+        #expect(request(row(.pullRequest(ref)), snapshot(), lookup, settings: jiraOff).isEmpty)
+    }
+
     @Test func aMovedTicketListsThePullRequestsOfBothKeys() {
         var lookup = LookupResults()
         lookup.tickets["OLD-3"] = ticket("NEW-9", "Moved", related: [relates])
@@ -199,6 +221,14 @@ private func row(_ subject: LauncherItem.Subject?, target: OpenTarget = .url(URL
         #expect(detail(item, snap).items.map(\.title) == ["STORE-7 Seven", "WA-1 Linked"])
         let unknown = snapshot(sessions: [session])
         #expect(request(item, unknown) == LookupRequest(ticketKeys: ["STORE-7"]))
+    }
+
+    @Test func aPullRequestsTicketWithoutAJiraSiteSaysSo() {
+        var snap = snapshot(mine: [pr("acme/store", 5, key: "STORE-7")])
+        snap.jiraBaseURL = nil
+        let result = detail(row(.pullRequest(PullRequestRef(repo: "acme/store", number: 5))), snap)
+        #expect(result.items.isEmpty)
+        #expect(result.sections.map(\.emptyText) == ["STORE-7 · set up Jira in Settings to see it"])
     }
 
     @Test func detailsAreCapped() {

@@ -482,6 +482,37 @@ private func url(_ string: String) -> OpenTarget { .url(URL(string: string)!) }
         #expect(items("gh 9", snap, settings(projects: [], repo: nil)).isEmpty)
     }
 
+    @Test func aSwitchedOffSourceIsNeverAsked() {
+        var off = settings()
+        off.sourceEnabled[.jira] = false
+        off.sourceEnabled[.github] = false
+        #expect(request("2474", snapshot(), off).isEmpty)
+        #expect(request("jira WA-4", snapshot(), off).isEmpty)
+        #expect(request("gh 9", snapshot(), off).isEmpty)
+    }
+
+    @Test func guessesShowWhenJiraOrGitHubCannotBeReached() {
+        var lookup = LookupResults()
+        lookup.unreachableTickets = ["STORE-24", "WA-24"]
+        lookup.unreachablePullRequests = [PullRequestRef(repo: "acme/store", number: 24)]
+        let result = items("24", snapshot(), settings(), lookup)
+        #expect(result.map(\.title) == ["Open acme/store#24", "Open STORE-24", "Open WA-24"])
+        #expect(result.map(\.subtitle) == ["GitHub could not be reached", "Jira could not be reached", "Jira could not be reached"])
+        // A typed row says so too.
+        #expect(items("jira STORE-24", snapshot(), settings(), lookup).map(\.subtitle) == ["Jira could not be reached"])
+    }
+
+    @Test func aMovedTicketSaysWhereItCameFrom() {
+        var lookup = LookupResults()
+        var moved = makeTicket(key: "STORE-1")
+        moved.summary = "Old one"
+        lookup.tickets["WA-1966"] = moved
+        let result = items("1966", snapshot(), settings(), lookup)
+        #expect(result.map(\.title) == ["STORE-1 Old one"])
+        #expect(result.map(\.subtitle) == ["Moved from WA-1966 · To Do"])
+        #expect(result.map(\.subject) == [.ticket("WA-1966")])
+    }
+
     @Test func withoutAJiraSiteNoTicketIsLookedUp() {
         let snap = snapshot(jiraBaseURL: nil)
         #expect(request("2474", snap, settings()).ticketKeys.isEmpty)

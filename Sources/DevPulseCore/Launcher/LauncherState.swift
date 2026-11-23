@@ -45,7 +45,10 @@ public struct LauncherState: Equatable, Sendable {
         if let selectedID, let index = items.firstIndex(where: { Self.id($0) == selectedID }) {
             selection = index
         } else {
+            // Another result is selected now: its detail starts from the list.
             selection = min(oldSelection, max(items.count - 1, 0))
+            focus = .list
+            detailSelection = 0
         }
     }
 

@@ -29,7 +29,13 @@ extension LauncherResolver {
         for item: LauncherItem, snapshot: Snapshot, settings: AppSettings, lookup: LookupResults
     ) -> LauncherDetail {
         var sections: [LauncherDetail.Section] = []
+        // A row that says "Not found" has nothing more to show.
+        if isMissing(item.subject, lookup: lookup) {
+            return LauncherDetail(title: item.title, subtitle: item.subtitle, sections: [])
+        }
         switch item.subject {
+        case .ticket(let key)? where !isOn(.github, settings):
+            sections += relatedSection(of: ticket(key, snapshot: snapshot, lookup: lookup), snapshot: snapshot, settings: settings)
         case .ticket(let key)?:
             let keys = keys(of: key, snapshot: snapshot, lookup: lookup)
             let unanswered = keys.filter { lookup.pullRequestsForTicket[$0] == nil }
@@ -58,11 +64,12 @@ extension LauncherResolver {
     public static func detailLookupRequest(
         for item: LauncherItem, snapshot: Snapshot, settings: AppSettings, lookup: LookupResults
     ) -> LookupRequest {
+        if isMissing(item.subject, lookup: lookup) { return LookupRequest() }
         let key: String?
         switch item.subject {
         case .ticket(let ticketKey)?:
             let repos = repos(snapshot: snapshot, settings: settings)
-            guard !repos.isEmpty else { return LookupRequest() }
+            guard isOn(.github, settings), !repos.isEmpty else { return LookupRequest() }
             return LookupRequest(
                 pullRequestSearches: keys(of: ticketKey, snapshot: snapshot, lookup: lookup)
                     .map { PullRequestSearch(key: $0, repos: repos) })
@@ -72,7 +79,8 @@ extension LauncherResolver {
             guard case .session(let pid) = item.target else { return LookupRequest() }
             key = snapshot.sessions.first { $0.pid == pid }?.jiraKey
         }
-        guard let key, !lookup.missingTickets.contains(key), ticket(key, snapshot: snapshot, lookup: lookup) == nil,
+        guard let key, isOn(.jira, settings), !lookup.missingTickets.contains(key),
+              ticket(key, snapshot: snapshot, lookup: lookup) == nil,
               jiraURL(key, snapshot: snapshot, site: settings.jiraSite) != nil
         else { return LookupRequest() }
         return LookupRequest(ticketKeys: [key])
@@ -87,10 +95,13 @@ extension LauncherResolver {
             return [LauncherDetail.Section(title: "Ticket", items: [], isLoading: false, emptyText: "\(key) is not in Jira")]
         }
         let found = ticket(key, snapshot: snapshot, lookup: lookup)
-        let row = found.flatMap(item) ?? ticketLink(key, snapshot: snapshot, site: settings.jiraSite)
+        guard let row = found.flatMap(item) ?? ticketLink(key, snapshot: snapshot, site: settings.jiraSite) else {
+            return [LauncherDetail.Section(
+                title: "Ticket", items: [], isLoading: false, emptyText: "\(key) · set up Jira in Settings to see it")]
+        }
         let ticketSection = LauncherDetail.Section(
-            title: "Ticket", items: row.map { [plain($0)] } ?? [],
-            isLoading: found == nil && row != nil && !lookup.unreachableTickets.contains(key), emptyText: nil)
+            title: "Ticket", items: [plain(row)],
+            isLoading: found == nil && isOn(.jira, settings) && !lookup.unreachableTickets.contains(key), emptyText: nil)
         return [ticketSection] + relatedSection(of: found, snapshot: snapshot, settings: settings)
     }
 
@@ -139,6 +150,14 @@ extension LauncherResolver {
         let summary = lookup.pullRequests[ref]
             ?? lookup.pullRequestsForTicket.values.lazy.flatMap { $0 }.first { $0.ref == ref }
         return summary?.jiraKey(knownProjects: Set(projects(snapshot: snapshot, settings: settings)))
+    }
+
+    private static func isMissing(_ subject: LauncherItem.Subject?, lookup: LookupResults) -> Bool {
+        switch subject {
+        case .ticket(let key)?: lookup.missingTickets.contains(key)
+        case .pullRequest(let ref)?: lookup.missingPullRequests.contains(ref)
+        case nil: false
+        }
     }
 
     /// Detail rows open what they show; they have no detail of their own.

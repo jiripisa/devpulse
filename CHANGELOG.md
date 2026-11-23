@@ -7,8 +7,11 @@
   or a Claude Code session's lists its ticket and that ticket's related tickets. Tab moves into
   the detail and back, and Enter opens the selected row. The expanding rows of 0.12 are gone.
 - The results no longer move while you use the arrow keys: what Jira and GitHub find is added at
-  the bottom, a line there says while they are being asked, and tickets or pull requests that do
-  not exist are never shown first.
+  the bottom, and a line there says while they are being asked. A bare number's tickets and pull
+  requests from your other projects and repositories show only once Jira or GitHub confirms them,
+  so rows no longer appear and then vanish.
+- A ticket that was moved to another project shows its new key and "Moved from" the number you
+  typed. When Jira or GitHub cannot be reached, the rows say so instead of showing nothing.
 - Moving the mouse over the launcher no longer redraws it at every move, and the mouse selects a
   row only when it really moves.
 

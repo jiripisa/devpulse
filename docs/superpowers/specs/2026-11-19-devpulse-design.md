@@ -337,6 +337,9 @@ for a ticket its PRs (mine and review requests linked to it, plus one GitHub sea
 its ticket (looked up when unknown) and that ticket's related tickets; up to 10 rows each, with
 "Loading…" until Jira or GitHub answers and a note when they cannot be reached. Tab / Shift-Tab move
 between the panes; Esc leaves the detail, then closes. The mouse selects only when it really moves.
+A ticket moved to another project shows its new key with "Moved from <asked key>". A lookup that
+fails (not one cut off because the selection moved on) shows the guess as "Open …" with "Jira / GitHub
+could not be reached"; a source switched off in Settings is never asked.
 
 | Typed | Result |
 |---|---|
@@ -349,7 +352,7 @@ between the panes; Esc leaves the detail, then closes. The mouse selects only wh
 | `jira <text>` | filters by summary |
 | `jira <KEY-123>` | opens that ticket, even if it is not in my list; looked up like a bare number's rows, and "Not found in Jira" when it does not exist |
 | `jira <123>` | ticket 123 of each Jira project in Settings; the first project's row stays (as "Not found") when it does not exist. Without projects: those of my tickets, most tickets first. |
-| `Esc` | closes the panel |
+| `Esc` | leaves the detail, then closes the panel |
 | `⌘Enter` | opens the linked Jira ticket of a PR |
 
 ## 6. Approaches considered

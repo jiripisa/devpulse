@@ -182,7 +182,10 @@ struct LauncherView: View {
                             .id(index)
                             .onTapGesture { onOpen(item.target) }
                             .onContinuousHover { phase in
-                                if case .active = phase, mouse.moved() { state.select(index) }
+                                if case .active = phase, mouse.moved(),
+                                   index != state.selection || state.focus != .list {
+                                    state.select(index)
+                                }
                             }
                     }
                     footer
@@ -276,7 +279,10 @@ struct LauncherView: View {
                     .id("detail-\(flat)")
                     .onTapGesture { onOpen(item.target) }
                     .onContinuousHover { phase in
-                        if case .active = phase, mouse.moved() { state.selectDetail(flat, detailCount: count) }
+                        if case .active = phase, mouse.moved(),
+                           state.focus != .detail || state.detailSelection != flat {
+                            state.selectDetail(flat, detailCount: count)
+                        }
                     }
             }
             if section.isLoading {
@@ -318,7 +324,7 @@ struct LauncherView: View {
         } catch {
             return
         }
-        await model.launcherLookup.resolve(request)
+        await resolveUncancelled(request)
         // A newer query's task owns the flag by now.
         if !Task.isCancelled { searching = false }
     }
@@ -331,7 +337,14 @@ struct LauncherView: View {
         } catch {
             return
         }
-        await model.launcherLookup.resolve(request)
+        await resolveUncancelled(request)
+    }
+
+    /// A lookup once sent runs to its end even when the selection or the query moves on: its
+    /// answer is cached for the next time, and a cut-off request would only be asked again.
+    private func resolveUncancelled(_ request: LookupRequest) async {
+        let lookup = model.launcherLookup
+        await Task { await lookup.resolve(request) }.value
     }
 }
 

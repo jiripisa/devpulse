@@ -56,19 +56,24 @@ public enum LauncherResolver {
                 return item
             case .ticket(let key, let typed):
                 if let ticket = lookup.tickets[key] {
-                    // A moved ticket shows its new key but expands by the one asked for, whose
-                    // PRs still carry it.
+                    // A moved ticket shows its new key but keeps the one asked for, whose PRs
+                    // still carry it, and says so.
                     var found = item(ticket)
                     found?.subject = .ticket(key)
+                    if ticket.key != key { found?.subtitle = "Moved from \(key) · \(ticket.status)" }
                     return found
                 }
+                guard let link = ticketLink(key, snapshot: snapshot, site: site) else { return nil }
+                if lookup.unreachableTickets.contains(key) { return notFound(link, "Jira could not be reached") }
                 // A guess (a bare number in each project) shows only once Jira confirms it, so
                 // the list never shows rows that then vanish; what was typed shows at once.
-                guard typed, let link = ticketLink(key, snapshot: snapshot, site: site) else { return nil }
+                guard typed else { return nil }
                 return lookup.missingTickets.contains(key) ? notFound(link, "Not found in Jira") : link
             case .pullRequest(let ref, let typed):
                 if let found = lookup.pullRequests[ref] { return item(found) }
-                guard typed, let link = pullRequestLink(repo: ref.repo, number: ref.number) else { return nil }
+                guard let link = pullRequestLink(repo: ref.repo, number: ref.number) else { return nil }
+                if lookup.unreachablePullRequests.contains(ref) { return notFound(link, "GitHub could not be reached") }
+                guard typed else { return nil }
                 return lookup.missingPullRequests.contains(ref) ? notFound(link, "Not found on GitHub") : link
             }
         }
@@ -82,13 +87,20 @@ public enum LauncherResolver {
         for row in rows(for: query, snapshot: snapshot, settings: settings) {
             switch row {
             case .item: break
+            // A switched-off source is never asked.
             case .ticket(let key, _):
-                if jiraURL(key, snapshot: snapshot, site: settings.jiraSite) != nil { request.ticketKeys.append(key) }
+                if isOn(.jira, settings), jiraURL(key, snapshot: snapshot, site: settings.jiraSite) != nil {
+                    request.ticketKeys.append(key)
+                }
             case .pullRequest(let ref, _):
-                request.pullRequests.append(ref)
+                if isOn(.github, settings) { request.pullRequests.append(ref) }
             }
         }
         return request
+    }
+
+    static func isOn(_ source: Source, _ settings: AppSettings) -> Bool {
+        settings.sourceEnabled[source] ?? true
     }
 
     /// A planned row: one the snapshot knows, or a ticket or PR it does not, shown by what the
@@ -117,7 +129,6 @@ public enum LauncherResolver {
     private static func notFound(_ link: LauncherItem, _ text: String) -> LauncherItem {
         var item = link
         item.subtitle = text
-        item.subject = nil
         return item
     }
 

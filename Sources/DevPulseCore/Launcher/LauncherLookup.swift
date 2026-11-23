@@ -115,6 +115,7 @@ public struct LookupResults: Equatable, Sendable {
     /// The keys whose last lookup or PR search failed (offline, a source switched off): the
     /// detail stops waiting for them.
     public var unreachableTickets: Set<String> = []
+    public var unreachablePullRequests: Set<PullRequestRef> = []
     public var unreachableSearches: Set<String> = []
 
     public init() {}
@@ -176,12 +177,20 @@ public final class LauncherLookup {
         _ = await (tickets, pullRequests, searched)
     }
 
+    /// A lookup given up (the launcher moved on or closed) says nothing about Jira or GitHub.
+    private static func isCancellation(_ error: any Error) -> Bool {
+        error is CancellationError || (error as? URLError)?.code == .cancelled || Task.isCancelled
+    }
+
     private func search(_ searches: [PullRequestSearch]) async {
         for search in searches {
             searchesInFlight.insert(search)
             defer { searchesInFlight.remove(search) }
-            guard let found = try? await searchPullRequests(search) else {
-                results.unreachableSearches.insert(search.key)
+            let found: [PullRequestSummary]
+            do {
+                found = try await searchPullRequests(search)
+            } catch {
+                if !Self.isCancellation(error) { results.unreachableSearches.insert(search.key) }
                 continue
             }
             results.unreachableSearches.remove(search.key)
@@ -194,8 +203,11 @@ public final class LauncherLookup {
         guard !keys.isEmpty else { return }
         ticketsInFlight.formUnion(keys)
         defer { ticketsInFlight.subtract(keys) }
-        guard let answer = try? await fetchTickets(keys) else {
-            results.unreachableTickets.formUnion(keys)
+        let answer: TicketLookup
+        do {
+            answer = try await fetchTickets(keys)
+        } catch {
+            if !Self.isCancellation(error) { results.unreachableTickets.formUnion(keys) }
             return
         }
         results.unreachableTickets.subtract(keys)
@@ -224,7 +236,14 @@ public final class LauncherLookup {
         guard !refs.isEmpty else { return }
         pullRequestsInFlight.formUnion(refs)
         defer { pullRequestsInFlight.subtract(refs) }
-        guard let answer = try? await fetchPullRequests(refs) else { return }
+        let answer: PullRequestLookup
+        do {
+            answer = try await fetchPullRequests(refs)
+        } catch {
+            if !Self.isCancellation(error) { results.unreachablePullRequests.formUnion(refs) }
+            return
+        }
+        results.unreachablePullRequests.subtract(refs)
         let moment = now()
         for ref in refs {
             pullRequestsFetchedAt[ref] = moment

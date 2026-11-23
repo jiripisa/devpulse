@@ -40,6 +40,18 @@ private func item(_ name: String, subject: LauncherItem.Subject? = nil, title: S
         #expect(state.selection == 0)
     }
 
+    @Test func losingTheSelectedRowLeavesTheDetail() {
+        var state = LauncherState()
+        state.setResults([item("a"), item("b")], for: "q")
+        state.move(1, detailCount: 0)
+        state.toggleFocus(detailCount: 2)
+        state.move(1, detailCount: 2)
+        state.setResults([item("a")], for: "q")
+        #expect(state.focus == .list)
+        #expect(state.detailSelection == 0)
+        #expect(state.selectedItem?.title == "a")
+    }
+
     @Test func aRowIsKnownByItsSubjectWhenItHasOne() {
         // A typed "Open STORE-9" row becomes the ticket's row with a Jira URL of its own.
         var state = LauncherState()
