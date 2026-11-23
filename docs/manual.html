@@ -442,7 +442,14 @@ gh auth login</code></pre>
           added at the bottom, and <span class="ui">Searching Jira and GitHub…</span>
           shows there meanwhile. A ticket that was moved to another project
           shows its new key and <span class="ui">Moved from</span> the key you
-          looked for. When Jira or GitHub cannot be reached, the rows say so.</dd>
+          looked for. When Jira or GitHub cannot be reached, the rows say so.
+          Next to <span class="ui">Results</span>, <span class="ui">All</span>,
+          <span class="ui">PR</span> and <span class="ui">Jira</span> show how many rows of
+          each kind there are; click one, or press <kbd>⌘</kbd><kbd>1</kbd> to
+          <kbd>⌘</kbd><kbd>3</kbd>, to see only pull requests and review requests, or only
+          tickets. Claude Code sessions show under <span class="ui">All</span>. The filter
+          stays while you type another query, and the selected row stays selected when the
+          filter keeps it.</dd>
           <dt><span class="n">3</span>Detail</dt>
           <dd>At the top: what the selected result is (<span class="ui">Jira
           ticket</span>, <span class="ui">Pull request</span>, <span class="ui">Review
@@ -500,6 +507,7 @@ gh auth login</code></pre>
               <tr><td><kbd>Tab</kbd> or <kbd>→</kbd>, <kbd>Shift</kbd>-<kbd>Tab</kbd> or <kbd>←</kbd></td><td>Move into the detail and back to the results. When the detail has no rows, <kbd>→</kbd> and <kbd>←</kbd> move the cursor in the search field as usual.</td></tr>
               <tr><td><kbd>Enter</kbd> or a click</td><td>Open the selected row: a pull request or ticket in the browser; for a Claude Code session, bring its Ghostty window and tab to the front.</td></tr>
               <tr><td><kbd>⌘</kbd><kbd>Enter</kbd></td><td>Open the Jira ticket linked to the selected pull request.</td></tr>
+              <tr><td><kbd>⌘</kbd><kbd>1</kbd> <kbd>⌘</kbd><kbd>2</kbd> <kbd>⌘</kbd><kbd>3</kbd></td><td>Show all results, only pull requests, or only Jira tickets.</td></tr>
               <tr><td><kbd>Esc</kbd></td><td>Back from the detail to the results; in the results, close the launcher.</td></tr>
             </tbody>
           </table>

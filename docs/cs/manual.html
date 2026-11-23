@@ -441,7 +441,14 @@ gh auth login</code></pre>
           tam svítí <span class="ui">Searching Jira and GitHub…</span>. Tiket
           přesunutý do jiného projektu ukáže svůj nový klíč a
           <span class="ui">Moved from</span> s klíčem, který jste hledali. Když
-          Jira nebo GitHub nejsou dostupné, řádky to napíšou.</dd>
+          Jira nebo GitHub nejsou dostupné, řádky to napíšou.
+          Vedle <span class="ui">Results</span> ukazují <span class="ui">All</span>,
+          <span class="ui">PR</span> a <span class="ui">Jira</span>, kolik řádků kterého
+          druhu je; kliknutím nebo klávesami <kbd>⌘</kbd><kbd>1</kbd> až
+          <kbd>⌘</kbd><kbd>3</kbd> zobrazíte jen pull requesty a review requesty, nebo jen
+          tikety. Claude Code sessions jsou pod <span class="ui">All</span>. Filtr zůstává,
+          i když napíšete jiný dotaz, a vybraný řádek zůstane vybraný, pokud ho filtr
+          ukazuje.</dd>
           <dt><span class="n">3</span>Detail</dt>
           <dd>Nahoře je, co vybraný výsledek je (<span class="ui">Jira ticket</span>,
           <span class="ui">Pull request</span>, <span class="ui">Review request</span>,
@@ -499,6 +506,7 @@ gh auth login</code></pre>
               <tr><td><kbd>Tab</kbd> nebo <kbd>→</kbd>, <kbd>Shift</kbd>-<kbd>Tab</kbd> nebo <kbd>←</kbd></td><td>Přechod do detailu a zpět do výsledků. Když detail nemá žádné řádky, <kbd>→</kbd> a <kbd>←</kbd> posouvají kurzor ve vyhledávacím poli jako obvykle.</td></tr>
               <tr><td><kbd>Enter</kbd> nebo kliknutí</td><td>Otevřít vybraný řádek: pull request nebo tiket v prohlížeči, u session Claude Code přenést dopředu její okno a tab v Ghostty.</td></tr>
               <tr><td><kbd>⌘</kbd><kbd>Enter</kbd></td><td>Otevřít tiket z Jiry navázaný na vybraný pull request.</td></tr>
+              <tr><td><kbd>⌘</kbd><kbd>1</kbd> <kbd>⌘</kbd><kbd>2</kbd> <kbd>⌘</kbd><kbd>3</kbd></td><td>Zobrazit všechny výsledky, jen pull requesty, nebo jen tikety z Jiry.</td></tr>
               <tr><td><kbd>Esc</kbd></td><td>Z detailu zpět do výsledků; ve výsledcích zavřít panel.</td></tr>
             </tbody>
           </table>

@@ -27,6 +27,7 @@ final class LauncherPanelController {
             model: model,
             query: query,
             select: select,
+            keys: panel.keys,
             onOpen: { [weak self] target in
                 self?.close()
                 self?.model.open(target)
@@ -44,8 +45,8 @@ final class LauncherPanelController {
 
     #if DEBUG
     /// `-DevPulseDemoKeys tab,down,…` (DEBUG demo only): presses these keys inside this panel
-    /// once the results are there, through the panel's own event dispatch, so the text field's
-    /// real key handling runs. Nothing goes to the system or to another app.
+    /// once the results are there, through the app's own event dispatch to its key window (this
+    /// panel), so the real key handling runs. Nothing goes to the system or to another app.
     private func playDemoKeys(into panel: NSPanel) {
         guard let list = UserDefaults.standard.string(forKey: "DevPulseDemoKeys") else { return }
         let keys = list.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
@@ -58,7 +59,8 @@ final class LauncherPanelController {
                         with: type, location: .zero, modifierFlags: key.flags, timestamp: ProcessInfo.processInfo.systemUptime,
                         windowNumber: panel.windowNumber, context: nil, characters: key.characters,
                         charactersIgnoringModifiers: key.characters, isARepeat: false, keyCode: key.code)
-                    if let event { panel.sendEvent(event) }
+                    // Through the app, as typing comes: ⌘ keys go to `performKeyEquivalent` first.
+                    if let event { NSApp.sendEvent(event) }
                 }
             }
         }
@@ -73,6 +75,10 @@ final class LauncherPanelController {
         case "up": return (126, function(NSUpArrowFunctionKey), [.numericPad, .function])
         case "left": return (123, function(NSLeftArrowFunctionKey), [.numericPad, .function])
         case "right": return (124, function(NSRightArrowFunctionKey), [.numericPad, .function])
+        // What a Czech layout types on the keys 1 2 3, so the demo checks the key position.
+        case "cmd1": return (18, "+", [.command])
+        case "cmd2": return (19, "ě", [.command])
+        case "cmd3": return (20, "š", [.command])
         default: return nil
         }
     }
@@ -91,6 +97,7 @@ final class LauncherPanelController {
 private final class LauncherPanel: NSPanel {
     static let width = LauncherView.width
     var onClose: (() -> Void)?
+    let keys = LauncherKeys()
     /// The top edge stays where it is while the list grows and shrinks.
     private var top: CGFloat?
 
@@ -113,6 +120,18 @@ private final class LauncherPanel: NSPanel {
     override func resignKey() {
         super.resignKey()
         onClose?()
+    }
+
+    /// ⌘1–⌘3 by key position, before the search field: on a Czech layout those keys type + ě š
+    /// even with ⌘, so the field never sees a 1, 2 or 3.
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            .subtracting([.capsLock, .numericPad, .function])
+        if flags == .command, let filter = LauncherFilter(numberKeyCode: event.keyCode), let onFilter = keys.onFilter {
+            onFilter(filter)
+            return true
+        }
+        return super.performKeyEquivalent(with: event)
     }
 
     override func cancelOperation(_ sender: Any?) {

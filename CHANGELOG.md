@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- The quick launcher's results can be filtered: All, PR or Jira next to Results, each with its
+  count; click one or press ⌘1, ⌘2 or ⌘3.
+- Settings › General: the refresh interval sits right by its arrows, which no longer show a
+  focus ring when the window opens.
+
 ## 0.15.0 — 2026-11-23
 
 - Search the quick launcher by words from a title: it finds your pull requests, tickets and

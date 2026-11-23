@@ -350,6 +350,7 @@ for a ticket its PRs (mine and review requests linked to it, plus one GitHub sea
 its ticket (looked up when unknown) and that ticket's related tickets; up to 10 rows each, with
 "Loading…" until Jira or GitHub answers and a note when they cannot be reached. Tab / Shift-Tab (and → / ←, which otherwise move the caret: → only when the detail has rows,
 ← only from the detail) move between the panes; Esc leaves the detail, then closes. The mouse selects only when it really moves.
+A filter next to "Results" (All / PR / Jira, each with its count; a click or ⌘1–⌘3) hides the other kinds of rows without forgetting them: PR covers my PRs and review requests, sessions show under All only. It stays across queries while the panel is open, and the selected row stays selected when the filter keeps it.
 A ticket moved to another project shows its new key with "Moved from <asked key>". A lookup that
 fails (not one cut off because the selection moved on) shows the guess as "Open …" with "Jira / GitHub
 could not be reached"; a source switched off in Settings is never asked.
@@ -368,6 +369,7 @@ could not be reached"; a source switched off in Settings is never asked.
 | `jira <123>` | ticket 123 of each Jira project in Settings; the first project's row stays (as "Not found") when it does not exist. Without projects: those of my tickets, most tickets first. |
 | `Esc` | leaves the detail, then closes the panel |
 | `⌘Enter` | opens the linked Jira ticket of a PR |
+| `⌘1` `⌘2` `⌘3` | filter: All, PR, Jira |
 
 ## 6. Approaches considered
 
