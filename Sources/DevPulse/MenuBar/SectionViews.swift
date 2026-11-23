@@ -122,17 +122,12 @@ struct PullRequestRow: View {
         RowButton(action: action) {
             HStack(spacing: 8) {
                 KindIcon(kind: kind)
-                RowText(name: pr.title, kind: kind, identifiers: identifiers)
+                RowText(name: pr.title, kind: kind, identifiers: pr.rowIdentifiers)
                 Spacer(minLength: 8)
                 BadgeStack(badges: StatusBadge.pullRequest(pr), size: 11.5)
             }
         }
         .help(help)
-    }
-
-    private var identifiers: [String] {
-        let repoName = pr.repo.split(separator: "/").last.map(String.init) ?? pr.repo
-        return ["\(repoName) #\(pr.number)"] + [pr.jiraKey].compactMap { $0 }
     }
 
     private var help: String {
@@ -172,7 +167,7 @@ struct SessionRow: View {
         RowButton(attention: session.status == .waiting, action: action) {
             HStack(spacing: 8) {
                 KindIcon(kind: .session(session.status))
-                RowText(name: session.name, kind: .session(session.status), identifiers: identifiers)
+                RowText(name: session.name, kind: .session(session.status), identifiers: session.rowIdentifiers)
                 Spacer(minLength: 8)
                 BadgeStack(badges: [StatusBadge.session(session.status)], size: 11.5)
             }
@@ -180,10 +175,4 @@ struct SessionRow: View {
         .help(session.cwd)
     }
 
-    /// Its Jira key, and what it waits for.
-    private var identifiers: [String] {
-        let waitingFor = session.status == .waiting ? session.waitingFor.map { $0.prefix(1).uppercased() + $0.dropFirst() } : nil
-        let parts = [session.jiraKey, waitingFor].compactMap { $0 }
-        return parts.isEmpty ? [(session.cwd as NSString).abbreviatingWithTildeInPath] : parts
-    }
 }

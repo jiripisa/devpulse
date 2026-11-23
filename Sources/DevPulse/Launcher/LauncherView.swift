@@ -448,16 +448,21 @@ private struct ResultRow: View {
     let selected: Bool
     let focused: Bool
 
+    private var waits: Bool { item.kind == .session(.waiting) }
+
+    private var background: Color {
+        if selected { return Lookout.selection }
+        return waits ? Lookout.attentionWash : .clear
+    }
+
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
             KindIcon(kind: item.kind)
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 8) {
                     Text(item.kind.label).font(.system(size: 12, weight: .semibold)).foregroundStyle(Lookout.color(item.kind))
-                    if let identifier = item.identifier {
-                        // The list keeps the number: the repository goes without its owner
-                        // here, the detail shows it in full.
-                        Text(identifier.replacing(/^[^\/\s]+\//, with: ""))
+                    if let identifier = item.compactIdentifier {
+                        Text(identifier)
                             .font(.system(size: 12)).monospacedDigit().foregroundStyle(Lookout.secondary)
                             .lineLimit(1).truncationMode(.tail)
                     }
@@ -469,7 +474,11 @@ private struct ResultRow: View {
         }
         .padding(.horizontal, 10)
         .frame(maxWidth: .infinity, minHeight: 62, alignment: .leading)
-        .background(selected ? Lookout.selection : .clear, in: RoundedRectangle(cornerRadius: 10))
+        .background(background, in: RoundedRectangle(cornerRadius: 10))
+        // A session waiting for the user stands out, as in the popover.
+        .overlay(alignment: .leading) {
+            if waits { RoundedRectangle(cornerRadius: 1.5).fill(Lookout.attention).frame(width: 3).padding(.vertical, 8) }
+        }
         .overlay(
             RoundedRectangle(cornerRadius: 10)
                 .strokeBorder(selected && focused ? Lookout.interaction : .clear, lineWidth: 1.5))

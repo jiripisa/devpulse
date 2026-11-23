@@ -92,7 +92,8 @@ struct KindIcon: View {
             .font(.system(size: size, weight: .regular))
             .foregroundStyle(Lookout.color(kind))
             .frame(width: 26)
-            .accessibilityLabel(kind.label)
+            // The kind's label is spelled out next to it.
+            .accessibilityHidden(true)
     }
 }
 

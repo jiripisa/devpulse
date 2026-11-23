@@ -34,6 +34,8 @@ public struct LauncherItem: Equatable, Sendable {
 
     /// `acme/store #812 · STORE-2474`, `STORE-2474`.
     public var identifier: String?
+    /// The same, short enough for the result list: `store #812 · STORE-2474`.
+    public var compactIdentifier: String?
     /// The PR's or ticket's title, the session's name.
     public var name: String?
     /// A small line above, e.g. how a related ticket relates: "Is blocked by".
@@ -42,8 +44,8 @@ public struct LauncherItem: Equatable, Sendable {
 
     public init(
         title: String, subtitle: String, kind: Kind, target: OpenTarget, secondary: OpenTarget? = nil,
-        subject: Subject? = nil, identifier: String? = nil, name: String? = nil, caption: String? = nil,
-        badges: [StatusBadge] = []
+        subject: Subject? = nil, identifier: String? = nil, compactIdentifier: String? = nil, name: String? = nil,
+        caption: String? = nil, badges: [StatusBadge] = []
     ) {
         self.title = title
         self.subtitle = subtitle
@@ -52,6 +54,7 @@ public struct LauncherItem: Equatable, Sendable {
         self.secondary = secondary
         self.subject = subject
         self.identifier = identifier
+        self.compactIdentifier = compactIdentifier ?? identifier
         self.name = name
         self.caption = caption
         self.badges = badges
@@ -186,6 +189,11 @@ public enum LauncherResolver {
     }
 
     /// My PRs first, then the review requests; a PR in both lists shows once, as mine.
+    /// `store #9` for `acme/store`, number 9.
+    static func compact(repo: String, number: Int) -> String {
+        "\(repo.split(separator: "/").last.map(String.init) ?? repo) #\(number)"
+    }
+
     static func knownPullRequests(_ snapshot: Snapshot) -> [PullRequest] {
         var seen = Set<String>()
         return (snapshot.myPullRequests + snapshot.reviewRequests).filter { seen.insert($0.id).inserted }
@@ -214,7 +222,8 @@ public enum LauncherResolver {
         return LauncherItem(
             title: "Open \(repo)#\(number)", subtitle: url.absoluteString, kind: .pullRequest, target: .url(url),
             subject: .pullRequest(PullRequestRef(repo: repo, number: number)),
-            identifier: "\(repo) #\(number)", name: "Open on GitHub")
+            identifier: "\(repo) #\(number)", compactIdentifier: Self.compact(repo: repo, number: number),
+            name: "Open on GitHub")
     }
 
     /// A full `owner/name` as typed, or the configured repository or the repo of a known PR
@@ -236,6 +245,7 @@ public enum LauncherResolver {
             secondary: pr.jiraKey.flatMap { jiraURL($0, snapshot: snapshot, site: nil) }.map { .url($0) },
             subject: .pullRequest(PullRequestRef(repo: pr.repo, number: pr.number)),
             identifier: (["\(pr.repo) #\(pr.number)"] + [pr.jiraKey].compactMap { $0 }).joined(separator: " · "),
+            compactIdentifier: pr.rowIdentifiers.joined(separator: " · "),
             name: pr.title, badges: StatusBadge.pullRequest(pr))
     }
 
@@ -300,7 +310,8 @@ public enum LauncherResolver {
             LauncherItem(
                 title: "#\(pr.number) \(pr.title)", subtitle: "\(pr.repo) · \(pr.state.text)",
                 kind: .pullRequest, target: .url($0), subject: .pullRequest(pr.ref),
-                identifier: "\(pr.repo) #\(pr.number)", name: pr.title, badges: [StatusBadge.pullRequest(pr.state)])
+                identifier: "\(pr.repo) #\(pr.number)", compactIdentifier: compact(repo: pr.repo, number: pr.number),
+                name: pr.title, badges: [StatusBadge.pullRequest(pr.state)])
         }
     }
 
@@ -349,12 +360,11 @@ public enum LauncherResolver {
 
     private static func item(_ session: ClaudeSession) -> LauncherItem {
         let cwd = (session.cwd as NSString).abbreviatingWithTildeInPath
-        let about = [session.jiraKey, session.status == .waiting ? session.waitingFor : nil].compactMap { $0 }
         return LauncherItem(
             title: [session.name, session.jiraKey].compactMap { $0 }.joined(separator: " "),
             subtitle: "Claude Code session · \(session.stateText) · \(cwd)",
             kind: .session(session.status), target: .session(pid: session.pid),
-            identifier: about.isEmpty ? cwd : about.joined(separator: " · "), name: session.name,
+            identifier: session.rowIdentifiers.joined(separator: " · "), name: session.name,
             badges: [StatusBadge.session(session.status)])
     }
 }

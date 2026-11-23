@@ -119,11 +119,14 @@ private final class LauncherPanel: NSPanel {
         onClose?()
     }
 
+    /// Above the middle like Spotlight, but so that the panel, once grown, still fits.
     func center(on screen: NSScreen?) {
         guard let area = screen?.visibleFrame else { return }
-        let origin = NSPoint(x: area.midX - Self.width / 2, y: area.midY - frame.height / 2 + area.height * 0.15)
-        setFrameOrigin(origin)
-        top = frame.maxY
+        let top = LauncherPlacement.top(
+            in: area, barHeight: LauncherView.height(showsContent: false),
+            fullHeight: LauncherView.height(showsContent: true))
+        setFrameOrigin(NSPoint(x: area.midX - Self.width / 2, y: top - frame.height))
+        self.top = top
     }
 
     func setContentHeight(_ height: CGFloat) {
