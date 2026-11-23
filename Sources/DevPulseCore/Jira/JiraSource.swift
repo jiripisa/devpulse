@@ -111,9 +111,27 @@ public final class JiraSource: Sendable {
 
     private static let log = Logger(subsystem: "io.jp4.devpulse", category: "jira")
 
-    private func search(_ jql: String) async throws -> [Issue] {
+    /// The most tickets a word search returns.
+    static let textSearchLimit = 20
+
+    /// The tickets of these projects whose summary has every word (each as a prefix), newest
+    /// first: one JQL search, for the launcher. Nothing is sent without words or projects.
+    public func searchTickets(words: [String], projects: [String]) async throws -> [Ticket] {
+        let projects = projects.filter { $0.wholeMatch(of: /[A-Z][A-Z0-9_]*/) != nil }
+        // `SearchWords` lets only letters, digits, `-`, `_` and `.` through: nothing to escape.
+        let terms = words.filter { !$0.isEmpty && !$0.contains("\"") && !$0.contains("\\") }
+        guard !projects.isEmpty, !terms.isEmpty else { return [] }
+        let jql = "project in (\(projects.joined(separator: ", "))) AND "
+            + terms.map { "summary ~ \"\($0)*\"" }.joined(separator: " AND ") + " ORDER BY updated DESC"
+        let issues = try await search(jql, fields: Self.linkedFields, maxResults: Self.textSearchLimit)
+        return try issues.map { issue in try mapped { try issue.ticket(site: credentials.site) } }
+    }
+
+    private func search(
+        _ jql: String, fields: [String] = JiraSource.fields, maxResults: Int = JiraSource.maxResults
+    ) async throws -> [Issue] {
         let body = try JSONSerialization.data(withJSONObject: [
-            "jql": jql, "fields": Self.fields, "maxResults": Self.maxResults,
+            "jql": jql, "fields": fields, "maxResults": maxResults,
         ] as [String: Any])
         return try decode(try await send(path: "/rest/api/3/search/jql", method: "POST", body: body))
     }

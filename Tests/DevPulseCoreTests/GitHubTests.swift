@@ -270,6 +270,22 @@ struct GitHubTests {
         await #expect(throws: GitHubError.graphQL(["API rate limit exceeded"])) { try await limited.searchPullRequests(search) }
     }
 
+    @Test("Searches PR titles for words in the repositories")
+    func pullRequestTextSearch() async throws {
+        let body = Data(#"{ "data": { "search": { "nodes": [ { "number": 4, "title": "Invoice PDF", "state": "MERGED", "isDraft": false, "url": "https://github.com/acme/store/pull/4", "headRefName": "b", "repository": { "nameWithOwner": "acme/store" } } ] } } }"#.utf8)
+        let transport = FakeTransport(body: body)
+        let source = GitHubSource(tokens: FakeTokens(), transport: transport)
+        let found = try await source.searchPullRequests(words: ["invoice", "pdf"], repos: ["acme/store", "bad repo"])
+        #expect(found.map(\.title) == ["Invoice PDF"])
+        let request = try #require(transport.requests.withLock { $0.first })
+        let json = try #require(JSONSerialization.jsonObject(with: request.httpBody ?? Data()) as? [String: Any])
+        let variables = try #require(json["variables"] as? [String: Any])
+        #expect(variables["q"] as? String == "invoice pdf in:title is:pr repo:acme/store")
+        #expect(try await source.searchPullRequests(words: [], repos: ["acme/store"]).isEmpty)
+        #expect(try await source.searchPullRequests(words: ["x"], repos: []).isEmpty)
+        #expect(transport.requests.withLock { $0.count } == 1)
+    }
+
     @Test("A search with a bad key or no usable repository sends nothing")
     func pullRequestSearchInvalid() async throws {
         let transport = FakeTransport(body: Data())

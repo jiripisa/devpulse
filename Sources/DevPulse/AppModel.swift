@@ -112,6 +112,16 @@ final class AppModel {
                 if isDemo { return [] }
                 guard let store else { throw LookupUnavailable() }
                 return try await store.searchPullRequests(search)
+            },
+            searchTicketsByText: { [weak store] words, projects in
+                if isDemo { return [] }
+                guard let store else { throw LookupUnavailable() }
+                return try await store.searchTickets(words: words, projects: projects)
+            },
+            searchPullRequestsByText: { [weak store] words, repos in
+                if isDemo { return [] }
+                guard let store else { throw LookupUnavailable() }
+                return try await store.searchPullRequests(words: words, repos: repos)
             })
         snapshot = demo ?? store.snapshot
         #if DEBUG

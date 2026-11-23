@@ -90,18 +90,24 @@ public struct PullRequestLookup: Sendable, Equatable {
 public struct LookupRequest: Equatable, Sendable {
     public var ticketKeys: [String]
     public var pullRequests: [PullRequestRef]
-    /// The tickets whose PRs to search for, for an expanded ticket row.
+    /// The tickets whose PRs to search for, for a ticket's detail.
     public var pullRequestSearches: [PullRequestSearch]
+    /// Words to find in the projects' tickets and the repositories' PRs.
+    public var textSearch: TextSearch?
 
     public init(
-        ticketKeys: [String] = [], pullRequests: [PullRequestRef] = [], pullRequestSearches: [PullRequestSearch] = []
+        ticketKeys: [String] = [], pullRequests: [PullRequestRef] = [], pullRequestSearches: [PullRequestSearch] = [],
+        textSearch: TextSearch? = nil
     ) {
         self.ticketKeys = ticketKeys
         self.pullRequests = pullRequests
         self.pullRequestSearches = pullRequestSearches
+        self.textSearch = textSearch
     }
 
-    public var isEmpty: Bool { ticketKeys.isEmpty && pullRequests.isEmpty && pullRequestSearches.isEmpty }
+    public var isEmpty: Bool {
+        ticketKeys.isEmpty && pullRequests.isEmpty && pullRequestSearches.isEmpty && textSearch == nil
+    }
 }
 
 /// What the lookups found, and what they found not to exist (or not visible to me).
@@ -117,6 +123,9 @@ public struct LookupResults: Equatable, Sendable {
     public var unreachableTickets: Set<String> = []
     public var unreachablePullRequests: Set<PullRequestRef> = []
     public var unreachableSearches: Set<String> = []
+    /// What a word search found, by its words.
+    public var ticketsForText: [[String]: [Ticket]] = [:]
+    public var pullRequestsForText: [[String]: [PullRequestSummary]] = [:]
 
     public init() {}
 }
@@ -133,12 +142,18 @@ public final class LauncherLookup {
     public typealias TicketFetch = @Sendable ([String]) async throws -> TicketLookup
     public typealias PullRequestFetch = @Sendable ([PullRequestRef]) async throws -> PullRequestLookup
     public typealias PullRequestSearchFetch = @Sendable (PullRequestSearch) async throws -> [PullRequestSummary]
+    public typealias TicketTextFetch = @Sendable (_ words: [String], _ projects: [String]) async throws -> [Ticket]
+    public typealias PullRequestTextFetch = @Sendable (_ words: [String], _ repos: [String]) async throws -> [PullRequestSummary]
 
     @ObservationIgnored private let fetchTickets: TicketFetch
     @ObservationIgnored private let fetchPullRequests: PullRequestFetch
     @ObservationIgnored private let searchPullRequests: PullRequestSearchFetch
     @ObservationIgnored private var searchedAt: [PullRequestSearch: Date] = [:]
     @ObservationIgnored private var searchesInFlight: Set<PullRequestSearch> = []
+    @ObservationIgnored private let searchTicketsByText: TicketTextFetch
+    @ObservationIgnored private let searchPullRequestsByText: PullRequestTextFetch
+    @ObservationIgnored private var textSearchedAt: [TextSearch: Date] = [:]
+    @ObservationIgnored private var textSearchesInFlight: Set<TextSearch> = []
     @ObservationIgnored private let ttl: TimeInterval
     @ObservationIgnored private let now: () -> Date
     @ObservationIgnored private var ticketsFetchedAt: [String: Date] = [:]
@@ -149,9 +164,13 @@ public final class LauncherLookup {
     public init(
         ttl: TimeInterval = 300, now: @escaping () -> Date = { Date() },
         fetchTickets: @escaping TicketFetch, fetchPullRequests: @escaping PullRequestFetch,
-        searchPullRequests: @escaping PullRequestSearchFetch
+        searchPullRequests: @escaping PullRequestSearchFetch,
+        searchTicketsByText: @escaping TicketTextFetch = { _, _ in [] },
+        searchPullRequestsByText: @escaping PullRequestTextFetch = { _, _ in [] }
     ) {
         self.searchPullRequests = searchPullRequests
+        self.searchTicketsByText = searchTicketsByText
+        self.searchPullRequestsByText = searchPullRequestsByText
         self.ttl = ttl
         self.now = now
         self.fetchTickets = fetchTickets
@@ -174,7 +193,36 @@ public final class LauncherLookup {
         async let tickets: Void = lookUpTickets(keys)
         async let pullRequests: Void = lookUpPullRequests(refs)
         async let searched: Void = search(searches)
-        _ = await (tickets, pullRequests, searched)
+        let text = request.textSearch.flatMap { search in
+            textSearchesInFlight.contains(search)
+                || (textSearchedAt[search].map { moment.timeIntervalSince($0) < ttl } ?? false) ? nil : search
+        }
+        async let textSearched: Void = searchText(text)
+        _ = await (tickets, pullRequests, searched, textSearched)
+    }
+
+    /// One Jira search and one GitHub search for the words; an answer that failed is asked again
+    /// next time.
+    private func searchText(_ search: TextSearch?) async {
+        guard let search else { return }
+        textSearchesInFlight.insert(search)
+        defer { textSearchesInFlight.remove(search) }
+        var complete = true
+        if !search.projects.isEmpty {
+            if let found = try? await searchTicketsByText(search.words, search.projects) {
+                results.ticketsForText[search.words] = found
+            } else {
+                complete = false
+            }
+        }
+        if !search.repos.isEmpty {
+            if let found = try? await searchPullRequestsByText(search.words, search.repos) {
+                results.pullRequestsForText[search.words] = found
+            } else {
+                complete = false
+            }
+        }
+        if complete { textSearchedAt[search] = now() }
     }
 
     /// A lookup given up (the launcher moved on or closed) says nothing about Jira or GitHub.

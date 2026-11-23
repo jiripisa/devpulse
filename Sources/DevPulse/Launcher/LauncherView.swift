@@ -43,7 +43,7 @@ struct LauncherView: View {
     static let width: CGFloat = 1040
     /// The results' share of the width; the detail gets the rest.
     private static let listWidth: CGFloat = 436
-    private static let placeholder = "Number, gh … or jira …"
+    private static let placeholder = "Number, words, gh … or jira …"
     private static let toolbarHeight: CGFloat = 64
     private static let contentHeight: CGFloat = 500
     private static let keyLineHeight: CGFloat = 38

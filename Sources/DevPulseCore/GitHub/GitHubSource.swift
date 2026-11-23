@@ -144,7 +144,18 @@ public final class GitHubSource: Sendable {
     public func searchPullRequests(_ search: PullRequestSearch) async throws -> [PullRequestSummary] {
         let repos = Array(search.repos.filter(AppSettings.isRepo).prefix(AppSettings.maxGitHubRepos))
         guard search.key.wholeMatch(of: /[A-Z][A-Z0-9_]*-\d+/) != nil, !repos.isEmpty else { return [] }
-        let body = try GitHubQuery.searchBody(key: search.key, repos: repos)
+        return try await runSearch(GitHubQuery.searchBody(key: search.key, repos: repos))
+    }
+
+    /// The PRs of these repositories with every word in the title, for the launcher's word
+    /// search: one GraphQL search. Nothing is sent without words or a usable repository.
+    public func searchPullRequests(words: [String], repos: [String]) async throws -> [PullRequestSummary] {
+        let repos = Array(repos.filter(AppSettings.isRepo).prefix(AppSettings.maxGitHubRepos))
+        guard !words.isEmpty, !repos.isEmpty else { return [] }
+        return try await runSearch(GitHubQuery.searchBody(words: words, repos: repos))
+    }
+
+    private func runSearch(_ body: Data) async throws -> [PullRequestSummary] {
         var response = try await post(body, token: tokens.token(forceRefresh: false))
         if response.1.statusCode == 401 {
             response = try await post(body, token: tokens.token(forceRefresh: true))
