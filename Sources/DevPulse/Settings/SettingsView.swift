@@ -46,6 +46,7 @@ private struct GeneralSettingsView: View {
                         Text("\(refreshMinutes.wrappedValue) min").monospacedDigit()
                         Stepper("Refresh GitHub and Jira every", value: refreshMinutes, in: 1...30)
                             .labelsHidden()
+                            .accessibilityValue("\(refreshMinutes.wrappedValue) min")
                             // The first control of the window took the focus and its ring.
                             .focusEffectDisabled()
                     }

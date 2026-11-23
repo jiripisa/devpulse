@@ -2,18 +2,18 @@ import AppKit
 import DevPulseCore
 import SwiftUI
 
-/// The quick launcher: the search field, the results on the left, and on the right the detail
-/// of the selected result (a ticket's pull requests and related tickets, a PR's ticket).
-///
-/// The list never moves under the selection: while the query stays, results only get appended
-/// (`LauncherState`), guesses show only once Jira or GitHub confirms them, and the detail lives
-/// in its own pane.
 /// Keys the launcher's panel catches before the search field sees them.
 @MainActor
 final class LauncherKeys {
     var onFilter: ((LauncherFilter) -> Void)?
 }
 
+/// The quick launcher: the search field, the results on the left, and on the right the detail
+/// of the selected result (a ticket's pull requests and related tickets, a PR's ticket).
+///
+/// The list never moves under the selection: while the query stays, results only get appended
+/// (`LauncherState`), guesses show only once Jira or GitHub confirms them, and the detail lives
+/// in its own pane.
 struct LauncherView: View {
     let model: AppModel
     let onOpen: (OpenTarget) -> Void

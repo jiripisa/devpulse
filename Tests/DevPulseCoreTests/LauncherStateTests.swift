@@ -208,6 +208,41 @@ private func row(_ name: String, _ kind: LauncherItem.Kind) -> LauncherItem {
         #expect(state.detailSelection == 0)
     }
 
+    @Test func aFilterThatHidesTheSelectedRowJumpsToTheTopFromLowerDown() {
+        var state = LauncherState()
+        state.setResults(mixed, for: "7")
+        state.move(2, detailCount: 0)
+        #expect(state.selectedItem?.title == "review")
+        state.setFilter(.tickets)
+        #expect(state.selection == 0)
+        #expect(state.selectedItem?.title == "ticket")
+    }
+
+    @Test func theFilterKeepsTheDetailWhenItKeepsTheSelectedRow() {
+        var state = LauncherState()
+        state.setResults(mixed, for: "7")
+        state.move(1, detailCount: 0)
+        state.toggleFocus(detailCount: 3)
+        state.move(2, detailCount: 3)
+        state.setFilter(.tickets)
+        #expect(state.selectedItem?.title == "ticket")
+        #expect(state.focus == .detail)
+        #expect(state.detailSelection == 2)
+    }
+
+    @Test func newResultsDroppingTheSelectedRowUnderAFilterStayWithinTheShownRows() {
+        var state = LauncherState()
+        state.setResults([row("t1", .ticket), row("p1", .pullRequest), row("t2", .ticket)], for: "7")
+        state.setFilter(.tickets)
+        state.move(1, detailCount: 0)
+        state.toggleFocus(detailCount: 1)
+        state.setResults([row("t1", .ticket), row("p1", .pullRequest)], for: "7")
+        #expect(state.items.map(\.title) == ["t1"])
+        #expect(state.selectedItem?.title == "t1")
+        #expect(state.focus == .list)
+        #expect(state.detailSelection == 0)
+    }
+
     @Test func theFilterOutlivesANewQuery() {
         var state = LauncherState()
         state.setResults(mixed, for: "7")

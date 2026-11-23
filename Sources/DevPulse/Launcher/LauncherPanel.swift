@@ -88,6 +88,8 @@ final class LauncherPanelController {
         guard let panel else { return }
         self.panel = nil
         panel.onClose = nil
+        // The view's closure holds the view, which holds `keys`: a cycle until it goes.
+        panel.keys.onFilter = nil
         panel.orderOut(nil)
         // Released a turn later: a close may come from inside the panel's own key handling.
         DispatchQueue.main.async { panel.contentView = nil }
