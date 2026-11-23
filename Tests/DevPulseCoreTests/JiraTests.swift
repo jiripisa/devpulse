@@ -260,8 +260,10 @@ struct JiraTests {
         _ = try await source.searchTickets(words: ["invoice", "ord"], projects: ["STORE", "WA", "bad key"])
         let request = try #require(transport.requests(to: "/rest/api/3/search/jql").first)
         let json = try #require(JSONSerialization.jsonObject(with: request.httpBody ?? Data()) as? [String: Any])
+        // The words as Jira analyses them (plurals, hyphens), or with the last one, still being
+        // typed, as a prefix.
         #expect(json["jql"] as? String
-            == #"project in (STORE, WA) AND summary ~ "invoice*" AND summary ~ "ord*" ORDER BY updated DESC"#)
+            == #"project in (STORE, WA) AND (summary ~ "invoice ord" OR summary ~ "invoice ord*") ORDER BY updated DESC"#)
         #expect(json["maxResults"] as? Int == JiraSource.textSearchLimit)
         #expect((json["fields"] as? [String])?.contains("comment") == false)
         let empty = FakeJiraTransport(search: try Self.fixture())

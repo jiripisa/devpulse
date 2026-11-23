@@ -121,8 +121,11 @@ public final class JiraSource: Sendable {
         // `SearchWords` lets only letters, digits, `-`, `_` and `.` through: nothing to escape.
         let terms = words.filter { !$0.isEmpty && !$0.contains("\"") && !$0.contains("\\") }
         guard !projects.isEmpty, !terms.isEmpty else { return [] }
+        // A wildcard term is not analysed (no plurals, no split at `-`): the plain words, or with
+        // the last one, still being typed, as a prefix.
+        let phrase = terms.joined(separator: " ")
         let jql = "project in (\(projects.joined(separator: ", "))) AND "
-            + terms.map { "summary ~ \"\($0)*\"" }.joined(separator: " AND ") + " ORDER BY updated DESC"
+            + "(summary ~ \"\(phrase)\" OR summary ~ \"\(phrase)*\") ORDER BY updated DESC"
         let issues = try await search(jql, fields: Self.linkedFields, maxResults: Self.textSearchLimit)
         return try issues.map { issue in try mapped { try issue.ticket(site: credentials.site) } }
     }

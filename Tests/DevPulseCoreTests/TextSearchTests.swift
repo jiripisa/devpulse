@@ -39,6 +39,11 @@ private func ticket(_ key: String, _ summary: String) -> Ticket {
         #expect(SearchWords.words(in: "Objednávka účtu") == ["objednavka", "uctu"])
         // Search syntax never gets through: quotes, colons and brackets split words.
         #expect(SearchWords.words(in: "repo:evil \"x\" (a) STORE-12") == ["repo", "evil", "x", "a", "store-12"])
+        // A leading dash would be an operator ("not") in GitHub's and Jira's search.
+        #expect(SearchWords.words(in: "invoice -draft") == ["invoice", "draft"])
+        #expect(SearchWords.words(in: "- fix . -- login.") == ["fix", "login"])
+        #expect(SearchWords.words(in: "-2474") == ["2474"])
+        #expect(SearchWords.words(in: "- . _").isEmpty)
     }
 
     @Test func everyWordMustAppearSomewhere() {
@@ -139,6 +144,11 @@ private func ticket(_ key: String, _ summary: String) -> Ticket {
         let other = TextSearch(words: ["order"], projects: ["WA"], repos: [])
         await lookup.resolve(LookupRequest(textSearch: other))
         #expect(lookup.results.ticketsForText[["order"]] == nil)
+        // A failed search says so, until one for the same words works.
+        #expect(lookup.results.unreachableTexts == [["order"]])
+        fail.withLock { $0 = false }
+        await lookup.resolve(LookupRequest(textSearch: other))
+        #expect(lookup.results.unreachableTexts.isEmpty)
         // No repositories: GitHub is not asked.
         #expect(prs.withLock { $0 } == 1)
     }

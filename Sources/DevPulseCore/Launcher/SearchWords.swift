@@ -7,7 +7,9 @@ public enum SearchWords {
     public static func words(in text: String) -> [String] {
         fold(text)
             .split { !($0.isLetter || $0.isNumber || $0 == "-" || $0 == "_" || $0 == ".") }
-            .map(String.init)
+            // A word may not start or end with them: a leading `-` means "not" to GitHub and Jira.
+            .map { $0.trimmingCharacters(in: CharacterSet(charactersIn: "-_.")) }
+            .filter { $0.contains { $0.isLetter || $0.isNumber } }
     }
 
     /// Whether every word appears somewhere in the fields.

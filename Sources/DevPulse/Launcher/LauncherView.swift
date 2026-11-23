@@ -262,11 +262,22 @@ struct LauncherView: View {
             }
             .frame(maxWidth: .infinity, minHeight: 40, alignment: .leading)
             .padding(.horizontal, 10)
+        } else if textSearchFailed {
+            // Not "No results": Jira or GitHub did not answer, there may well be some.
+            Text("Jira or GitHub could not be searched").font(.system(size: 12)).foregroundStyle(Lookout.secondary)
+                .frame(maxWidth: .infinity, minHeight: 40, alignment: .leading)
+                .padding(.horizontal, 10)
         } else if state.items.isEmpty {
             Text("No results").font(.system(size: 13)).foregroundStyle(Lookout.secondary)
                 .frame(maxWidth: .infinity, minHeight: 40, alignment: .leading)
                 .padding(.horizontal, 10)
         }
+    }
+
+    /// Whether the last search of Jira or GitHub for the typed words failed.
+    private var textSearchFailed: Bool {
+        guard case .text(let text) = parsed else { return false }
+        return model.launcherLookup.results.unreachableTexts.contains(SearchWords.words(in: text))
     }
 
     // MARK: Detail

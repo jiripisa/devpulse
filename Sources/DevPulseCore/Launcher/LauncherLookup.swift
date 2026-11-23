@@ -126,6 +126,8 @@ public struct LookupResults: Equatable, Sendable {
     /// What a word search found, by its words.
     public var ticketsForText: [[String]: [Ticket]] = [:]
     public var pullRequestsForText: [[String]: [PullRequestSummary]] = [:]
+    /// The words whose last search in Jira or GitHub failed.
+    public var unreachableTexts: Set<[String]> = []
 
     public init() {}
 }
@@ -207,22 +209,21 @@ public final class LauncherLookup {
         guard let search else { return }
         textSearchesInFlight.insert(search)
         defer { textSearchesInFlight.remove(search) }
-        var complete = true
-        if !search.projects.isEmpty {
-            if let found = try? await searchTicketsByText(search.words, search.projects) {
-                results.ticketsForText[search.words] = found
-            } else {
-                complete = false
-            }
+        // Both at once: GitHub's rows need not wait for Jira's.
+        let ticketFetch = searchTicketsByText
+        let pullRequestFetch = searchPullRequestsByText
+        async let tickets: [Ticket]? = search.projects.isEmpty ? [] : try? ticketFetch(search.words, search.projects)
+        async let pullRequests: [PullRequestSummary]? =
+            search.repos.isEmpty ? [] : try? pullRequestFetch(search.words, search.repos)
+        let (foundTickets, foundPullRequests) = await (tickets, pullRequests)
+        if let foundTickets, !search.projects.isEmpty { results.ticketsForText[search.words] = foundTickets }
+        if let foundPullRequests, !search.repos.isEmpty { results.pullRequestsForText[search.words] = foundPullRequests }
+        if foundTickets != nil && foundPullRequests != nil {
+            textSearchedAt[search] = now()
+            results.unreachableTexts.remove(search.words)
+        } else {
+            results.unreachableTexts.insert(search.words)
         }
-        if !search.repos.isEmpty {
-            if let found = try? await searchPullRequestsByText(search.words, search.repos) {
-                results.pullRequestsForText[search.words] = found
-            } else {
-                complete = false
-            }
-        }
-        if complete { textSearchedAt[search] = now() }
     }
 
     /// A lookup given up (the launcher moved on or closed) says nothing about Jira or GitHub.
