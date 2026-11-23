@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.14.0 — 2026-11-23
 
 - A new look, "Lookout", for the menu bar popover and the quick launcher. Every row says what it
   is on the left, with an icon and a coloured label (PR, Review, Jira, Claude), and its state
