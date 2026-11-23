@@ -5,13 +5,13 @@
     <link>https://jiripisa.github.io/devpulse/</link>
     <description>DevPulse updates</description>
     <item>
-      <title>DevPulse 0.14.0</title>
-      <sparkle:version>0.14.0</sparkle:version>
-      <sparkle:shortVersionString>0.14.0</sparkle:shortVersionString>
+      <title>DevPulse 0.15.0</title>
+      <sparkle:version>0.15.0</sparkle:version>
+      <sparkle:shortVersionString>0.15.0</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>27.0</sparkle:minimumSystemVersion>
-      <pubDate>Mon, 23 Nov 2026 10:47:04 +0000</pubDate>
-      <description><![CDATA[<ul><li>A new look, &quot;Lookout&quot;, for the menu bar popover and the quick launcher. Every row says what it is on the left, with an icon and a coloured label (PR, Review, Jira, Claude), and its state on the right as a shape and a word; a pull request shows its CI and its review state separately. A Claude Code session waiting for you stands out with an amber bar.</li><li>The quick launcher is a Spotlight-like panel with the DevPulse mark next to the search field: only the search bar until you type, then the results, the detail with a button that opens the item and its related items joined by a thin line, and a line of keys at the bottom that says where Enter goes.</li></ul>]]></description>
-      <enclosure url="https://github.com/jiripisa/devpulse/releases/download/v0.14.0/DevPulse-0.14.0.dmg" type="application/octet-stream" sparkle:edSignature="D+c58qQ26cjKf5UwfH8rgslRlfB8HBGu+3Zu/2rPZDG04gaBQpdBuclbfMpgkgkbVpAr8BewvLBZQnDFgXUeCA==" length="5855248"/>
+      <pubDate>Mon, 23 Nov 2026 20:03:27 +0000</pubDate>
+      <description><![CDATA[<ul><li>Search the quick launcher by words from a title: it finds your pull requests, tickets and Claude Code sessions with every word at once, then the tickets of your Jira projects and the pull requests of your repositories with those words, as Jira and GitHub answer. Case and accents do not matter.</li><li>Settings › General › Appearance: System, Light or Dark for the popover, the launcher and the windows.</li><li>The launcher&#x27;s search bar is Liquid Glass, like Spotlight&#x27;s; the results sit on a card below it.</li></ul>]]></description>
+      <enclosure url="https://github.com/jiripisa/devpulse/releases/download/v0.15.0/DevPulse-0.15.0.dmg" type="application/octet-stream" sparkle:edSignature="TF/E7jAaytMQdUuXo2TK9WmqqbZ/UAokwe7FQFL9rPvu2u9t8OrC1Y8gnQXt23DZD1uOappZ2HyUboN4qJyVBQ==" length="5894088"/>
     </item>
   </channel>
 </rss>
