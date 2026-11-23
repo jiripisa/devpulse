@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.12.0 — 2026-11-23
 
 - In the quick launcher, move to a ticket or a pull request and rest there for half a second:
   it expands. A ticket shows its pull requests (yours, and those GitHub finds with its key in
