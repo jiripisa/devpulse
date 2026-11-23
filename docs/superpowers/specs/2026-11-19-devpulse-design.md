@@ -328,9 +328,10 @@ The popover and the launcher share one visual language (designed with Codex, pro
 the repo): every row shows its kind on the left (icon and label in an identity colour: Jira blue,
 PR violet, Review magenta, Claude cyan) and its state on the right as a shape plus a word
 (`StatusBadge` in the core); a PR's CI and review state are separate badges. Colours come in light
-and dark values (`Lookout` in the app). A session waiting for input gets an amber bar and wash.
+and dark values (`Lookout` in the app); Settings › General › Appearance (System / Light / Dark, since
+0.15) sets `NSApp.appearance`. A session waiting for input gets an amber bar and wash.
 The launcher is a borderless Spotlight-like panel (1040 pt wide): the DevPulse mark and the search
-field; once something is typed, results (with a count), the detail (heading, state, name,
+field on a Liquid Glass bar (since 0.15), the results on an opaque card below it; once something is typed, results (with a count), the detail (heading, state, name,
 identifier, an "Open in …" button, sections joined by a tree line) and a key line naming where
 Enter goes.
 
@@ -356,6 +357,7 @@ could not be reached"; a source switched off in Settings is never asked.
 | Typed | Result |
 |---|---|
 | `<number>` | everything with that number: my PRs and review requests in any repo, my tickets and my PRs' tickets in any project, sessions whose key or folder has it; then the PR in each of the Settings' GitHub repositories and the ticket in each of its Jira projects (up to 10 each; empty = the repos of my PRs / projects of my tickets). Those rows are looked up after a 300 ms typing pause (one Jira bulk fetch for all keys, one GitHub GraphQL request with an aliased `repository { pullRequest }` per repo, answers cached 5 min) to show title and state; ones that do not exist are dropped |
+| `<words>` | (from two characters, not a prefix or a bare number) the known PRs, review requests, tickets (mine and my PRs') and sessions with every word (folded: no case, no diacritics) in title, key, repository or folder; then one Jira search (`project in (…) AND (summary ~ "w1 w2" OR summary ~ "w1 w2*")`: analysed words, or the last one as a prefix; words are trimmed of leading/trailing `-_.` so no operator gets through) and one GitHub search (`<words> in:title is:pr repo:…`), cached 5 min, appended; a failed search says "Jira or GitHub could not be searched" |
 | `gh` | my PRs and review requests; arrows select, `Enter` opens |
 | `gh <text>` | filters by title or repo |
 | `gh <number>` | known PRs with that number, then PR `<number>` in each repository from Settings (looked up like a bare number's rows); the first repository's row stays as "Not found on GitHub" when the PR does not exist. Without repositories: those of my PRs, most PRs first. |

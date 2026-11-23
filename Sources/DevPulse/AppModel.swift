@@ -112,6 +112,16 @@ final class AppModel {
                 if isDemo { return [] }
                 guard let store else { throw LookupUnavailable() }
                 return try await store.searchPullRequests(search)
+            },
+            searchTicketsByText: { [weak store] words, projects in
+                if isDemo { return [] }
+                guard let store else { throw LookupUnavailable() }
+                return try await store.searchTickets(words: words, projects: projects)
+            },
+            searchPullRequestsByText: { [weak store] words, repos in
+                if isDemo { return [] }
+                guard let store else { throw LookupUnavailable() }
+                return try await store.searchPullRequests(words: words, repos: repos)
             })
         snapshot = demo ?? store.snapshot
         #if DEBUG
@@ -195,6 +205,8 @@ final class AppModel {
     // MARK: Lifecycle
 
     private func start() {
+        // Once the app has finished launching, so `NSApp` takes it.
+        DispatchQueue.main.async { [weak self] in self?.applyAppearance() }
         if demoSnapshot != nil {
             // No hotkey: it belongs to the DevPulse that may run next to the demo.
             launcher = LauncherPanelController(model: self)
@@ -338,8 +350,21 @@ final class AppModel {
             updateHotkeyError(hotkeyMonitor.status)
         }
         if settings.refreshInterval != old.refreshInterval { restartRefreshLoop() }
+        if settings.appearance != old.appearance { applyAppearance() }
         // Claude Code too, so its switch applies; the store takes its sessions from the watcher.
         if settings.requiresRefetch(comparedTo: old) { refresh(soon: Set(Source.allCases)) }
+    }
+
+    /// The chosen appearance for every window of the app; the demo's own switch wins.
+    func applyAppearance() {
+        #if DEBUG
+        if UserDefaults.standard.string(forKey: "DevPulseDemoAppearance") != nil { return }
+        #endif
+        NSApp.appearance = switch settings.appearance {
+        case .system: nil
+        case .light: NSAppearance(named: .aqua)
+        case .dark: NSAppearance(named: .darkAqua)
+        }
     }
 
     /// For a changed Jira token: it lives in the Keychain, so `settings` does not see it.

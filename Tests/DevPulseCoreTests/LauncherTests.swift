@@ -44,15 +44,18 @@ private func url(_ string: String) -> OpenTarget { .url(URL(string: string)!) }
     @Test func parsesABareNumber() {
         #expect(LauncherQuery.parse("2474") == .number(2474))
         #expect(LauncherQuery.parse("  2474 ") == .number(2474))
-        #expect(LauncherQuery.parse("2474 12") == .empty)
-        #expect(LauncherQuery.parse("2474a") == .empty)
-        #expect(LauncherQuery.parse("-2474") == .empty)
+        // Anything else with a digit is text to search for.
+        #expect(LauncherQuery.parse("2474 12") == .text("2474 12"))
+        #expect(LauncherQuery.parse("2474a") == .text("2474a"))
     }
 
-    @Test func otherInputIsEmpty() {
-        #expect(LauncherQuery.parse("xyz") == .empty)
+    @Test func otherInputIsTextFromTwoCharacters() {
+        #expect(LauncherQuery.parse("xyz") == .text("xyz"))
+        #expect(LauncherQuery.parse("ghost") == .text("ghost"))
+        #expect(LauncherQuery.parse("  invoice   order ") == .text("invoice order"))
+        #expect(LauncherQuery.parse("x") == .empty)
         #expect(LauncherQuery.parse("") == .empty)
-        #expect(LauncherQuery.parse("ghost") == .empty)
+        #expect(LauncherQuery.parse("   ") == .empty)
     }
 
     @Test func toleratesSurroundingAndRepeatedWhitespace() {
@@ -66,7 +69,7 @@ private func url(_ string: String) -> OpenTarget { .url(URL(string: string)!) }
     }
 
     @Test func emptyQueryHasNoItems() {
-        #expect(items("xyz", snapshot(mine: [makePR()])).isEmpty)
+        #expect(items("x", snapshot(mine: [makePR()])).isEmpty)
     }
 
     @Test func ghListsMyPullRequestsThenReviewRequests() {
@@ -420,7 +423,7 @@ private func url(_ string: String) -> OpenTarget { .url(URL(string: string)!) }
 
     @Test func listingsAndKnownItemsLookNothingUp() {
         let snap = snapshot(mine: [makePR(repo: "acme/store", number: 1)], tickets: [makeTicket(key: "STORE-1")])
-        for input in ["gh", "gh login", "jira", "jira login", "jira STORE-1", "gh 1", "xyz", ""] {
+        for input in ["gh", "gh login", "jira", "jira login", "jira STORE-1", "gh 1", "x", ""] {
             #expect(request(input, snap, settings()).isEmpty, "\(input)")
         }
         #expect(request("gh acme/api 4", snap, settings()) == LookupRequest(

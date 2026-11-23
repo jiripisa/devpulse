@@ -7,6 +7,8 @@ public protocol GitHubFetching: Sendable {
     func fetchPullRequests(_ refs: [PullRequestRef]) async throws -> PullRequestLookup
     /// The PRs that name a Jira key in these repositories, for the launcher.
     func searchPullRequests(_ search: PullRequestSearch) async throws -> [PullRequestSummary]
+    /// The PRs with these words in the title, for the launcher.
+    func searchPullRequests(words: [String], repos: [String]) async throws -> [PullRequestSummary]
 }
 
 extension GitHubFetching {
@@ -15,6 +17,10 @@ extension GitHubFetching {
     }
 
     public func searchPullRequests(_ search: PullRequestSearch) async throws -> [PullRequestSummary] {
+        throw LookupUnavailable()
+    }
+
+    public func searchPullRequests(words: [String], repos: [String]) async throws -> [PullRequestSummary] {
         throw LookupUnavailable()
     }
 }
@@ -30,11 +36,17 @@ public protocol JiraFetching: Sendable {
     func fetchTickets(keys: [String]) async throws -> [Ticket]
     /// The same, for the launcher, with the keys Jira says do not exist.
     func lookUpTickets(keys: [String]) async throws -> TicketLookup
+    /// The projects' tickets with these words in the summary, for the launcher.
+    func searchTickets(words: [String], projects: [String]) async throws -> [Ticket]
 }
 
 extension JiraFetching {
     public func lookUpTickets(keys: [String]) async throws -> TicketLookup {
         TicketLookup(tickets: try await fetchTickets(keys: keys), missingKeys: [])
+    }
+
+    public func searchTickets(words: [String], projects: [String]) async throws -> [Ticket] {
+        throw LookupUnavailable()
     }
 }
 
@@ -121,6 +133,18 @@ public final class SnapshotStore {
     public func lookUpPullRequests(_ refs: [PullRequestRef]) async throws -> PullRequestLookup {
         guard isEnabled(.github) else { throw LookupUnavailable() }
         return try await github.fetchPullRequests(refs)
+    }
+
+    /// The projects' tickets with these words in the summary, for the launcher's word search.
+    public func searchTickets(words: [String], projects: [String]) async throws -> [Ticket] {
+        guard isEnabled(.jira), let credentials = jiraCredentials() else { throw LookupUnavailable() }
+        return try await jiraSource(for: credentials).searchTickets(words: words, projects: projects)
+    }
+
+    /// The repositories' PRs with these words in the title, for the launcher's word search.
+    public func searchPullRequests(words: [String], repos: [String]) async throws -> [PullRequestSummary] {
+        guard isEnabled(.github) else { throw LookupUnavailable() }
+        return try await github.searchPullRequests(words: words, repos: repos)
     }
 
     /// The PRs that name a Jira key, for an expanded launcher row. Throws `LookupUnavailable`

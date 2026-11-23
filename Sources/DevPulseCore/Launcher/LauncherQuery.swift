@@ -6,6 +6,8 @@ public enum LauncherQuery: Equatable, Sendable {
     case jira(key: String?, number: Int?, text: String)
     /// Only digits, e.g. `2474`: everything that number can be, in GitHub, Jira and Claude Code.
     case number(Int)
+    /// Anything else of two characters or more: words to find in titles, keys and names.
+    case text(String)
     case empty
 
     public static func parse(_ input: String) -> LauncherQuery {
@@ -16,7 +18,9 @@ public enum LauncherQuery: Equatable, Sendable {
         switch command {
         case "gh": return parseGitHub(rest)
         case "jira": return parseJira(rest)
-        default: return .empty
+        default:
+            let text = words.joined(separator: " ")
+            return text.count >= 2 ? .text(text) : .empty
         }
     }
 

@@ -253,6 +253,26 @@ struct JiraTests {
         #expect(try await missing("[]").isEmpty)
     }
 
+    @Test("Searches ticket summaries in the projects with one JQL search")
+    func ticketTextSearch() async throws {
+        let transport = FakeJiraTransport(search: try Self.fixture())
+        let source = JiraSource(credentials: Self.credentials, transport: transport)
+        _ = try await source.searchTickets(words: ["invoice", "ord"], projects: ["STORE", "WA", "bad key"])
+        let request = try #require(transport.requests(to: "/rest/api/3/search/jql").first)
+        let json = try #require(JSONSerialization.jsonObject(with: request.httpBody ?? Data()) as? [String: Any])
+        // The words as Jira analyses them (plurals, hyphens), or with the last one, still being
+        // typed, as a prefix.
+        #expect(json["jql"] as? String
+            == #"project in (STORE, WA) AND (summary ~ "invoice ord" OR summary ~ "invoice ord*") ORDER BY updated DESC"#)
+        #expect(json["maxResults"] as? Int == JiraSource.textSearchLimit)
+        #expect((json["fields"] as? [String])?.contains("comment") == false)
+        let empty = FakeJiraTransport(search: try Self.fixture())
+        let quiet = JiraSource(credentials: Self.credentials, transport: empty)
+        #expect(try await quiet.searchTickets(words: [], projects: ["STORE"]).isEmpty)
+        #expect(try await quiet.searchTickets(words: ["x"], projects: []).isEmpty)
+        #expect(empty.requests.withLock { $0.isEmpty })
+    }
+
     @Test("An answer without issues, only errors, is an empty list")
     func linkedTicketsOnlyErrors() async throws {
         let answer = Data(#"{ "issueErrors": [ { "id": "UTF-8", "errorMessage": "Issue does not exist", "status": 404 } ] }"#.utf8)

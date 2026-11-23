@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- Search the quick launcher by words from a title: it finds your pull requests, tickets and
+  Claude Code sessions with every word at once, then the tickets of your Jira projects and the
+  pull requests of your repositories with those words, as Jira and GitHub answer. Case and
+  accents do not matter.
+- Settings › General › Appearance: System, Light or Dark for the popover, the launcher and the
+  windows.
+- The launcher's search bar is Liquid Glass, like Spotlight's; the results sit on a card below
+  it.
+
 ## 0.14.0 — 2026-11-23
 
 - A new look, "Lookout", for the menu bar popover and the quick launcher. Every row says what it

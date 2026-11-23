@@ -66,7 +66,16 @@ enum GitHubQuery {
     static func searchBody(key: String, repos: [String]) throws -> Data {
         // Title and description only: a key someone mentioned in a comment does not make it the
         // ticket's PR.
-        let text = (["\"\(key)\" in:title,body is:pr"] + repos.map { "repo:\($0)" }).joined(separator: " ")
+        try searchBody(terms: "\"\(key)\" in:title,body", repos: repos)
+    }
+
+    /// The search for PRs with these words in the title.
+    static func searchBody(words: [String], repos: [String]) throws -> Data {
+        try searchBody(terms: "\(words.joined(separator: " ")) in:title", repos: repos)
+    }
+
+    private static func searchBody(terms: String, repos: [String]) throws -> Data {
+        let text = (["\(terms) is:pr"] + repos.map { "repo:\($0)" }).joined(separator: " ")
         let query = """
             query($q: String!) { search(query: $q, type: ISSUE, first: \(maxSearchResults)) { nodes { \
             ... on PullRequest { number title state isDraft url headRefName repository { nameWithOwner } } } } }

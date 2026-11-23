@@ -410,16 +410,16 @@ gh auth login</code></pre>
       <section id="launcher">
         <h2>Rychlé hledání</h2>
         <p>Stiskněte kdekoli <kbd>⌥</kbd><kbd>Space</kbd> a uprostřed obrazovky
-        se otevře vyhledávací panel. Napište číslo a najdete ho všude,
+        se otevře vyhledávací panel. Napište číslo nebo slova z názvu a najdete je všude,
         <code>gh</code> pro pull requesty nebo <code>jira</code> pro tikety;
         zkratku změníte v <a href="#general">obecných nastaveních</a>. Vlevo jsou
         výsledky, vpravo detail vybraného výsledku.</p>
         <figure class="fig">
-          <div class="view" style="--iw:2080;--ih:1208">
+          <div class="view" style="--iw:2080;--ih:1222">
             <img src="../assets/manual/devpulse-launcher.png" alt="Rychlé hledání pro dotaz gh: vlevo pull requesty, vpravo tiket vybraného pull requestu a související tikety">
             <span class="mark" style="--x:14.5;--y:1.5;--w:79.5;--h:8"><b>1</b></span>
-            <span class="mark" style="--x:0.5;--y:11.3;--w:41.2;--h:81.8"><b>2</b></span>
-            <span class="mark" style="--x:42.4;--y:11.3;--w:57.1;--h:81.8"><b>3</b></span>
+            <span class="mark" style="--x:0.5;--y:12.5;--w:41.2;--h:80.5"><b>2</b></span>
+            <span class="mark" style="--x:42.4;--y:12.5;--w:57.1;--h:80.5"><b>3</b></span>
             <span class="mark" style="--x:0.5;--y:94;--w:99;--h:5.5"><b>4</b></span>
           </div>
           <figcaption>Rychlé hledání po napsání <code>gh</code>.</figcaption>
@@ -428,7 +428,8 @@ gh auth login</code></pre>
           <dt><span class="n">1</span>Vyhledávací pole</dt>
           <dd>Vedle značky DevPulse. Sem napište dotaz podle tabulky níže. Dokud
           nic nenapíšete, je panel jen tenhle pruh, jako Spotlight, se světle šedou
-          nápovědou <span class="ui">Number, gh … or jira …</span>.</dd>
+          nápovědou <span class="ui">Number, words, gh … or jira …</span>. Pruh je
+          z Liquid Glass jako ve Spotlightu; výsledky jsou na kartě pod ním.</dd>
           <dt><span class="n">2</span>Výsledky</dt>
           <dd>Nejvýš 20 řádků. Stejně jako v okénku řádek říká, co je zač, ikonou
           a barevným štítkem (<span class="ui">PR</span>, <span class="ui">Review</span>,
@@ -462,15 +463,22 @@ gh auth login</code></pre>
           <span class="ui">Back</span>.</dd>
         </dl>
         <figure class="fig">
-          <div class="view" style="--iw:2080;--ih:1208">
+          <div class="view" style="--iw:2080;--ih:1222">
             <img src="../assets/manual/devpulse-launcher-number.png" alt="Rychlé hledání pro číslo 2290: žádost o review, tiket z Jiry a session Claude Code; vpravo tiket session a jeho související tikety">
           </div>
           <figcaption>Samotné číslo najde všechno, co ho nese: tady žádost o review #2290, tiket STORE-2290 a session ve složce <code>store-2290-statement</code>, jejíž tiket je vpravo.</figcaption>
+        </figure>
+        <figure class="fig">
+          <div class="view" style="--iw:2080;--ih:1222">
+            <img src="../assets/manual/devpulse-launcher-words.png" alt="Rychlé hledání pro slovo invoice: pull request a tiket z Jiry se slovem invoice v názvu">
+          </div>
+          <figcaption>Slova hledají v názvech: <code>invoice</code> najde pull request i tiket, které ho mají v názvu.</figcaption>
         </figure>
         <div class="table">
           <table>
             <thead><tr><th>Napíšete</th><th>Výsledek</th></tr></thead>
             <tbody>
+              <tr><td><code>invoice order</code></td><td>Slova z názvu, bez ohledu na velikost písmen a diakritiku: nejdřív vaše pull requesty a žádosti o review, vaše tikety a tikety vašich pull requestů a sessions Claude Code, které mají všechna slova v názvu, klíči, repozitáři nebo složce. Jakmile přestanete psát, pak i tikety vašich <a href="#jira">projektů</a> se všemi slovy v názvu a pull requesty vašich <a href="#github">repozitářů</a> se všemi slovy v názvu, jak je najde Jira a GitHub (když neodpoví, svítí <span class="ui">Jira or GitHub could not be searched</span>). Od dvou znaků.</td></tr>
               <tr><td><code>2474</code></td><td>Všechno s tímto číslem: vaše pull requesty a žádosti o review s číslem 2474 v libovolném repozitáři, za nimi vaše tikety a tikety vašich pull requestů s číslem 2474 v libovolném projektu (<code>STORE-2474</code>, <code>WA-2474</code>) a sessions Claude Code, jejichž klíč z Jiry nebo název složky toto číslo obsahuje (<code>store-2474-fix</code>, ale ne <code>store-24740</code>). Pak pull request 2474 v každém z vašich <a href="#github">repozitářů</a> a tiket 2474 v každém z vašich <a href="#jira">projektů</a>, jakmile GitHub a Jira potvrdí, že existují.</td></tr>
               <tr><td><code>gh</code></td><td>Vaše pull requesty, za nimi žádosti o review.</td></tr>
               <tr><td><code>gh invoice</code></td><td>Ty, jejichž název nebo repozitář text obsahuje.</td></tr>
@@ -496,7 +504,7 @@ gh auth login</code></pre>
           </table>
         </div>
         <figure class="fig">
-          <div class="view" style="--iw:2080;--ih:1208">
+          <div class="view" style="--iw:2080;--ih:1222">
             <img src="../assets/manual/devpulse-launcher-detail.png" alt="Rychlé hledání pro číslo 2474: tiket STORE-2474 a vpravo jeho pull request #812 a dva související tikety">
           </div>
           <figcaption>Detail tiketu STORE-2474: jeho pull request #812, tiket, který ho blokuje, a jeden související.</figcaption>
@@ -569,11 +577,12 @@ gh auth login</code></pre>
         <p><span class="ui">Settings… › General</span>:</p>
         <figure class="fig" style="max-width:34rem">
           <div class="view" style="--iw:1040;--ih:900;--zh:77">
-            <img src="../assets/manual/devpulse-settings-general.png" alt="Záložka General v nastavení: interval načítání, spuštění po přihlášení, zkratka rychlého hledání a nástroj pro příkazovou řádku">
-            <span class="mark" style="--x:3.8;--y:28.5;--w:92.3;--h:9.2"><b>1</b></span>
-            <span class="mark" style="--x:3.8;--y:37.7;--w:92.3;--h:8"><b>2</b></span>
-            <span class="mark" style="--x:3.8;--y:48;--w:92.3;--h:8.8"><b>3</b></span>
-            <span class="mark" style="--x:3.8;--y:59.1;--w:92.3;--h:7.9"><b>4</b></span>
+            <img src="../assets/manual/devpulse-settings-general.png" alt="Záložka General v nastavení: interval načítání, spuštění po přihlášení, vzhled, zkratka rychlého hledání a nástroj pro příkazovou řádku">
+            <span class="mark" style="--x:3.8;--y:28.6;--w:92.3;--h:9"><b>1</b></span>
+            <span class="mark" style="--x:3.8;--y:37.6;--w:92.3;--h:8"><b>2</b></span>
+            <span class="mark" style="--x:3.8;--y:48;--w:92.3;--h:8.7"><b>3</b></span>
+            <span class="mark" style="--x:3.8;--y:59.1;--w:92.3;--h:8.7"><b>4</b></span>
+            <span class="mark" style="--x:3.8;--y:70.2;--w:92.3;--h:7.8"><b>5</b></span>
           </div>
           <figcaption>Záložka General s výchozím nastavením a nainstalovaným nástrojem pro příkazovou řádku.</figcaption>
         </figure>
@@ -587,7 +596,11 @@ gh auth login</code></pre>
           <dd>Spustí DevPulse po přihlášení; ve výchozím stavu zapnuto. Pokud
           macOS chce vaše schválení, řádek vás pošle do <span class="ui">System
           Settings › General › Login Items</span>.</dd>
-          <dt><span class="n">3</span>Quick launcher shortcut</dt>
+          <dt><span class="n">3</span>Appearance</dt>
+          <dd><span class="ui">System</span> (výchozí) se řídí světlým nebo tmavým
+          vzhledem Macu; <span class="ui">Light</span> a <span class="ui">Dark</span>
+          drží okénko, rychlé hledání i okna DevPulse v jednom z nich.</dd>
+          <dt><span class="n">4</span>Quick launcher shortcut</dt>
           <dd>Ukazuje aktuální zkratku, výchozí je <span class="ui">⌥Space</span>.
           Klikněte na ni a stiskněte novou, nebo <kbd>Esc</kbd> pro zrušení.
           Zkratku bez <kbd>⌘</kbd>, <kbd>⌥</kbd> nebo <kbd>⌃</kbd> odmítne
@@ -595,7 +608,7 @@ gh auth login</code></pre>
           <span class="ui">⌘Space</span> a <span class="ui">⌥⌘Space</span>, které
           patří Spotlightu; pak čeká na jinou zkratku. Když ji už používá jiná
           aplikace, ohlásí to červený řádek; zvolte jinou.</dd>
-          <dt><span class="n">4</span>Command line tool</dt>
+          <dt><span class="n">5</span>Command line tool</dt>
           <dd><span class="ui">Install</span>, <span class="ui">Replace</span>
           nebo cesta k nainstalovanému nástroji; viz
           <a href="#cli">Nástroj pro příkazovou řádku</a>.</dd>

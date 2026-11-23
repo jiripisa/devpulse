@@ -155,6 +155,7 @@ extension LauncherResolver {
     /// key after a move).
     private static func ticket(_ key: String, snapshot: Snapshot, lookup: LookupResults) -> Ticket? {
         knownTickets(snapshot).first { $0.key == key } ?? lookup.tickets[key] ?? lookup.tickets.values.first { $0.key == key }
+            ?? lookup.ticketsForText.values.lazy.flatMap { $0 }.first { $0.key == key }
     }
 
     /// A PR's Jira key: as the store linked it for my PRs, else from the looked-up title or branch.
@@ -166,6 +167,7 @@ extension LauncherResolver {
         }
         let summary = lookup.pullRequests[ref]
             ?? lookup.pullRequestsForTicket.values.lazy.flatMap { $0 }.first { $0.ref == ref }
+            ?? lookup.pullRequestsForText.values.lazy.flatMap { $0 }.first { $0.ref == ref }
         return summary?.jiraKey(knownProjects: Set(projects(snapshot: snapshot, settings: settings)))
     }
 

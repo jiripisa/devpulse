@@ -52,6 +52,24 @@ public struct Hotkey: Codable, Sendable, Equatable {
     }
 }
 
+/// The app's appearance: as the system has it, or always light or dark.
+public enum AppAppearance: String, Codable, Sendable, CaseIterable {
+    case system, light, dark
+
+    public var title: String {
+        switch self {
+        case .system: "System"
+        case .light: "Light"
+        case .dark: "Dark"
+        }
+    }
+
+    /// An unknown value (a newer version's) follows the system.
+    public init(from decoder: any Decoder) throws {
+        self = AppAppearance(rawValue: try decoder.singleValueContainer().decode(String.self)) ?? .system
+    }
+}
+
 public struct AppSettings: Codable, Sendable, Equatable {
     public static let intervalRange: ClosedRange<TimeInterval> = 60...1800
     private static let defaultsKey = "devpulse.settings"
@@ -83,6 +101,7 @@ public struct AppSettings: Codable, Sendable, Equatable {
     public var jiraEmail: String?
     public var hotkey: Hotkey
     public var launchAtLogin: Bool
+    public var appearance: AppAppearance
 
     public init(
         refreshInterval: TimeInterval = 120,
@@ -96,7 +115,8 @@ public struct AppSettings: Codable, Sendable, Equatable {
         jiraSite: URL? = nil,
         jiraEmail: String? = nil,
         hotkey: Hotkey = Hotkey(keyCode: 49, modifiers: [.option]),
-        launchAtLogin: Bool = true
+        launchAtLogin: Bool = true,
+        appearance: AppAppearance = .system
     ) {
         self.refreshInterval = Self.clamp(refreshInterval)
         self.sourceEnabled = sourceEnabled
@@ -109,6 +129,7 @@ public struct AppSettings: Codable, Sendable, Equatable {
         self.jiraEmail = jiraEmail
         self.hotkey = hotkey
         self.launchAtLogin = launchAtLogin
+        self.appearance = appearance
     }
 
     private static func clamp(_ interval: TimeInterval) -> TimeInterval {
@@ -118,7 +139,7 @@ public struct AppSettings: Codable, Sendable, Equatable {
     // Missing keys (older or hand-edited settings) fall back to the defaults.
     private enum CodingKeys: String, CodingKey {
         case refreshInterval, sourceEnabled, notificationsEnabled, triggers, includeTeamReviewRequests
-        case githubRepos, jiraProjects, jiraSite, jiraEmail, hotkey, launchAtLogin
+        case githubRepos, jiraProjects, jiraSite, jiraEmail, hotkey, launchAtLogin, appearance
         /// Before 0.10 there was one project; it becomes the only entry of `jiraProjects`.
         case defaultJiraProject
         /// Before 0.11 there was one repository; it becomes the only entry of `githubRepos`.
@@ -138,6 +159,7 @@ public struct AppSettings: Codable, Sendable, Equatable {
         try c.encodeIfPresent(jiraEmail, forKey: .jiraEmail)
         try c.encode(hotkey, forKey: .hotkey)
         try c.encode(launchAtLogin, forKey: .launchAtLogin)
+        try c.encode(appearance, forKey: .appearance)
     }
 
     public init(from decoder: any Decoder) throws {
@@ -160,7 +182,8 @@ public struct AppSettings: Codable, Sendable, Equatable {
             jiraSite: try c.decodeIfPresent(URL.self, forKey: .jiraSite),
             jiraEmail: try c.decodeIfPresent(String.self, forKey: .jiraEmail),
             hotkey: try c.decodeIfPresent(Hotkey.self, forKey: .hotkey) ?? d.hotkey,
-            launchAtLogin: try c.decodeIfPresent(Bool.self, forKey: .launchAtLogin) ?? d.launchAtLogin)
+            launchAtLogin: try c.decodeIfPresent(Bool.self, forKey: .launchAtLogin) ?? d.launchAtLogin,
+            appearance: try c.decodeIfPresent(AppAppearance.self, forKey: .appearance) ?? d.appearance)
     }
 
     public static func load(from defaults: UserDefaults) -> AppSettings {

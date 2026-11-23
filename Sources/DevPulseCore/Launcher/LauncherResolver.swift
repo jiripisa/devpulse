@@ -78,7 +78,7 @@ public enum LauncherResolver {
         for query: LauncherQuery, snapshot: Snapshot, settings: AppSettings, lookup: LookupResults = LookupResults()
     ) -> [LauncherItem] {
         let site = settings.jiraSite
-        let items = rows(for: query, snapshot: snapshot, settings: settings).compactMap { row -> LauncherItem? in
+        let items = rows(for: query, snapshot: snapshot, settings: settings, lookup: lookup).compactMap { row -> LauncherItem? in
             switch row {
             case .item(let item):
                 return item
@@ -112,7 +112,10 @@ public enum LauncherResolver {
     /// could also open (a ticket needs the Jira site).
     public static func lookupRequest(for query: LauncherQuery, snapshot: Snapshot, settings: AppSettings) -> LookupRequest {
         var request = LookupRequest()
-        for row in rows(for: query, snapshot: snapshot, settings: settings) {
+        if case .text(let text) = query {
+            request.textSearch = textSearch(text, snapshot: snapshot, settings: settings)
+        }
+        for row in rows(for: query, snapshot: snapshot, settings: settings, lookup: LookupResults()) {
             switch row {
             case .item: break
             // A switched-off source is never asked.
@@ -141,10 +144,14 @@ public enum LauncherResolver {
         case pullRequest(PullRequestRef, typed: Bool)
     }
 
-    private static func rows(for query: LauncherQuery, snapshot: Snapshot, settings: AppSettings) -> [Row] {
+    private static func rows(
+        for query: LauncherQuery, snapshot: Snapshot, settings: AppSettings, lookup: LookupResults
+    ) -> [Row] {
         switch query {
         case .empty:
             []
+        case .text(let text):
+            words(SearchWords.words(in: text), snapshot: snapshot, lookup: lookup).map(Row.item)
         case .github(let repo, let number, let text):
             github(repo: repo, number: number, text: text, snapshot: snapshot, settings: settings)
         case .jira(let key, let number, let text):
@@ -152,6 +159,41 @@ public enum LauncherResolver {
         case .number(let number):
             everything(number: number, snapshot: snapshot, settings: settings)
         }
+    }
+
+    // MARK: Words
+
+    /// The known items with every word in their title, key, repository or folder: my PRs and
+    /// review requests, my tickets and my PRs' tickets, the sessions; then what Jira and GitHub
+    /// found for the words that is not among them.
+    private static func words(_ words: [String], snapshot: Snapshot, lookup: LookupResults) -> [LauncherItem] {
+        guard !words.isEmpty else { return [] }
+        let prs = knownPullRequests(snapshot).filter {
+            SearchWords.matches(words, in: [$0.title, $0.repo, "#\($0.number)", $0.jiraKey ?? ""])
+        }
+        let tickets = knownTickets(snapshot).filter { SearchWords.matches(words, in: [$0.key, $0.summary]) }
+        let sessions = snapshot.sessions.filter {
+            SearchWords.matches(words, in: [$0.name, $0.cwd, $0.jiraKey ?? ""])
+        }
+        let knownRefs = Set(prs.map { PullRequestRef(repo: $0.repo, number: $0.number) })
+            .union(knownPullRequests(snapshot).map { PullRequestRef(repo: $0.repo, number: $0.number) })
+        let knownKeys = Set(knownTickets(snapshot).map(\.key))
+        let foundPRs = (lookup.pullRequestsForText[words] ?? []).filter { !knownRefs.contains($0.ref) }
+        let foundTickets = (lookup.ticketsForText[words] ?? []).filter { !knownKeys.contains($0.key) }
+        return prs.compactMap { item($0, snapshot: snapshot) } + tickets.compactMap(item) + sessions.map(item)
+            + foundPRs.compactMap(item) + foundTickets.compactMap(item)
+    }
+
+    /// What to ask Jira and GitHub about the words: the projects' tickets and the repositories'
+    /// PRs, as far as the sources are on.
+    private static func textSearch(_ text: String, snapshot: Snapshot, settings: AppSettings) -> TextSearch? {
+        let words = SearchWords.words(in: text)
+        guard !words.isEmpty else { return nil }
+        let site = settings.jiraSite ?? snapshot.jiraBaseURL.flatMap { URL(string: $0) }
+        let projects = isOn(.jira, settings) && site != nil ? projects(snapshot: snapshot, settings: settings) : []
+        let repos = isOn(.github, settings) ? repos(snapshot: snapshot, settings: settings) : []
+        guard !projects.isEmpty || !repos.isEmpty else { return nil }
+        return TextSearch(words: words, projects: projects, repos: repos)
     }
 
     private static func notFound(_ link: LauncherItem, _ text: String) -> LauncherItem {

@@ -118,6 +118,18 @@ private func withFreshDefaults(_ body: (UserDefaults) throws -> Void) rethrows {
         #expect(AppSettings.reposText(["acme/store", "acme/api"]) == "acme/store, acme/api")
     }
 
+    @Test func theAppearanceFollowsTheSystemUntilChosen() throws {
+        #expect(AppSettings().appearance == .system)
+        var settings = AppSettings()
+        settings.appearance = .dark
+        let data = try JSONEncoder().encode(settings)
+        #expect(try JSONDecoder().decode(AppSettings.self, from: data).appearance == .dark)
+        // Settings saved before the choice existed, or with a value from a newer version.
+        #expect(try JSONDecoder().decode(AppSettings.self, from: Data("{}".utf8)).appearance == .system)
+        #expect(try JSONDecoder().decode(AppSettings.self, from: Data(#"{"appearance":"sepia"}"#.utf8)).appearance == .system)
+        #expect(AppAppearance.allCases.map(\.title) == ["System", "Light", "Dark"])
+    }
+
     @Test func theOldSingleProjectBecomesTheProjectList() throws {
         let old = Data(#"{"defaultJiraProject":"STORE","refreshInterval":300}"#.utf8)
         let settings = try JSONDecoder().decode(AppSettings.self, from: old)
