@@ -9,7 +9,7 @@ use ratatui::widgets::{Block, BorderType, Clear, Padding, Paragraph};
 
 const KEYS: [(&str, &str); 11] = [
     ("↑ ↓  j / k", "move"),
-    ("1–4  Tab  Shift-Tab", "switch panel"),
+    ("1–5  Tab  Shift-Tab", "switch panel (5: tickets you created, when on)"),
     ("Enter", "open: browser for a PR or ticket, Ghostty for a session"),
     ("J", "open the linked Jira ticket"),
     ("/", "filter (Enter keeps it, Esc clears it)"),

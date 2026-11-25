@@ -15,12 +15,16 @@ const REPO_MAX: usize = 14;
 const STATUS_MAX: usize = 14;
 const SESSION_NAME_MAX: usize = 18;
 
-pub fn title(panel: Panel) -> &'static str {
+pub fn title(state: &AppState, panel: Panel) -> String {
     match panel {
-        Panel::MyPrs => "My pull requests",
-        Panel::Reviews => "Review requests",
-        Panel::Jira => "Jira",
-        Panel::Claude => "Claude Code",
+        Panel::MyPrs => "My pull requests".into(),
+        Panel::Reviews => "Review requests".into(),
+        Panel::Jira => "Jira".into(),
+        Panel::Claude => "Claude Code".into(),
+        Panel::Created => {
+            let statuses = state.snapshot.as_ref().map(|s| s.created_ticket_statuses.join(", "));
+            format!("Created by me · {}", statuses.unwrap_or_default())
+        }
     }
 }
 
@@ -42,7 +46,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState, panel: Panel) {
         .title_top(Line::from(vec![
             styled("─", border),
             styled(format!("[{}]", panel.index() + 1), number_style),
-            styled(format!(" {} ", title(panel)), title_style),
+            styled(format!(" {} ", title(state, panel)), title_style),
         ]))
         .title_top(
             Line::from(vec![styled(count, theme::dim()), styled("─", border)]).right_aligned(),
@@ -97,6 +101,7 @@ fn total(state: &AppState, panel: Panel) -> usize {
         Panel::Reviews => s.review_requests.len(),
         Panel::Jira => s.tickets.len(),
         Panel::Claude => s.sessions.len(),
+        Panel::Created => s.created_tickets.len(),
     })
 }
 
@@ -104,8 +109,8 @@ fn total(state: &AppState, panel: Panel) -> usize {
 fn rows(state: &AppState, panel: Panel) -> Vec<Vec<Span<'static>>> {
     match panel {
         Panel::MyPrs | Panel::Reviews => pr_rows(&state.visible_prs(panel), panel == Panel::Reviews),
-        Panel::Jira => {
-            let tickets = state.visible_tickets();
+        Panel::Jira | Panel::Created => {
+            let tickets = if panel == Panel::Jira { state.visible_tickets() } else { state.visible_created() };
             let kw = tickets.iter().map(|t| width(&t.key)).max().unwrap_or(0);
             let sw = tickets.iter().map(|t| width(&t.status)).max().unwrap_or(0).min(STATUS_MAX);
             tickets
@@ -199,9 +204,14 @@ fn placeholder(state: &AppState, panel: Panel) -> String {
     }
     let (source, name): (&SourceStatus, &str) = match panel {
         Panel::MyPrs | Panel::Reviews => (&s.sources.github, "GitHub"),
-        Panel::Jira => (&s.sources.jira, "Jira"),
+        Panel::Jira | Panel::Created => (&s.sources.jira, "Jira"),
         Panel::Claude => (&s.sources.claude, "Claude Code"),
     };
+    if panel == Panel::Created
+        && let Some(error) = &s.created_tickets_error
+    {
+        return error.clone();
+    }
     match source.state {
         SourceState::Unconfigured => format!("{name} is not set up — press , for Settings"),
         SourceState::Disabled => format!("{name} is turned off in Settings"),
@@ -212,13 +222,33 @@ fn placeholder(state: &AppState, panel: Panel) -> String {
             Panel::Reviews => "No review requests".into(),
             Panel::Jira => "No tickets".into(),
             Panel::Claude => "No sessions".into(),
+            Panel::Created => created_empty(&s.created_ticket_statuses),
         },
     }
+}
+
+/// `None of your tickets is in In Review, QA or UAT`, as the menu bar window says it.
+fn created_empty(statuses: &[String]) -> String {
+    let list = match statuses {
+        [] => String::new(),
+        [one] => one.clone(),
+        [rest @ .., last] => format!("{} or {last}", rest.join(", ")),
+    };
+    format!("None of your tickets is in {list}")
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_created_panel_names_its_statuses_when_empty() {
+        assert_eq!(created_empty(&["In Review".into()]), "None of your tickets is in In Review");
+        assert_eq!(
+            created_empty(&["In Review".into(), "QA".into(), "UAT".into()]),
+            "None of your tickets is in In Review, QA or UAT"
+        );
+    }
 
     #[test]
     fn short_title_drops_a_leading_jira_key() {

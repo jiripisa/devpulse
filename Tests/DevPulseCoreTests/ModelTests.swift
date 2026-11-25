@@ -53,9 +53,12 @@ struct ModelTests {
         #expect(snapshot.linkedTickets.map(\.key) == ["WEB-77"])
         #expect(snapshot.linkedTickets[0].related.map(\.relation) == ["is caused by"])
         #expect(snapshot.reviewRequests[1].jiraKey == "WEB-77")
+        #expect(snapshot.createdTickets.map(\.key) == ["STORE-2412"])
+        #expect(snapshot.createdTicketStatuses == ["In Review"])
+        #expect(snapshot.createdTicketsError == nil)
     }
 
-    @Test("A snapshot without head repositories, related or linked tickets still decodes")
+    @Test("A snapshot without head repositories, related, linked or created tickets still decodes")
     func olderSnapshotDecodes() throws {
         var json = try #require(
             try JSONSerialization.jsonObject(with: Data(contentsOf: Self.fixtureURL)) as? [String: Any])
@@ -67,12 +70,16 @@ struct ModelTests {
             }
         }
         json["linkedTickets"] = nil
+        json["createdTickets"] = nil
+        json["createdTicketStatuses"] = nil
         strip("related", from: "tickets")
         strip("headRepo", from: "myPullRequests")
         strip("headRepo", from: "reviewRequests")
         let data = try JSONSerialization.data(withJSONObject: json)
         let snapshot = try Snapshot.decoder.decode(Snapshot.self, from: data)
         #expect(snapshot.linkedTickets.isEmpty)
+        #expect(snapshot.createdTickets.isEmpty)
+        #expect(snapshot.createdTicketStatuses.isEmpty)
         #expect(snapshot.tickets.count == 2)
         #expect(snapshot.tickets.allSatisfy { $0.related.isEmpty })
         #expect((snapshot.myPullRequests + snapshot.reviewRequests).allSatisfy { $0.headRepo == nil })

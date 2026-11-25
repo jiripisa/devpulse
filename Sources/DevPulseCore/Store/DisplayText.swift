@@ -31,6 +31,22 @@ extension PullRequest {
     }
 }
 
+/// The texts of the list of tickets I created in the watched statuses.
+public enum CreatedTicketsText {
+    /// "Created by me · In Review, QA".
+    public static func title(statuses: [String]) -> String {
+        "Created by me · " + statuses.joined(separator: ", ")
+    }
+
+    /// "None of your tickets is in In Review, QA or UAT".
+    public static func empty(statuses: [String]) -> String {
+        let list = statuses.count > 1
+            ? statuses.dropLast().joined(separator: ", ") + " or " + statuses[statuses.count - 1]
+            : statuses.first ?? ""
+        return "None of your tickets is in \(list)"
+    }
+}
+
 /// Short relative times for the UI: "just now", "2 min ago", "3 h ago", "1 d ago".
 public enum RelativeAge {
     public static func text(since date: Date, now: Date) -> String {

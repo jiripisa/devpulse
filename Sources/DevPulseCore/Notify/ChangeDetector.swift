@@ -10,6 +10,8 @@ public enum NotificationEvent: Sendable, Equatable {
     case prComment(PullRequest, Comment)
     case ciFinished(PullRequest, CheckState)
     case ticketComment(Ticket, Comment)
+    /// A ticket I created reached one of the watched statuses (its `status`).
+    case createdTicketReachedStatus(Ticket)
     case claudeWaiting(ClaudeSession)
     case claudeFinished(ClaudeSession)
 
@@ -24,6 +26,7 @@ public enum NotificationEvent: Sendable, Equatable {
             }
         case .ciFinished: .ciFinished
         case .ticketComment(_, let comment): comment.authorKind == .human ? .jiraHumanComment : .jiraAutomationComment
+        case .createdTicketReachedStatus: .jiraCreatedTicketStatus
         case .claudeWaiting: .claudeWaiting
         case .claudeFinished: .claudeFinished
         }
@@ -40,6 +43,7 @@ public enum NotificationEvent: Sendable, Equatable {
             default: "CI error on #\(pr.number)"
             }
         case .ticketComment(let ticket, _): "New comment on \(ticket.key)"
+        case .createdTicketReachedStatus(let ticket): "\(ticket.key) is \(ticket.status)"
         case .claudeWaiting: "Claude is waiting"
         case .claudeFinished: "Claude finished"
         }
@@ -51,6 +55,7 @@ public enum NotificationEvent: Sendable, Equatable {
         case .prComment(let pr, let comment): "\(comment.authorName ?? comment.author): \(pr.title)"
         case .ciFinished(let pr, _): "\(pr.repo) \(pr.title)"
         case .ticketComment(let ticket, let comment): "\(comment.authorName ?? comment.author): \(ticket.summary)"
+        case .createdTicketReachedStatus(let ticket): ticket.summary
         case .claudeWaiting(let session): "\(session.name) — \(session.waitingFor ?? "needs your input")"
         case .claudeFinished(let session): session.name
         }
@@ -59,7 +64,7 @@ public enum NotificationEvent: Sendable, Equatable {
     public var target: OpenTarget {
         switch self {
         case .reviewRequested(let pr, _), .prComment(let pr, _), .ciFinished(let pr, _): .url(Self.url(pr.url))
-        case .ticketComment(let ticket, _): .url(Self.url(ticket.url))
+        case .ticketComment(let ticket, _), .createdTicketReachedStatus(let ticket): .url(Self.url(ticket.url))
         case .claudeWaiting(let session), .claudeFinished(let session): .session(pid: session.pid)
         }
     }
@@ -166,8 +171,41 @@ public enum ChangeDetector {
             }
         }
         seen.comments = seen.comments.filter { !$0.hasPrefix("jira:") || commentKeys.contains($0) }
+        events += created(new, baseline: baseline, lastChecked: lastChecked, seen: &seen)
         seen.baselined.insert(.jira)
         seen.lastChecked[.jira] = new.sources.jira.lastSuccess ?? new.generatedAt
+        return events
+    }
+
+    /// A ticket I created in a watched status that was not in one before: keyed by ticket and
+    /// status, so moving on to another watched status notifies too, and leaving and coming back
+    /// notifies again. Silent while the statuses differ from those last seen (the view was just
+    /// switched on, or other statuses chosen): what is already there is the baseline.
+    /// A failed search changes nothing: its list is the last good one, or none.
+    ///
+    /// The search returns one page, the most recently updated first. A ticket must also have
+    /// changed since the last check, so an old one that an unrelated edit pushes onto a full
+    /// page stays quiet; and a full page only adds to what was seen, since the tickets it left
+    /// out may come back.
+    private static func created(
+        _ new: Snapshot, baseline: Bool, lastChecked: Date?, seen: inout SeenState
+    ) -> [NotificationEvent] {
+        guard new.createdTicketsError == nil else { return [] }
+        let statuses = new.createdTicketStatuses
+        let quiet = baseline || seen.createdTicketStatuses != statuses
+        var keys: Set<String> = []
+        var events: [NotificationEvent] = []
+        for ticket in new.createdTickets {
+            let key = "\(ticket.key):\(ticket.status.lowercased())"
+            keys.insert(key)
+            let fresh = lastChecked.map { ticket.updatedAt > $0.addingTimeInterval(-slack) } ?? true
+            if !seen.createdTickets.contains(key), !quiet, fresh {
+                events.append(.createdTicketReachedStatus(ticket))
+            }
+        }
+        let fullPage = new.createdTickets.count >= JiraSource.maxResults
+        seen.createdTickets = fullPage && !quiet ? seen.createdTickets.union(keys) : keys
+        seen.createdTicketStatuses = statuses.isEmpty ? nil : statuses
         return events
     }
 

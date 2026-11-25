@@ -44,6 +44,7 @@ struct DemoSnapshotTests {
         #expect(linked.updatedAt == originalLinked.updatedAt.addingTimeInterval(hour))
         #expect(linked.lastCommentAt == originalLinked.lastCommentAt?.addingTimeInterval(hour))
         #expect(linked.recentComments.map(\.createdAt) == originalLinked.recentComments.map { $0.createdAt.addingTimeInterval(hour) })
+        #expect(demo.createdTickets.map(\.updatedAt) == original.createdTickets.map { $0.updatedAt.addingTimeInterval(hour) })
     }
 
     @Test("Moving by zero changes nothing")
@@ -63,6 +64,8 @@ struct DemoSnapshotTests {
         #expect(demo.tickets.allSatisfy { !$0.related.isEmpty })
         #expect(demo.linkedTickets.map(\.key) == LinkedTickets.keys(for: demo))
         #expect(!demo.linkedTickets.isEmpty)
+        #expect(demo.createdTickets.count == 2)
+        #expect(demo.createdTicketStatuses == ["In Review"])
     }
 
     @Test("A bare number in the demo finds a pull request, a ticket and a session")

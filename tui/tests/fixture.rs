@@ -94,12 +94,16 @@ fn fixture_has_head_repos_related_and_linked_tickets() {
     assert_eq!(s.linked_tickets.len(), 1);
     assert_eq!(s.linked_tickets[0].key, "WEB-77");
     assert_eq!(s.linked_tickets[0].related[0].key, "WEB-70");
+    assert_eq!(s.created_tickets[0].key, "STORE-2412");
+    assert_eq!(s.created_ticket_statuses, ["In Review"]);
 }
 
 #[test]
 fn a_snapshot_without_the_new_fields_still_decodes() {
     let mut v: serde_json::Value = serde_json::from_str(FIXTURE).unwrap();
-    v.as_object_mut().unwrap().remove("linkedTickets");
+    for key in ["linkedTickets", "createdTickets", "createdTicketStatuses", "createdTicketsError"] {
+        v.as_object_mut().unwrap().remove(key);
+    }
     for t in v["tickets"].as_array_mut().unwrap() {
         t.as_object_mut().unwrap().remove("related");
     }
@@ -110,6 +114,8 @@ fn a_snapshot_without_the_new_fields_still_decodes() {
     }
     let s: Snapshot = serde_json::from_value(v).unwrap();
     assert!(s.linked_tickets.is_empty());
+    assert!(s.created_tickets.is_empty() && s.created_ticket_statuses.is_empty());
+    assert!(s.created_tickets_error.is_none());
     assert!(s.tickets.iter().all(|t| t.related.is_empty()));
     assert!(s.my_pull_requests.iter().chain(&s.review_requests).all(|p| p.head_repo.is_none()));
 }

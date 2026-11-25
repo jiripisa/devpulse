@@ -14,7 +14,7 @@ public enum OpenResolver {
             else { return nil }
             return .url(base.appending(path: "browse/\(key)"))
         case .ticket:
-            if let ticket = snapshot.tickets.first(where: { $0.key == id }) {
+            if let ticket = (snapshot.tickets + snapshot.createdTickets).first(where: { $0.key == id }) {
                 return URL(string: ticket.url).map { .url($0) }
             }
             // Not one of my tickets (e.g. a Claude session's key): open it by key on the site.

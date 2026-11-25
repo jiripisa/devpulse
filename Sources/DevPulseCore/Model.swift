@@ -242,12 +242,22 @@ public struct Snapshot: Codable, Sendable, Equatable {
     /// detail. Never a reason for a notification. Added after protocol v1 shipped: missing in
     /// older JSON, read as empty.
     public var linkedTickets: [Ticket]
+    /// The tickets I created that are in one of `createdTicketStatuses`, whoever works on them
+    /// (Settings › Jira). Added after protocol v1 shipped, like the two below: missing in older
+    /// JSON, read as empty.
+    public var createdTickets: [Ticket]
+    /// The statuses `createdTickets` were asked for; empty while that view is off.
+    public var createdTicketStatuses: [String]
+    /// Why the last search for `createdTickets` failed (they stay as they were); nil after one
+    /// that worked.
+    public var createdTicketsError: String?
     public var sessions: [ClaudeSession]
 
     public init(
         appVersion: String, generatedAt: Date, jiraBaseURL: String? = nil, sources: Sources,
         myPullRequests: [PullRequest], reviewRequests: [PullRequest],
-        tickets: [Ticket], linkedTickets: [Ticket] = [], sessions: [ClaudeSession]
+        tickets: [Ticket], linkedTickets: [Ticket] = [], createdTickets: [Ticket] = [],
+        createdTicketStatuses: [String] = [], createdTicketsError: String? = nil, sessions: [ClaudeSession]
     ) {
         self.appVersion = appVersion
         self.generatedAt = generatedAt
@@ -257,6 +267,9 @@ public struct Snapshot: Codable, Sendable, Equatable {
         self.reviewRequests = reviewRequests
         self.tickets = tickets
         self.linkedTickets = linkedTickets
+        self.createdTickets = createdTickets
+        self.createdTicketStatuses = createdTicketStatuses
+        self.createdTicketsError = createdTicketsError
         self.sessions = sessions
     }
 
@@ -270,6 +283,9 @@ public struct Snapshot: Codable, Sendable, Equatable {
         reviewRequests = try c.decode([PullRequest].self, forKey: .reviewRequests)
         tickets = try c.decode([Ticket].self, forKey: .tickets)
         linkedTickets = try c.decodeIfPresent([Ticket].self, forKey: .linkedTickets) ?? []
+        createdTickets = try c.decodeIfPresent([Ticket].self, forKey: .createdTickets) ?? []
+        createdTicketStatuses = try c.decodeIfPresent([String].self, forKey: .createdTicketStatuses) ?? []
+        createdTicketsError = try c.decodeIfPresent(String.self, forKey: .createdTicketsError)
         sessions = try c.decode([ClaudeSession].self, forKey: .sessions)
     }
 

@@ -77,12 +77,32 @@ struct PopoverView: View {
                     TicketRow(ticket: ticket) { open(ticket.url) }
                 }
             }
+            createdTickets(snapshot, now: now)
             SectionView(
                 title: "Claude Code", count: snapshot.sessions.count,
                 status: snapshot.sources.claude, now: now, emptyText: "No running sessions"
             ) {
                 ForEach(snapshot.sessions, id: \.pid) { session in
                     SessionRow(session: session) { model.open(.session(pid: session.pid)) }
+                }
+            }
+        }
+    }
+
+    /// The tickets I created in the watched statuses, while that view is on and Jira works.
+    /// Its own line says when only its search failed; Jira's state is the section above's.
+    @ViewBuilder
+    private func createdTickets(_ snapshot: Snapshot, now: Date) -> some View {
+        let statuses = snapshot.createdTicketStatuses
+        if !statuses.isEmpty {
+            let failed = snapshot.createdTicketsError.map { SourceStatus(state: .error, message: $0) }
+            SectionView(
+                title: CreatedTicketsText.title(statuses: statuses), count: snapshot.createdTickets.count,
+                status: failed ?? snapshot.sources.jira, showsStatus: failed != nil, now: now,
+                emptyText: CreatedTicketsText.empty(statuses: statuses)
+            ) {
+                ForEach(snapshot.createdTickets, id: \.key) { ticket in
+                    TicketRow(ticket: ticket) { open(ticket.url) }
                 }
             }
         }

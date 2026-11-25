@@ -12,21 +12,28 @@ public struct SeenState: Codable, Sendable, Equatable {
     /// When each source was last fetched successfully; only comments newer than this
     /// (minus a slack) notify, so old discussions of a newly appearing PR/ticket stay quiet.
     public var lastChecked: [Source: Date]
+    /// The tickets I created that were in a watched status, as `<key>:<status, lower-cased>`.
+    public var createdTickets: Set<String>
+    /// The watched statuses `createdTickets` was built for; nil while that view is off.
+    public var createdTicketStatuses: [String]?
 
     public init(
         baselined: Set<Source> = [], reviewRequests: Set<String> = [],
-        comments: Set<String> = [], ciNotified: Set<String> = [], lastChecked: [Source: Date] = [:]
+        comments: Set<String> = [], ciNotified: Set<String> = [], lastChecked: [Source: Date] = [:],
+        createdTickets: Set<String> = [], createdTicketStatuses: [String]? = nil
     ) {
         self.baselined = baselined
         self.reviewRequests = reviewRequests
         self.comments = comments
         self.ciNotified = ciNotified
         self.lastChecked = lastChecked
+        self.createdTickets = createdTickets
+        self.createdTicketStatuses = createdTicketStatuses
     }
 
-    // `lastChecked` is missing in files written by older versions.
+    // `lastChecked` and the created tickets are missing in files written by older versions.
     private enum CodingKeys: String, CodingKey {
-        case baselined, reviewRequests, comments, ciNotified, lastChecked
+        case baselined, reviewRequests, comments, ciNotified, lastChecked, createdTickets, createdTicketStatuses
     }
 
     public init(from decoder: any Decoder) throws {
@@ -36,7 +43,9 @@ public struct SeenState: Codable, Sendable, Equatable {
             reviewRequests: try c.decode(Set<String>.self, forKey: .reviewRequests),
             comments: try c.decode(Set<String>.self, forKey: .comments),
             ciNotified: try c.decode(Set<String>.self, forKey: .ciNotified),
-            lastChecked: try c.decodeIfPresent([Source: Date].self, forKey: .lastChecked) ?? [:])
+            lastChecked: try c.decodeIfPresent([Source: Date].self, forKey: .lastChecked) ?? [:],
+            createdTickets: try c.decodeIfPresent(Set<String>.self, forKey: .createdTickets) ?? [],
+            createdTicketStatuses: try c.decodeIfPresent([String].self, forKey: .createdTicketStatuses))
     }
 
     /// How often a change of `lastChecked` alone is written to disk.

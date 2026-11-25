@@ -32,7 +32,7 @@ private func withFreshDefaults(_ body: (UserDefaults) throws -> Void) rethrows {
     @Test func triggerDefaultsAndSources() {
         let on: Set<NotificationTrigger> = [
             .directReviewRequest, .prHumanComment, .prCopilotComment, .ciFinished,
-            .jiraHumanComment, .claudeWaiting, .claudeFinished,
+            .jiraHumanComment, .jiraCreatedTicketStatus, .claudeWaiting, .claudeFinished,
         ]
         for trigger in NotificationTrigger.allCases {
             #expect(trigger.defaultEnabled == on.contains(trigger), "\(trigger)")
@@ -41,6 +41,7 @@ private func withFreshDefaults(_ body: (UserDefaults) throws -> Void) rethrows {
         #expect(NotificationTrigger.directReviewRequest.source == .github)
         #expect(NotificationTrigger.ciFinished.source == .github)
         #expect(NotificationTrigger.jiraAutomationComment.source == .jira)
+        #expect(NotificationTrigger.jiraCreatedTicketStatus.source == .jira)
         #expect(NotificationTrigger.claudeWaiting.source == .claude)
         #expect(NotificationTrigger.claudeFinished.source == .claude)
     }
@@ -76,6 +77,8 @@ private func withFreshDefaults(_ body: (UserDefaults) throws -> Void) rethrows {
         settings.jiraEmail = "me@acme.test"
         settings.hotkey = Hotkey(keyCode: 40, modifiers: [.command, .shift])
         settings.launchAtLogin = false
+        settings.showsCreatedTickets = false
+        settings.createdTicketStatuses = ["QA", "Ready for test"]
         let data = try JSONEncoder().encode(settings)
         #expect(try JSONDecoder().decode(AppSettings.self, from: data) == settings)
     }
@@ -149,6 +152,46 @@ private func withFreshDefaults(_ body: (UserDefaults) throws -> Void) rethrows {
         var settings = AppSettings()
         settings.jiraProjects = ["store", "Store", "wa"]
         #expect(settings.jiraProjects == ["STORE", "WA"])
+    }
+
+    @Test func createdTicketsShowInReviewUntilChanged() throws {
+        let settings = AppSettings()
+        #expect(settings.showsCreatedTickets == true)
+        #expect(settings.createdTicketStatuses == ["In Review"])
+        #expect(settings.watchedCreatedTicketStatuses == ["In Review"])
+        // Stored before 0.17.
+        let old = try JSONDecoder().decode(AppSettings.self, from: Data(#"{"refreshInterval": 300}"#.utf8))
+        #expect(old.showsCreatedTickets == true)
+        #expect(old.createdTicketStatuses == ["In Review"])
+        var off = settings
+        off.showsCreatedTickets = false
+        #expect(off.watchedCreatedTicketStatuses == [])
+        var none = settings
+        none.createdTicketStatuses = []
+        #expect(none.watchedCreatedTicketStatuses == [])
+    }
+
+    @Test func parsesTheStatusListAsTyped() {
+        // Commas only: a status name can have spaces.
+        #expect(AppSettings.parseStatuses(" In Review ,QA,, in review, Ready  for test ")
+            == ["In Review", "QA", "Ready for test"])
+        #expect(AppSettings.parseStatuses("") == [])
+        #expect(AppSettings.parseStatuses((1...12).map { "S\($0)" }.joined(separator: ",")).count
+            == AppSettings.maxCreatedTicketStatuses)
+        #expect(AppSettings.statusesText(["In Review", "QA"]) == "In Review, QA")
+        var settings = AppSettings()
+        settings.createdTicketStatuses = ["QA ", "qa", " "]
+        #expect(settings.createdTicketStatuses == ["QA"])
+    }
+
+    @Test func createdTicketChangesRefetch() {
+        let old = AppSettings()
+        var new = old
+        new.createdTicketStatuses = ["QA"]
+        #expect(new.requiresRefetch(comparedTo: old))
+        new = old
+        new.showsCreatedTickets = false
+        #expect(new.requiresRefetch(comparedTo: old))
     }
 
     @Test func projectsByFrequencyListsEveryProjectMostTicketsFirst() {

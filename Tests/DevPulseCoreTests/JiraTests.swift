@@ -273,6 +273,24 @@ struct JiraTests {
         #expect(empty.requests.withLock { $0.isEmpty })
     }
 
+    @Test("Searches the tickets I created in the statuses with one JQL search, quotes escaped")
+    func createdTickets() async throws {
+        let (source, transport) = try Self.make()
+        let tickets = try await source.fetchCreatedTickets(statuses: ["In Review", #"Say "hi" \ now"#])
+        let request = try #require(transport.requests(to: "/rest/api/3/search/jql").first)
+        let json = try #require(JSONSerialization.jsonObject(with: request.httpBody ?? Data()) as? [String: Any])
+        #expect(json["jql"] as? String
+            == #"reporter = currentUser() AND status in ("In Review", "Say \"hi\" \\ now") ORDER BY updated DESC"#)
+        #expect(json["maxResults"] as? Int == JiraSource.maxResults)
+        #expect((json["fields"] as? [String])?.contains("comment") == false)
+        #expect(!tickets.isEmpty)
+        // No statuses, no request.
+        let empty = FakeJiraTransport(search: try Self.fixture())
+        let quiet = JiraSource(credentials: Self.credentials, transport: empty)
+        #expect(try await quiet.fetchCreatedTickets(statuses: []).isEmpty)
+        #expect(empty.requests.withLock { $0.isEmpty })
+    }
+
     @Test("An answer without issues, only errors, is an empty list")
     func linkedTicketsOnlyErrors() async throws {
         let answer = Data(#"{ "issueErrors": [ { "id": "UTF-8", "errorMessage": "Issue does not exist", "status": 404 } ] }"#.utf8)

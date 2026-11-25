@@ -199,6 +199,16 @@ pub struct Snapshot {
     /// shipped; an older app leaves it out.
     #[serde(default)]
     pub linked_tickets: Vec<Ticket>,
+    /// The tickets I created in one of `created_ticket_statuses`. Added after v1 shipped, like
+    /// the two below; an older app leaves them out.
+    #[serde(default)]
+    pub created_tickets: Vec<Ticket>,
+    /// The watched statuses; empty while that view is off in Settings › Jira.
+    #[serde(default)]
+    pub created_ticket_statuses: Vec<String>,
+    /// Why the last search for `created_tickets` failed (they stay as they were).
+    #[serde(default)]
+    pub created_tickets_error: Option<String>,
     pub sessions: Vec<ClaudeSession>,
 }
 

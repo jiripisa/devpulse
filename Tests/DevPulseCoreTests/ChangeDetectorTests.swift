@@ -186,6 +186,96 @@ private func run(
         #expect(run(nil, mine, &seen).map(\.trigger) == [.jiraHumanComment, .jiraHumanComment])
     }
 
+    // MARK: Tickets I created
+
+    private func made(_ key: String, _ status: String = "In Review") -> Ticket {
+        var t = makeTicket(key: key)
+        t.status = status
+        return t
+    }
+
+    private func created(_ tickets: [Ticket], statuses: [String] = ["In Review"], at: Date = t0) -> Snapshot {
+        var s = snap(at: at)
+        s.createdTickets = tickets
+        s.createdTicketStatuses = statuses
+        return s
+    }
+
+    @Test func aTicketICreatedReachingAWatchedStatusNotifiesOnce() {
+        var seen = SeenState()
+        #expect(run(nil, created([made("MADE-1")]), &seen).isEmpty)
+        let events = run(nil, created([made("MADE-1"), made("MADE-2")]), &seen)
+        #expect(events == [.createdTicketReachedStatus(made("MADE-2"))])
+        #expect(events.first?.trigger == .jiraCreatedTicketStatus)
+        #expect(run(nil, created([made("MADE-1"), made("MADE-2")]), &seen).isEmpty)
+    }
+
+    @Test func aTicketThatLeavesAndComesBackNotifiesAgainAsDoesAnotherWatchedStatus() {
+        var seen = SeenState()
+        _ = run(nil, created([made("MADE-1")], statuses: ["In Review", "QA"]), &seen)
+        #expect(run(nil, created([], statuses: ["In Review", "QA"]), &seen).isEmpty)
+        #expect(run(nil, created([made("MADE-1")], statuses: ["In Review", "QA"]), &seen).count == 1)
+        // From one watched status straight to another.
+        let events = run(nil, created([made("MADE-1", "QA")], statuses: ["In Review", "QA"]), &seen)
+        #expect(events == [.createdTicketReachedStatus(made("MADE-1", "QA"))])
+    }
+
+    @Test func switchingTheViewOnOrChangingTheStatusesStartsSilently() {
+        var seen = SeenState()
+        _ = run(nil, created([], statuses: []), &seen)
+        // Turned on: what is already in review is the baseline, not news.
+        #expect(run(nil, created([made("MADE-1"), made("MADE-2")]), &seen).isEmpty)
+        #expect(run(nil, created([made("MADE-3", "QA")], statuses: ["QA"]), &seen).isEmpty)
+        #expect(run(nil, created([made("MADE-3", "QA"), made("MADE-4", "QA")], statuses: ["QA"]), &seen).count == 1)
+        // Off: nothing is remembered.
+        _ = run(nil, created([], statuses: []), &seen)
+        #expect(seen.createdTickets.isEmpty)
+    }
+
+    @Test func anOldTicketPushedOntoAFullPageStaysQuiet() {
+        var seen = SeenState()
+        func page(_ numbers: ClosedRange<Int>, updated: Date = Date(timeIntervalSince1970: 100), at: Date) -> Snapshot {
+            created(numbers.map { n in
+                var t = made("OLD-\(n)", "Done")
+                t.updatedAt = updated
+                return t
+            }, statuses: ["Done"], at: at)
+        }
+        _ = run(nil, page(1...50, at: Date(timeIntervalSince1970: 10_000)), &seen)
+        // OLD-50 falls off the page, OLD-51 (edited long ago) comes onto it: no news.
+        #expect(run(nil, page(0...49, at: Date(timeIntervalSince1970: 11_000)), &seen).isEmpty)
+        // OLD-50 is back: still remembered, since a full page only adds.
+        #expect(run(nil, page(1...50, at: Date(timeIntervalSince1970: 12_000)), &seen).isEmpty)
+        // A ticket that really just got there notifies.
+        var fresh = made("NEW-1", "Done")
+        fresh.updatedAt = Date(timeIntervalSince1970: 12_500)
+        var next = page(1...49, at: Date(timeIntervalSince1970: 13_000))
+        next.createdTickets.insert(fresh, at: 0)
+        #expect(run(nil, next, &seen) == [.createdTicketReachedStatus(fresh)])
+    }
+
+    @Test func aFailedCreatedSearchChangesNothing() {
+        var seen = SeenState()
+        _ = run(nil, created([made("MADE-1")]), &seen)
+        // Other statuses, but the first search for them failed: the list is empty meanwhile.
+        var failed = created([], statuses: ["QA"])
+        failed.createdTicketsError = "HTTP 503"
+        #expect(run(nil, failed, &seen).isEmpty)
+        #expect(seen.createdTicketStatuses == ["In Review"])
+        // The first answer for the new statuses is still the baseline, not a burst.
+        #expect(run(nil, created([made("MADE-5", "QA"), made("MADE-6", "QA")], statuses: ["QA"]), &seen).isEmpty)
+    }
+
+    @Test func theCreatedTicketTriggerCanBeSwitchedOff() {
+        var seen = SeenState()
+        var settings = AppSettings()
+        settings.triggers[.jiraCreatedTicketStatus] = false
+        _ = run(nil, created([]), &seen, settings: settings)
+        #expect(run(nil, created([made("MADE-1")]), &seen, settings: settings).isEmpty)
+        // Remembered all the same: switching it back on gives no burst.
+        #expect(run(nil, created([made("MADE-1")]), &seen).isEmpty)
+    }
+
     @Test func unknownIdentitySilencesSourceAndDoesNotBaseline() {
         var seen = SeenState()
         let s = snap(mine: [pr(comments: [comment("1")])], reviews: [pr(2)], tickets: [ticket(comments: [comment("9")])])
@@ -236,6 +326,7 @@ private func run(
         let json = #"{"baselined":["github"],"reviewRequests":[],"comments":[],"ciNotified":[]}"#
         let state = try JSONDecoder().decode(SeenState.self, from: Data(json.utf8))
         #expect(state.lastChecked.isEmpty && state.baselined == [.github])
+        #expect(state.createdTickets.isEmpty && state.createdTicketStatuses == nil)
     }
 
     // MARK: Claude
@@ -356,6 +447,11 @@ private func run(
         let t = ticket("ABC-9")
         #expect(NotificationEvent.ticketComment(t, comment("1")).title == "New comment on ABC-9")
         #expect(NotificationEvent.ticketComment(t, comment("1")).body == "alice: S")
+        var review = ticket("ABC-7")
+        review.status = "In Review"
+        #expect(NotificationEvent.createdTicketReachedStatus(review).title == "ABC-7 is In Review")
+        #expect(NotificationEvent.createdTicketReachedStatus(review).body == "S")
+        #expect(NotificationEvent.createdTicketReachedStatus(review).target == .url(URL(string: review.url)!))
         #expect(NotificationEvent.claudeWaiting(session(5, .waiting)).body == "proj — needs your input")
         #expect(NotificationEvent.claudeWaiting(session(5, .waiting, waitingFor: "x")).body == "proj — x")
         #expect(NotificationEvent.claudeFinished(session(5, .idle)).body == "proj")
@@ -370,7 +466,9 @@ private func run(
         defer { try? FileManager.default.removeItem(at: dir) }
         let url = dir.appending(path: "nested/seen.json")
         #expect(SeenState.load(from: url) == SeenState())
-        let state = SeenState(baselined: [.github], reviewRequests: ["a"], comments: ["github:1"], ciNotified: ["k"])
+        let state = SeenState(
+            baselined: [.github], reviewRequests: ["a"], comments: ["github:1"], ciNotified: ["k"],
+            createdTickets: ["A-1:in review"], createdTicketStatuses: ["In Review"])
         try state.save(to: url)
         #expect(SeenState.load(from: url) == state)
         try Data("not json".utf8).write(to: url)

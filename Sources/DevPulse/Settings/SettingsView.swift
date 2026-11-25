@@ -192,6 +192,10 @@ private struct JiraSettingsView: View {
     /// The project list as typed; parsed into the settings on every change, but shown as typed
     /// so a trailing comma or space survives until the next key is typed.
     @State private var projects = ""
+    /// The watched statuses as typed; applied on Return or when the field loses focus, since
+    /// each change refetches and a half-typed status would make Jira refuse the search.
+    @State private var statuses = ""
+    @FocusState private var statusesFocused: Bool
 
     var body: some View {
         Form {
@@ -227,8 +231,23 @@ private struct JiraSettingsView: View {
                 Text("Project keys, separated by commas, in which the quick launcher looks up a bare number and `jira <number>`. Empty means the projects of your tickets.")
                     .font(.caption).foregroundStyle(.secondary)
             }
+            Section {
+                Toggle("Show tickets I created", isOn: $model.settings.showsCreatedTickets)
+                TextField("In status", text: $statuses, prompt: Text("In Review"))
+                    .focused($statusesFocused)
+                    .onSubmit(applyStatuses)
+                    .onChange(of: statusesFocused) { if !statusesFocused { applyStatuses() } }
+                    .onDisappear(perform: applyStatuses)
+                    .disabled(!model.settings.showsCreatedTickets)
+            } footer: {
+                Text("Tickets you reported that are in one of these statuses, whoever works on them, in their own section of the menu bar window and the terminal dashboard. Status names as Jira shows them, separated by commas.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
         }
         .formStyle(.grouped)
+        // Taller than the other tabs: the window takes each tab's height, and this one has the
+        // most sections.
+        .frame(height: 530)
         .onAppear(perform: load)
     }
 
@@ -252,12 +271,24 @@ private struct JiraSettingsView: View {
 
     private func load() {
         projects = AppSettings.projectsText(model.settings.jiraProjects)
+        statuses = AppSettings.statusesText(model.settings.createdTicketStatuses)
         site = model.settings.jiraSite?.absoluteString ?? ""
         email = model.settings.jiraEmail ?? ""
         hasStoredToken = model.storedJiraToken(for: model.settings.jiraEmail)
     }
 
+    /// An emptied field keeps the statuses; the switch turns the view off.
+    private func applyStatuses() {
+        let parsed = AppSettings.parseStatuses(statuses)
+        if !parsed.isEmpty, parsed != model.settings.createdTicketStatuses {
+            model.settings.createdTicketStatuses = parsed
+        }
+        statuses = AppSettings.statusesText(model.settings.createdTicketStatuses)
+    }
+
     private func save() {
+        // Save does not take the focus, so the field's own apply would not run before `load()`.
+        applyStatuses()
         do {
             try model.saveJira(site: site, email: email, token: token)
             token = ""
@@ -356,6 +387,7 @@ private extension NotificationTrigger {
         case .ciFinished: "CI finished (passed, failed or errored)"
         case .jiraHumanComment: "New comment by a person"
         case .jiraAutomationComment: "New comment by Jira automation or an app"
+        case .jiraCreatedTicketStatus: "A ticket you created reached a watched status"
         case .claudeWaiting: "A session is waiting for your input"
         case .claudeFinished: "A session finished its work"
         }

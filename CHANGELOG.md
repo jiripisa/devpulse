@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- See the tickets you created that are in a status of your choice, In Review by default, whoever
+  works on them: their own section "Created by me · In Review" in the menu bar window, and panel
+  5 in the terminal dashboard. Set it in Settings › Jira (Show tickets I created, In status;
+  several statuses separated by commas).
+- A notification when a ticket you created reaches one of those statuses; switch it off in
+  Settings › Notifications › Jira.
+
 ## 0.16.0 — 2026-11-23
 
 - The quick launcher's results can be filtered: All, PR or Jira next to Results, each with its
