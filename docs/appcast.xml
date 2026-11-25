@@ -5,13 +5,13 @@
     <link>https://jiripisa.github.io/devpulse/</link>
     <description>DevPulse updates</description>
     <item>
-      <title>DevPulse 0.16.0</title>
-      <sparkle:version>0.16.0</sparkle:version>
-      <sparkle:shortVersionString>0.16.0</sparkle:shortVersionString>
+      <title>DevPulse 0.17.0</title>
+      <sparkle:version>0.17.0</sparkle:version>
+      <sparkle:shortVersionString>0.17.0</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>27.0</sparkle:minimumSystemVersion>
-      <pubDate>Mon, 23 Nov 2026 22:55:51 +0000</pubDate>
-      <description><![CDATA[<ul><li>The quick launcher&#x27;s results can be filtered: All, PR or Jira next to Results, each with its count; click one or press ⌘1, ⌘2 or ⌘3.</li><li>Settings › General: the refresh interval sits right by its arrows, which no longer show a focus ring when the window opens.</li></ul>]]></description>
-      <enclosure url="https://github.com/jiripisa/devpulse/releases/download/v0.16.0/DevPulse-0.16.0.dmg" type="application/octet-stream" sparkle:edSignature="Rwxvedjn6icKB7CaKsJhF/8FjlEgOtO0CQBimdtSIX+8ay93g8ITYK/WmAbiHBmSaXUgVlCNpWvuaLi0KVk0DQ==" length="5927446"/>
+      <pubDate>Wed, 25 Nov 2026 13:31:50 +0000</pubDate>
+      <description><![CDATA[<ul><li>See the tickets you created that are in a status of your choice, In Review by default, whoever works on them: their own section &quot;Created by me · In Review&quot; in the menu bar window, and panel 5 in the terminal dashboard. Set it in Settings › Jira (Show tickets I created, In status; several statuses separated by commas).</li><li>A notification when a ticket you created reaches one of those statuses; switch it off in Settings › Notifications › Jira.</li></ul>]]></description>
+      <enclosure url="https://github.com/jiripisa/devpulse/releases/download/v0.17.0/DevPulse-0.17.0.dmg" type="application/octet-stream" sparkle:edSignature="2ik7iUjCsU5UCvMj9SQw1WsLZgEw9cm1598bYrTmHjYPUzSE8pcaziPq+qNotEZOYHE7U0Xab8E5zK7uFWW1DQ==" length="5953630"/>
     </item>
   </channel>
 </rss>
