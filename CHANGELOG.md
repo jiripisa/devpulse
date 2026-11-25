@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.17.0 — 2026-11-25
 
 - See the tickets you created that are in a status of your choice, In Review by default, whoever
   works on them: their own section "Created by me · In Review" in the menu bar window, and panel
