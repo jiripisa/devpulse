@@ -21,21 +21,18 @@ pub enum Panel {
     Reviews,
     Jira,
     Claude,
+    /// The tickets I created in the watched statuses; shown only while that view is on.
+    Created,
 }
 
+/// How many panels there are, shown or not.
+pub const PANELS: usize = 5;
+
 impl Panel {
-    pub const ALL: [Panel; 4] = [Panel::MyPrs, Panel::Reviews, Panel::Jira, Panel::Claude];
+    pub const ALL: [Panel; PANELS] = [Panel::MyPrs, Panel::Reviews, Panel::Jira, Panel::Claude, Panel::Created];
 
     pub fn index(self) -> usize {
         self as usize
-    }
-
-    fn next(self) -> Panel {
-        Panel::ALL[(self.index() + 1) % 4]
-    }
-
-    fn prev(self) -> Panel {
-        Panel::ALL[(self.index() + 3) % 4]
     }
 }
 
@@ -61,7 +58,7 @@ pub struct AppState {
     pub connected: bool,
     pub focus: Panel,
     /// Selected row per panel, as an index into the visible (filtered) items.
-    pub selected: [usize; 4],
+    pub selected: [usize; PANELS],
     pub filter: Option<String>,
     /// True while the user is typing the filter after `/`.
     pub filter_editing: bool,
@@ -91,7 +88,7 @@ impl AppState {
             snapshot: None,
             connected: false,
             focus: Panel::MyPrs,
-            selected: [0; 4],
+            selected: [0; PANELS],
             filter: None,
             filter_editing: false,
             show_help: false,
@@ -136,6 +133,9 @@ impl AppState {
                 self.connected = true;
                 self.reconnecting = false;
                 self.restore_selection(&before);
+                if !self.shown(self.focus) {
+                    self.focus = Panel::Jira;
+                }
                 if self.refreshing {
                     self.clear_notice();
                 }
@@ -203,13 +203,26 @@ impl AppState {
         }
     }
 
+    /// Whether `panel` is on screen: all are, but `Created` only while the app watches statuses.
+    pub fn shown(&self, panel: Panel) -> bool {
+        panel != Panel::Created
+            || self.snapshot.as_ref().is_some_and(|s| !s.created_ticket_statuses.is_empty())
+    }
+
+    /// The shown panel after (`step` 1) or before (`step` -1) the focused one, wrapping.
+    fn cycle(&self, step: isize) -> Panel {
+        let shown: Vec<Panel> = Panel::ALL.into_iter().filter(|p| self.shown(*p)).collect();
+        let at = shown.iter().position(|p| *p == self.focus).unwrap_or(0);
+        shown[(at as isize + step).rem_euclid(shown.len() as isize) as usize]
+    }
+
     /// Pull requests shown in `MyPrs` or `Reviews` (after the filter); empty for other panels.
     pub fn visible_prs(&self, panel: Panel) -> Vec<&PullRequest> {
         let Some(s) = &self.snapshot else { return Vec::new() };
         let list = match panel {
             Panel::MyPrs => &s.my_pull_requests,
             Panel::Reviews => &s.review_requests,
-            Panel::Jira | Panel::Claude => return Vec::new(),
+            Panel::Jira | Panel::Claude | Panel::Created => return Vec::new(),
         };
         list.iter()
             .filter(|p| {
@@ -229,6 +242,12 @@ impl AppState {
         s.tickets.iter().filter(|t| self.matches(&[&t.key, &t.summary, &t.status])).collect()
     }
 
+    /// The tickets I created in the watched statuses (after the filter).
+    pub fn visible_created(&self) -> Vec<&Ticket> {
+        let Some(s) = &self.snapshot else { return Vec::new() };
+        s.created_tickets.iter().filter(|t| self.matches(&[&t.key, &t.summary, &t.status])).collect()
+    }
+
     pub fn visible_sessions(&self) -> Vec<&ClaudeSession> {
         let Some(s) = &self.snapshot else { return Vec::new() };
         s.sessions
@@ -245,6 +264,7 @@ impl AppState {
             }
             Panel::Jira => self.visible_tickets().iter().map(|t| t.key.clone()).collect(),
             Panel::Claude => self.visible_sessions().iter().map(|c| c.pid.to_string()).collect(),
+            Panel::Created => self.visible_created().iter().map(|t| t.key.clone()).collect(),
         }
     }
 
@@ -252,13 +272,13 @@ impl AppState {
         self.visible_ids(panel).into_iter().nth(self.selected[panel.index()])
     }
 
-    fn selected_ids(&self) -> [Option<String>; 4] {
+    fn selected_ids(&self) -> [Option<String>; PANELS] {
         Panel::ALL.map(|p| self.selected_id(p))
     }
 
     /// Puts each panel's selection back on the item it was on before a change of the snapshot or
     /// the filter; only when that item is no longer visible does the index stay, clamped.
-    fn restore_selection(&mut self, before: &[Option<String>; 4]) {
+    fn restore_selection(&mut self, before: &[Option<String>; PANELS]) {
         for panel in Panel::ALL {
             let ids = self.visible_ids(panel);
             let i = panel.index();
@@ -354,8 +374,9 @@ impl AppState {
             KeyCode::Char('2') => self.focus_and_none(Panel::Reviews),
             KeyCode::Char('3') => self.focus_and_none(Panel::Jira),
             KeyCode::Char('4') => self.focus_and_none(Panel::Claude),
-            KeyCode::Tab => self.focus_and_none(self.focus.next()),
-            KeyCode::BackTab => self.focus_and_none(self.focus.prev()),
+            KeyCode::Char('5') if self.shown(Panel::Created) => self.focus_and_none(Panel::Created),
+            KeyCode::Tab => self.focus_and_none(self.cycle(1)),
+            KeyCode::BackTab => self.focus_and_none(self.cycle(-1)),
             KeyCode::Char('/') => {
                 self.filter_editing = true;
                 self.filter.get_or_insert_with(String::new);
@@ -367,7 +388,7 @@ impl AppState {
                 let id = self.selected_id(self.focus)?;
                 let kind = match self.focus {
                     Panel::MyPrs | Panel::Reviews => OpenKind::Pr,
-                    Panel::Jira => OpenKind::Ticket,
+                    Panel::Jira | Panel::Created => OpenKind::Ticket,
                     Panel::Claude => OpenKind::Session,
                 };
                 Some(Action::Send(ClientMessage::Open { kind, id }))
@@ -384,7 +405,7 @@ impl AppState {
                         let key = session.jira_key.clone()?;
                         return Some(Action::Send(ClientMessage::Open { kind: OpenKind::Ticket, id: key }));
                     }
-                    Panel::Jira => return None,
+                    Panel::Jira | Panel::Created => return None,
                 };
                 let pr = list.iter().find(|p| p.id == id)?;
                 pr.jira_key.as_ref()?;
@@ -480,9 +501,42 @@ mod tests {
         press(&mut st, '4');
         assert_eq!(st.focus, Panel::Claude);
         code(&mut st, KeyCode::Tab);
+        assert_eq!(st.focus, Panel::Created);
+        code(&mut st, KeyCode::Tab);
         assert_eq!(st.focus, Panel::MyPrs);
+        code(&mut st, KeyCode::BackTab);
+        assert_eq!(st.focus, Panel::Created);
         press(&mut st, '2');
         assert_eq!(st.focus, Panel::Reviews);
+        press(&mut st, '5');
+        assert_eq!(st.focus, Panel::Created);
+    }
+
+    #[test]
+    fn the_created_panel_shows_only_while_statuses_are_watched() {
+        let mut s = snapshot();
+        s.created_ticket_statuses.clear();
+        s.created_tickets.clear();
+        let mut st = AppState::new();
+        st.apply(msg(s.clone()));
+        assert!(!st.shown(Panel::Created));
+        press(&mut st, '5');
+        assert_eq!(st.focus, Panel::MyPrs);
+        press(&mut st, '4');
+        code(&mut st, KeyCode::Tab);
+        assert_eq!(st.focus, Panel::MyPrs);
+        // Switched on in the app: it shows, and Enter opens its ticket by key.
+        st.apply(msg(snapshot()));
+        press(&mut st, '5');
+        assert_eq!(st.focus, Panel::Created);
+        assert_eq!(
+            code(&mut st, KeyCode::Enter),
+            Some(Action::Send(ClientMessage::Open { kind: OpenKind::Ticket, id: "STORE-2412".into() }))
+        );
+        assert_eq!(press(&mut st, 'J'), None);
+        // Switched off while focused: the focus goes to Jira.
+        st.apply(msg(s));
+        assert_eq!(st.focus, Panel::Jira);
     }
 
     #[test]

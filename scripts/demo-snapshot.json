@@ -250,6 +250,31 @@
       ]
     }
   ],
+  "createdTickets": [
+    {
+      "key": "STORE-2455",
+      "summary": "Export the monthly statement as PDF",
+      "status": "In Review",
+      "statusCategory": "inProgress",
+      "priority": "High",
+      "url": "https://acmecorp.atlassian.net/browse/STORE-2455",
+      "updatedAt": "2026-11-19T08:40:00Z",
+      "commentCount": 0,
+      "recentComments": []
+    },
+    {
+      "key": "STORE-2463",
+      "summary": "Warn before an invoice number is used twice",
+      "status": "In Review",
+      "statusCategory": "inProgress",
+      "priority": "Medium",
+      "url": "https://acmecorp.atlassian.net/browse/STORE-2463",
+      "updatedAt": "2026-11-18T16:10:00Z",
+      "commentCount": 0,
+      "recentComments": []
+    }
+  ],
+  "createdTicketStatuses": ["In Review"],
   "sessions": [
     { "pid": 41001, "name": "store-2481-rate-limits", "cwd": "~/dev/store-2481-rate-limits", "status": "busy", "jiraKey": "STORE-2481", "updatedAt": "2026-11-19T09:59:58Z" },
     { "pid": 41002, "name": "webapp", "cwd": "~/dev/webapp", "status": "waiting", "waitingFor": "permission prompt", "updatedAt": "2026-11-19T09:57:00Z" },

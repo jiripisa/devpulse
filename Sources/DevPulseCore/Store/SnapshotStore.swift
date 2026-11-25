@@ -38,6 +38,8 @@ public protocol JiraFetching: Sendable {
     func lookUpTickets(keys: [String]) async throws -> TicketLookup
     /// The projects' tickets with these words in the summary, for the launcher.
     func searchTickets(words: [String], projects: [String]) async throws -> [Ticket]
+    /// The tickets I created that are in one of these statuses.
+    func fetchCreatedTickets(statuses: [String]) async throws -> [Ticket]
 }
 
 extension JiraFetching {
@@ -48,6 +50,8 @@ extension JiraFetching {
     public func searchTickets(words: [String], projects: [String]) async throws -> [Ticket] {
         throw LookupUnavailable()
     }
+
+    public func fetchCreatedTickets(statuses: [String]) async throws -> [Ticket] { [] }
 }
 
 /// The Claude Code session watcher. The store never scans the session files itself: the
@@ -190,10 +194,16 @@ public final class SnapshotStore {
         // The tickets of PRs that are not mine: one more request, which needs both results. Only
         // after my own tickets came through: with rejected credentials, an outage or a cancel it
         // would fail too, and the linked tickets stay as they are, like my own.
+        // The tickets I created in the watched statuses go along with it, on the same terms.
         var linkedResult: Result<[Ticket], any Error>?
+        var createdResult: Result<[Ticket], any Error>?
+        let createdStatuses = settings.watchedCreatedTicketStatuses
         if let jiraSource, case .success? = jiraResult {
             let keys = LinkedTickets.keys(for: merged(results, for: sources, into: snapshot))
-            linkedResult = keys.isEmpty ? .success([]) : await fetchLinked(jiraSource, keys: keys)
+            async let linked = keys.isEmpty ? .success([]) : fetchLinked(jiraSource, keys: keys)
+            async let created = createdStatuses.isEmpty
+                ? .success([]) : fetchCreated(jiraSource, statuses: createdStatuses)
+            (linkedResult, createdResult) = await (linked, created)
         }
         inFlight.subtract(fetched)
 
@@ -213,6 +223,7 @@ public final class SnapshotStore {
             // Not fetched: Jira off, not set up, or its own fetch failed or was cancelled.
             case nil: if !isEnabled(.jira) || credentials == nil { next.linkedTickets = [] }
             }
+            applyCreated(createdResult, statuses: createdStatuses, jiraOn: isEnabled(.jira) && credentials != nil, to: &next)
         }
 
         // Only applies the switch: the sessions are the watcher's, never a new scan.
@@ -229,6 +240,33 @@ public final class SnapshotStore {
         }
 
         publish(next)
+    }
+
+    /// The created tickets of a refresh: a failed search keeps the list it had for the same
+    /// statuses and says why; other statuses, or none, or a Jira that is off start empty.
+    private func applyCreated(
+        _ result: Result<[Ticket], any Error>?, statuses: [String], jiraOn: Bool, to next: inout Snapshot
+    ) {
+        let sameStatuses = next.createdTicketStatuses == statuses
+        next.createdTicketStatuses = jiraOn ? statuses : []
+        guard jiraOn, !statuses.isEmpty else {
+            next.createdTickets = []
+            next.createdTicketsError = nil
+            return
+        }
+        switch result {
+        case .success(let tickets)?:
+            next.createdTickets = tickets
+            next.createdTicketsError = nil
+        case .failure(let error)?:
+            if !sameStatuses { next.createdTickets = [] }
+            next.createdTicketsError = (error as? JiraError) == .http(400)
+                ? "Jira refused the search; check the statuses in Settings › Jira"
+                : SourceErrorMessage.text(for: error)
+        // Not asked: my own search failed or was cancelled; the list stays like my tickets.
+        case nil:
+            if !sameStatuses { next.createdTickets = [] }
+        }
     }
 
     /// What one refresh fetched from GitHub and Jira.
@@ -365,6 +403,12 @@ private func fetchJira(_ source: (any JiraFetching)?, run: Bool) async -> Result
 
 private func fetchLinked(_ source: any JiraFetching, keys: [String]) async -> Result<[Ticket], any Error>? {
     do { return .success(try await source.fetchTickets(keys: keys)) } catch {
+        return isCancellation(error) ? nil : .failure(error)
+    }
+}
+
+private func fetchCreated(_ source: any JiraFetching, statuses: [String]) async -> Result<[Ticket], any Error>? {
+    do { return .success(try await source.fetchCreatedTickets(statuses: statuses)) } catch {
         return isCancellation(error) ? nil : .failure(error)
     }
 }

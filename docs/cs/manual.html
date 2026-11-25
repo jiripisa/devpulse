@@ -161,13 +161,14 @@ gh auth login</code></pre>
         <h2>Připojení Jiry</h2>
         <p>Otevřené tikety z Jira Cloud čte DevPulse pomocí API tokenu.</p>
         <figure class="fig" style="max-width:34rem">
-          <div class="view" style="--iw:1040;--ih:900">
-            <img src="../assets/manual/devpulse-settings-jira.png" alt="Záložka Jira v nastavení s webem, e-mailem, uloženým tokenem, tlačítky Test Connection a Save a projekty">
-            <span class="mark" style="--x:3.8;--y:28.5;--w:92.3;--h:24.4"><b>1</b></span>
-            <span class="mark" style="--x:5.3;--y:54.8;--w:37.5;--h:3.6"><b>2</b></span>
-            <span class="mark" style="--x:58.4;--y:70.4;--w:24.4;--h:6"><b>3</b></span>
-            <span class="mark" style="--x:83.6;--y:70.4;--w:10.9;--h:6"><b>4</b></span>
-            <span class="mark" style="--x:3.8;--y:80.4;--w:92.3;--h:8.4"><b>5</b></span>
+          <div class="view" style="--iw:1040;--ih:1276">
+            <img src="../assets/manual/devpulse-settings-jira.png" alt="Záložka Jira v nastavení s webem, e-mailem, uloženým tokenem, tlačítky Test Connection a Save, projekty a tikety, které jste vytvořili">
+            <span class="mark" style="--x:3.8;--y:20.1;--w:92.3;--h:17.2"><b>1</b></span>
+            <span class="mark" style="--x:5.3;--y:38.65;--w:37.5;--h:2.55"><b>2</b></span>
+            <span class="mark" style="--x:58.4;--y:49.65;--w:24.4;--h:4.25"><b>3</b></span>
+            <span class="mark" style="--x:83.6;--y:49.65;--w:10.9;--h:4.25"><b>4</b></span>
+            <span class="mark" style="--x:3.8;--y:56.7;--w:92.3;--h:5.9"><b>5</b></span>
+            <span class="mark" style="--x:3.8;--y:72.7;--w:92.3;--h:11.5"><b>6</b></span>
           </div>
           <figcaption>Záložka Jira s tokenem uloženým v Klíčence.</figcaption>
         </figure>
@@ -197,6 +198,16 @@ gh auth login</code></pre>
           u <code>jira &lt;číslo&gt;</code> řádek prvního z nich zůstane, i když tiket neexistuje.
           Nejvýš deset. Prázdné pole znamená projekty
           vašich tiketů, nejdřív ten, kde jich máte nejvíc; pole je ukazuje šedě.</dd>
+          <dt><span class="n">6</span>Show tickets I created · In status</dt>
+          <dd>Tikety, které jste založili a které jsou v jednom z těchto stavů, ať na nich
+          pracuje kdokoli: třeba ty, které čekají, až je zkontrolujete nebo převezmete. Mají
+          vlastní část v <a href="#popover">okénku</a> a panel <span class="n">5</span>
+          v <a href="#tui">přehledu v terminálu</a>. Názvy stavů pište tak, jak je ukazuje Jira,
+          oddělené čárkou (<code>In Review, QA</code>), nejvýš deset; platí po stisku Returnu
+          nebo po opuštění pole. Ve výchozím nastavení je zapnuto se stavem
+          <code>In Review</code>. Stav, který Jira nezná, ji přiměje hledání odmítnout: část
+          pak napíše <span class="ui">Jira refused the search; check the statuses in Settings ›
+          Jira</span> a ponechá tikety, které měla.</dd>
         </dl>
         <p>DevPulse ukazuje tikety, které máte přiřazené a které ještě nejsou
         hotové.</p>
@@ -210,19 +221,21 @@ gh auth login</code></pre>
         <span class="ui">Jira</span> modře, <span class="ui">Claude</span> tyrkysově), a vpravo
         ukazuje svůj stav tvarem a slovem. Rychlé hledání používá stejné značky.</p>
         <figure class="fig" style="max-width:32rem">
-          <div class="view" style="--iw:1040;--ih:1838">
-            <img src="../assets/manual/devpulse-popover.png" alt="Okénko DevPulse s pull requesty, žádostmi o review, tikety z Jiry a třemi sessions Claude Code">
-            <span class="mark" style="--x:91.5;--y:1;--w:6.5;--h:4"><b>1</b></span>
-            <span class="mark" style="--x:86.5;--y:6.4;--w:11.5;--h:2.2"><b>2</b></span>
-            <span class="mark" style="--x:1;--y:9.6;--w:98;--h:4.4"><b>3</b></span>
-            <span class="mark" style="--x:1;--y:33.4;--w:98;--h:14.3"><b>4</b></span>
-            <span class="mark" style="--x:1;--y:52.2;--w:98;--h:4.4"><b>5</b></span>
-            <span class="mark" style="--x:0.3;--y:85.3;--w:99.4;--h:5"><b>6</b></span>
-            <span class="mark" style="--x:1;--y:96.2;--w:16;--h:3.3"><b>7</b></span>
-            <span class="mark" style="--x:78;--y:96.2;--w:21;--h:3.3"><b>8</b></span>
+          <div class="view" style="--iw:1040;--ih:2090">
+            <img src="../assets/manual/devpulse-popover.png" alt="Okénko DevPulse s pull requesty, žádostmi o review, tikety z Jiry, dvěma vašimi tikety v review a třemi sessions Claude Code">
+            <span class="mark" style="--x:91.5;--y:0.9;--w:6.5;--h:3.5"><b>1</b></span>
+            <span class="mark" style="--x:86.5;--y:5.6;--w:11.5;--h:1.95"><b>2</b></span>
+            <span class="mark" style="--x:1;--y:8.45;--w:98;--h:3.85"><b>3</b></span>
+            <span class="mark" style="--x:1;--y:29.35;--w:98;--h:12.6"><b>4</b></span>
+            <span class="mark" style="--x:1;--y:45.9;--w:98;--h:3.85"><b>5</b></span>
+            <span class="mark" style="--x:1;--y:67.9;--w:98;--h:11.9"><b>6</b></span>
+            <span class="mark" style="--x:0.3;--y:87.05;--w:99.4;--h:4.4"><b>7</b></span>
+            <span class="mark" style="--x:1;--y:96.65;--w:16;--h:2.9"><b>8</b></span>
+            <span class="mark" style="--x:78;--y:96.65;--w:21;--h:2.9"><b>9</b></span>
           </div>
           <figcaption>Okénko má čtyři části: My pull requests, Review requests,
-          Jira a Claude Code. Když se nevejdou, dá se v nich posouvat.</figcaption>
+          Jira a Claude Code, a když je zapnutá, i pátou s tikety, které jste vytvořili. Když se
+          nevejdou, dá se v nich posouvat.</figcaption>
         </figure>
         <dl class="controls">
           <dt><span class="n">1</span>Obnovit</dt>
@@ -252,7 +265,14 @@ gh auth login</code></pre>
           a vpravo stav: prázdné kolečko pro to do, půlkolečko pro rozpracovaný,
           kosočtverec pro v review, fajfka pro hotový. Kliknutím otevřete tiket
           v Jiře.</dd>
-          <dt><span class="n">6</span>Session Claude Code</dt>
+          <dt><span class="n">6</span>Created by me</dt>
+          <dd>Tikety, které jste založili a které jsou v některém ze stavů nastavených
+          v <a href="#jira">Settings › Jira</a>, ať na nich pracuje kdokoli; nadpis stavy
+          jmenuje (<span class="ui">Created by me · In Review</span>). Řádky jako v části Jira;
+          kliknutím tiket otevřete. Když hledání selže, nadpis řekne proč a dosavadní tikety
+          zůstanou. Část chybí, dokud je <span class="ui">Show tickets I created</span>
+          vypnuté nebo Jira není nastavená.</dd>
+          <dt><span class="n">7</span>Session Claude Code</dt>
           <dd>Ikona terminálu a <span class="ui">Claude</span>, název složky a pod
           ním klíč z Jiry nalezený v názvu složky a to, na co session čeká. Vpravo
           <span class="ui">Working</span>, <span class="ui">Waiting for input</span>
@@ -262,9 +282,9 @@ gh auth login</code></pre>
           přepne na tab této session. Poprvé se macOS zeptá, jestli
           smí DevPulse ovládat Ghostty; bez toho svolení DevPulse Ghostty jen
           aktivuje.</dd>
-          <dt><span class="n">7</span>Settings…</dt>
+          <dt><span class="n">8</span>Settings…</dt>
           <dd>Otevře okno s nastavením.</dd>
-          <dt><span class="n">8</span>Quit DevPulse</dt>
+          <dt><span class="n">9</span>Quit DevPulse</dt>
           <dd>Ukončí aplikaci. Notifikace, rychlé hledání i přehled v terminálu
           stojí, dokud ji znovu nespustíte.</dd>
         </dl>
@@ -288,17 +308,18 @@ gh auth login</code></pre>
         se sám, jakmile má aplikace něco nového, takže ho můžete mít otevřený
         celý den. Když aplikace neběží, <code>devpulse</code> ji spustí.</p>
         <figure class="fig">
-          <div class="view" style="--iw:1936;--ih:1168">
-            <img src="../assets/manual/devpulse-tui.png" alt="Přehled devpulse v terminálu se čtyřmi očíslovanými panely a panelem s detailem">
-            <span class="mark" style="--x:0.5;--y:8.6;--w:44;--h:36.6"><b>1</b></span>
-            <span class="mark" style="--x:0.5;--y:46.2;--w:44;--h:13.5"><b>2</b></span>
-            <span class="mark" style="--x:0.5;--y:61;--w:44;--h:19.2"><b>3</b></span>
-            <span class="mark" style="--x:0.5;--y:81.3;--w:44;--h:13.3"><b>4</b></span>
-            <span class="mark" style="--x:45.2;--y:8.6;--w:53.8;--h:86.2"><b>5</b></span>
-            <span class="mark" style="--x:9.8;--y:5.7;--w:33;--h:3.1"><b>6</b></span>
-            <span class="mark" style="--x:0.5;--y:95.7;--w:83.2;--h:3.4"><b>7</b></span>
-            <span class="mark" style="--x:93;--y:95.7;--w:5.8;--h:3.4"><b>8</b></span>
-            <span class="mark" style="--x:46.3;--y:41.2;--w:52.2;--h:8.6"><b>9</b></span>
+          <div class="view" style="--iw:1776;--ih:1304">
+            <img src="../assets/manual/devpulse-tui.png" alt="Přehled devpulse v terminálu s pěti očíslovanými panely a panelem s detailem">
+            <span class="mark" style="--x:0.5;--y:8;--w:43.6;--h:32.6"><b>1</b></span>
+            <span class="mark" style="--x:0.5;--y:41.9;--w:43.6;--h:11.5"><b>2</b></span>
+            <span class="mark" style="--x:0.5;--y:54.8;--w:43.6;--h:16.8"><b>3</b></span>
+            <span class="mark" style="--x:0.5;--y:73.1;--w:43.6;--h:11.5"><b>4</b></span>
+            <span class="mark" style="--x:0.5;--y:86;--w:43.6;--h:9.1"><b>5</b></span>
+            <span class="mark" style="--x:44.8;--y:8;--w:54.3;--h:87.2"><b>6</b></span>
+            <span class="mark" style="--x:10.8;--y:5;--w:35;--h:2.9"><b>7</b></span>
+            <span class="mark" style="--x:0.5;--y:96.1;--w:83.2;--h:3.2"><b>8</b></span>
+            <span class="mark" style="--x:93;--y:96.1;--w:6.2;--h:3.2"><b>9</b></span>
+            <span class="mark" style="--x:45.7;--y:36.4;--w:52.4;--h:8.2"><b>10</b></span>
           </div>
           <figcaption><code>devpulse</code> v Ghostty. Barvy se řídí motivem
           vašeho terminálu.</figcaption>
@@ -318,7 +339,12 @@ gh auth login</code></pre>
           <dd>Běžící sessions: <span class="ui">◐ busy</span>,
           <span class="ui">● waiting for input</span>, <span class="ui">○ idle</span>,
           za <span class="ui">→</span> navázaný klíč z Jiry.</dd>
-          <dt><span class="n">5</span>Detail</dt>
+          <dt><span class="n">5</span>Created by me</dt>
+          <dd>Tikety, které jste založili, ve stavech nastavených v <a href="#jira">Settings ›
+          Jira</a>: klíč, stav a název. Panel je vidět, jen když je <span class="ui">Show
+          tickets I created</span> zapnuté; když hledání selže, hlavička ukáže <span
+          class="ui">created ✗</span> a důvod.</dd>
+          <dt><span class="n">6</span>Detail</dt>
           <dd>Všechno o vybrané položce. U pull requestu navázaný tiket a jeho
           stav (i když tiket není přiřazený vám), větev, kontroly, review,
           komentáře, jestli review chtějí po vás nebo po týmu, poslední změna,
@@ -326,17 +352,17 @@ gh auth login</code></pre>
           priorita, komentáře, navázané pull requesty a sessions a související
           tikety. U session stav (a na co čeká), složka, klíč z Jiry a ID procesu.
           Spodní řádky říkají, které klávesy tu platí.</dd>
-          <dt><span class="n">6</span>Zdroje</dt>
+          <dt><span class="n">7</span>Zdroje</dt>
           <dd>Každý zdroj se stavem a stářím dat: <span class="ui">✓ 2m</span>,
           když je vše v pořádku, <span class="ui">✗</span> s chybou a stářím
           zobrazených dat, <span class="ui">fetching</span>, <span class="ui">off</span>
           nebo <span class="ui">not set up</span>.</dd>
-          <dt><span class="n">7</span>Lišta kláves</dt>
+          <dt><span class="n">8</span>Lišta kláves</dt>
           <dd>Klávesy, které teď můžete stisknout; v úzkém okně se ty méně
           důležité vynechají.</dd>
-          <dt><span class="n">8</span>Pozice</dt>
+          <dt><span class="n">9</span>Pozice</dt>
           <dd>Vybraný řádek a délka seznamu v aktivním panelu.</dd>
-          <dt><span class="n">9</span>Related</dt>
+          <dt><span class="n">10</span>Related</dt>
           <dd>Vazby tiketu v Jiře, tady tiketu daného pull requestu; viz
           <b>Související tikety</b> níže.</dd>
         </dl>
@@ -347,7 +373,7 @@ gh auth login</code></pre>
             <thead><tr><th>Klávesa</th><th>Akce</th></tr></thead>
             <tbody>
               <tr><td><kbd>↑</kbd> <kbd>↓</kbd> nebo <kbd>j</kbd> <kbd>k</kbd></td><td>Posun výběru.</td></tr>
-              <tr><td><kbd>1</kbd>–<kbd>4</kbd>, <kbd>Tab</kbd>, <kbd>Shift</kbd>-<kbd>Tab</kbd></td><td>Přepnutí panelu.</td></tr>
+              <tr><td><kbd>1</kbd>–<kbd>5</kbd>, <kbd>Tab</kbd>, <kbd>Shift</kbd>-<kbd>Tab</kbd></td><td>Přepnutí panelu; <kbd>5</kbd> jen tehdy, když je vidět panel vašich vytvořených tiketů.</td></tr>
               <tr><td><kbd>Enter</kbd></td><td>Otevřít: pull request nebo tiket v prohlížeči, session v jejím okně Ghostty.</td></tr>
               <tr><td><kbd>J</kbd></td><td>Otevřít tiket z Jiry navázaný na vybraný pull request nebo session Claude Code.</td></tr>
               <tr><td><kbd>/</kbd></td><td>Filtr. <kbd>Enter</kbd> ho ponechá, <kbd>Esc</kbd> ho zruší.</td></tr>
@@ -360,7 +386,7 @@ gh auth login</code></pre>
             </tbody>
           </table>
         </div>
-        <p><b>Filtr.</b> Stiskněte <kbd>/</kbd> a pište: všechny čtyři panely
+        <p><b>Filtr.</b> Stiskněte <kbd>/</kbd> a pište: všechny panely
         ukážou jen řádky, které text obsahují. Hledá se v názvu, repozitáři,
         větvi, klíči z Jiry a čísle pull requestu, v klíči, názvu a stavu
         tiketu a ve jméně, složce a klíči z Jiry u session. Počet v hlavičce
@@ -553,6 +579,7 @@ gh auth login</code></pre>
               <tr><th colspan="3">Jira</th></tr>
               <tr><td>New comment by a person</td><td>zapnuto</td><td>New comment on STORE-2290</td></tr>
               <tr><td>New comment by Jira automation or an app</td><td>vypnuto</td><td>New comment on STORE-2290</td></tr>
+              <tr><td>A ticket you created reached a watched status</td><td>zapnuto</td><td>STORE-2455 is In Review</td></tr>
               <tr><th colspan="3">Claude Code</th></tr>
               <tr><td>A session is waiting for your input</td><td>zapnuto</td><td>Claude is waiting</td></tr>
               <tr><td>A session finished its work</td><td>zapnuto</td><td>Claude finished</td></tr>

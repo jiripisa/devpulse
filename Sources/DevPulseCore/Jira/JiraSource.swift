@@ -111,6 +111,22 @@ public final class JiraSource: Sendable {
 
     private static let log = Logger(subsystem: "io.jp4.devpulse", category: "jira")
 
+    /// The tickets I created that are in one of these statuses, e.g. `In Review`: one JQL
+    /// search with `linkedFields` (no comments: they never notify). No request without
+    /// statuses. A status Jira does not know fails the whole search with a 400.
+    public func fetchCreatedTickets(statuses: [String]) async throws -> [Ticket] {
+        guard !statuses.isEmpty else { return [] }
+        let quoted = statuses.map(Self.jqlString).joined(separator: ", ")
+        let jql = "reporter = currentUser() AND status in (\(quoted)) ORDER BY updated DESC"
+        let issues = try await search(jql, fields: Self.linkedFields)
+        return try issues.map { issue in try mapped { try issue.ticket(site: credentials.site) } }
+    }
+
+    /// `text` as a JQL string literal: in double quotes, with `\` and `"` escaped.
+    static func jqlString(_ text: String) -> String {
+        "\"" + text.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"") + "\""
+    }
+
     /// The most tickets a word search returns.
     static let textSearchLimit = 20
 

@@ -138,3 +138,13 @@ private func makeSession(pid: Int, status: SessionStatus) -> ClaudeSession {
         }
     }
 }
+
+@Suite struct CreatedTicketsTextTests {
+    @Test func theSectionNamesTheWatchedStatuses() {
+        #expect(CreatedTicketsText.title(statuses: ["In Review"]) == "Created by me · In Review")
+        #expect(CreatedTicketsText.title(statuses: ["In Review", "QA"]) == "Created by me · In Review, QA")
+        #expect(CreatedTicketsText.empty(statuses: ["In Review"]) == "None of your tickets is in In Review")
+        #expect(CreatedTicketsText.empty(statuses: ["In Review", "QA", "UAT"])
+            == "None of your tickets is in In Review, QA or UAT")
+    }
+}

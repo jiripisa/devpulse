@@ -46,6 +46,7 @@ extension Snapshot {
         next.reviewRequests = reviewRequests.map(move)
         next.tickets = tickets.map(move)
         next.linkedTickets = linkedTickets.map(move)
+        next.createdTickets = createdTickets.map(move)
         next.sessions = sessions.map { var s = $0; s.updatedAt = move(s.updatedAt); return s }
         return next
     }

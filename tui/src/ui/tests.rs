@@ -283,7 +283,7 @@ fn help_overlay_lists_every_key() {
     let mut st = fixture_state();
     press(&mut st, '?');
     let out = render(&st, 120, 32);
-    for key in ["j / k", "1–4", "Tab", "Enter", "J", "/", "r", ",", "?", "q", "click / ⌘-click"] {
+    for key in ["j / k", "1–5", "Tab", "Enter", "J", "/", "r", ",", "?", "q", "click / ⌘-click"] {
         assert!(out.contains(key), "missing {key}");
     }
     assert!(out.contains("open the linked Jira ticket"));
@@ -370,13 +370,19 @@ fn status_icons_have_their_colors() {
 
 #[test]
 fn the_focused_panel_gets_the_spare_rows() {
-    // 4 panels in 20 rows; content needs 4, 4, 4, 5 rows (items + borders).
-    assert_eq!(panel_heights(20, [2, 2, 2, 3], Panel::MyPrs), [7, 4, 4, 5]);
-    assert_eq!(panel_heights(20, [2, 2, 2, 3], Panel::Claude), [4, 4, 4, 8]);
+    // 4 shown panels in 20 rows; content needs 4, 4, 4, 5 rows (items + borders); the hidden
+    // fifth gets none.
+    let four = [true, true, true, true, false];
+    assert_eq!(panel_heights(20, [2, 2, 2, 3, 9], four, Panel::MyPrs), [7, 4, 4, 5, 0]);
+    assert_eq!(panel_heights(20, [2, 2, 2, 3, 9], four, Panel::Claude), [4, 4, 4, 8, 0]);
     // Too little room: every panel keeps one row, the focused one fills up first.
-    assert_eq!(panel_heights(14, [9, 9, 9, 9], Panel::Jira), [3, 3, 5, 3]);
-    assert_eq!(panel_heights(13, [0, 0, 0, 0], Panel::MyPrs), [4, 3, 3, 3]);
-    assert_eq!(panel_heights(6, [1, 1, 1, 1], Panel::MyPrs).iter().sum::<u16>(), 6);
+    assert_eq!(panel_heights(14, [9, 9, 9, 9, 9], four, Panel::Jira), [3, 3, 5, 3, 0]);
+    assert_eq!(panel_heights(13, [0, 0, 0, 0, 0], four, Panel::MyPrs), [4, 3, 3, 3, 0]);
+    assert_eq!(panel_heights(6, [1, 1, 1, 1, 1], four, Panel::MyPrs).iter().sum::<u16>(), 6);
+    // The fifth shown: it takes its share like the others.
+    let five = [true; 5];
+    assert_eq!(panel_heights(24, [2, 2, 2, 3, 1], five, Panel::Created), [4, 4, 4, 5, 7]);
+    assert_eq!(panel_heights(13, [1, 1, 1, 1, 1], five, Panel::MyPrs), [5, 2, 2, 2, 2]);
 }
 
 #[test]
@@ -810,7 +816,7 @@ fn a_click_beside_a_link_keeps_selecting() {
         let at = cell_of(&buf, a.detail, text);
         assert_eq!(left(&mut st, &buf, &links, at), None, "{text}");
     }
-    assert_eq!((st.focus, st.selected), (Panel::MyPrs, [0; 4]));
+    assert_eq!((st.focus, st.selected), (Panel::MyPrs, [0; 5]));
     // A row of a panel is focused and selected as before, the header and footer do nothing.
     let claude = a.panels[3];
     assert_eq!(left(&mut st, &buf, &links, (claude.x + 4, claude.y + 2)), None);

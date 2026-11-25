@@ -8,7 +8,7 @@ mod link;
 mod panels;
 mod text;
 
-use crate::state::{Action, AppState, Panel};
+use crate::state::{Action, AppState, PANELS, Panel};
 use crate::theme;
 use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
 use ratatui::Frame;
@@ -30,7 +30,8 @@ pub struct Areas {
     pub header: Rect,
     /// Panels and detail pane together.
     pub body: Rect,
-    pub panels: [Rect; 4],
+    /// One per panel; a panel that is not shown has no height.
+    pub panels: [Rect; PANELS],
     pub detail: Rect,
     pub footer: Rect,
 }
@@ -46,7 +47,8 @@ pub fn areas(area: Rect, state: &AppState) -> Option<Areas> {
     let left_width = (u32::from(body.width) * LEFT_PERCENT / 100) as u16;
     let detail = Rect { x: body.x + left_width, width: body.width - left_width, ..body };
     let lens = Panel::ALL.map(|p| state.visible_ids(p).len());
-    let heights = panel_heights(body.height, lens, state.focus);
+    let shown = Panel::ALL.map(|p| state.shown(p));
+    let heights = panel_heights(body.height, lens, shown, state.focus);
     let mut y = body.y;
     let panels = heights.map(|h| {
         let r = Rect { x: body.x, y, width: left_width, height: h };
@@ -56,19 +58,30 @@ pub fn areas(area: Rect, state: &AppState) -> Option<Areas> {
     Some(Areas { header, body, panels, detail, footer })
 }
 
-/// Splits `total` rows between the 4 panels. Each panel wants its items plus 2 border rows and
-/// gets at least one item row; the focused panel is served first and gets all spare rows.
-pub fn panel_heights(total: u16, lens: [usize; 4], focus: Panel) -> [u16; 4] {
+/// Splits `total` rows between the `shown` panels; the others get none. Each panel wants its
+/// items plus 2 border rows and gets at least one item row; the focused panel is served first
+/// and gets all spare rows.
+pub fn panel_heights(total: u16, lens: [usize; PANELS], shown: [bool; PANELS], focus: Panel) -> [u16; PANELS] {
     const MIN: u16 = 3;
-    if total < MIN * 4 {
-        let mut h = [total / 4; 4];
-        h[focus.index()] += total % 4;
+    let visible: Vec<Panel> = Panel::ALL.into_iter().filter(|p| shown[p.index()]).collect();
+    let n = visible.len() as u16;
+    let mut h = [0; PANELS];
+    if n == 0 {
+        return h;
+    }
+    if total < MIN * n {
+        for p in &visible {
+            h[p.index()] = total / n;
+        }
+        h[focus.index()] += total % n;
         return h;
     }
     let want = lens.map(|n| u16::try_from(n.max(1)).unwrap_or(u16::MAX).saturating_add(2));
-    let mut h = [MIN; 4];
-    let mut left = total - MIN * 4;
-    let order = std::iter::once(focus).chain(Panel::ALL.into_iter().filter(|p| *p != focus));
+    for p in &visible {
+        h[p.index()] = MIN;
+    }
+    let mut left = total - MIN * n;
+    let order = std::iter::once(focus).chain(visible.iter().copied().filter(|p| *p != focus));
     for p in order {
         let add = (want[p.index()] - MIN).min(left);
         h[p.index()] += add;
@@ -124,7 +137,7 @@ pub fn draw(frame: &mut Frame, state: &AppState, now: SystemTime) -> Links {
         return Links::default();
     };
     header::render(frame, a.header, state, now);
-    for panel in Panel::ALL {
+    for panel in Panel::ALL.into_iter().filter(|p| state.shown(*p)) {
         panels::render(frame, a.panels[panel.index()], state, panel);
     }
     let links = detail::render(frame, a.detail, state, now);

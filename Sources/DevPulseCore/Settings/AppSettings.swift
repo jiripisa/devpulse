@@ -8,13 +8,15 @@ public enum NotificationTrigger: String, Codable, Sendable, CaseIterable {
     case directReviewRequest, teamReviewRequest
     case prHumanComment, prCopilotComment, prBotComment, ciFinished
     case jiraHumanComment, jiraAutomationComment
+    /// A ticket I created reached one of `createdTicketStatuses`.
+    case jiraCreatedTicketStatus
     case claudeWaiting, claudeFinished
 
     public var source: Source {
         switch self {
         case .directReviewRequest, .teamReviewRequest, .prHumanComment, .prCopilotComment, .prBotComment, .ciFinished:
             .github
-        case .jiraHumanComment, .jiraAutomationComment:
+        case .jiraHumanComment, .jiraAutomationComment, .jiraCreatedTicketStatus:
             .jira
         case .claudeWaiting, .claudeFinished:
             .claude
@@ -99,6 +101,14 @@ public struct AppSettings: Codable, Sendable, Equatable {
     }
     public var jiraSite: URL?
     public var jiraEmail: String?
+    /// Whether the popover and the terminal show the tickets I created that are in one of
+    /// `createdTicketStatuses` (Settings › Jira).
+    public var showsCreatedTickets: Bool
+    /// Status names as Jira shows them (`In Review`), at most `maxCreatedTicketStatuses`; kept
+    /// while `showsCreatedTickets` is off.
+    public var createdTicketStatuses: [String] {
+        didSet { createdTicketStatuses = Self.cleanStatuses(createdTicketStatuses) }
+    }
     public var hotkey: Hotkey
     public var launchAtLogin: Bool
     public var appearance: AppAppearance
@@ -114,6 +124,8 @@ public struct AppSettings: Codable, Sendable, Equatable {
         jiraProjects: [String] = [],
         jiraSite: URL? = nil,
         jiraEmail: String? = nil,
+        showsCreatedTickets: Bool = true,
+        createdTicketStatuses: [String] = ["In Review"],
         hotkey: Hotkey = Hotkey(keyCode: 49, modifiers: [.option]),
         launchAtLogin: Bool = true,
         appearance: AppAppearance = .system
@@ -127,6 +139,8 @@ public struct AppSettings: Codable, Sendable, Equatable {
         self.jiraProjects = Self.cleanProjects(jiraProjects)
         self.jiraSite = jiraSite
         self.jiraEmail = jiraEmail
+        self.showsCreatedTickets = showsCreatedTickets
+        self.createdTicketStatuses = Self.cleanStatuses(createdTicketStatuses)
         self.hotkey = hotkey
         self.launchAtLogin = launchAtLogin
         self.appearance = appearance
@@ -140,6 +154,7 @@ public struct AppSettings: Codable, Sendable, Equatable {
     private enum CodingKeys: String, CodingKey {
         case refreshInterval, sourceEnabled, notificationsEnabled, triggers, includeTeamReviewRequests
         case githubRepos, jiraProjects, jiraSite, jiraEmail, hotkey, launchAtLogin, appearance
+        case showsCreatedTickets, createdTicketStatuses
         /// Before 0.10 there was one project; it becomes the only entry of `jiraProjects`.
         case defaultJiraProject
         /// Before 0.11 there was one repository; it becomes the only entry of `githubRepos`.
@@ -157,6 +172,8 @@ public struct AppSettings: Codable, Sendable, Equatable {
         try c.encode(jiraProjects, forKey: .jiraProjects)
         try c.encodeIfPresent(jiraSite, forKey: .jiraSite)
         try c.encodeIfPresent(jiraEmail, forKey: .jiraEmail)
+        try c.encode(showsCreatedTickets, forKey: .showsCreatedTickets)
+        try c.encode(createdTicketStatuses, forKey: .createdTicketStatuses)
         try c.encode(hotkey, forKey: .hotkey)
         try c.encode(launchAtLogin, forKey: .launchAtLogin)
         try c.encode(appearance, forKey: .appearance)
@@ -181,6 +198,9 @@ public struct AppSettings: Codable, Sendable, Equatable {
                 ?? (try c.decodeIfPresent(String.self, forKey: .defaultJiraProject)).map { [$0] } ?? [],
             jiraSite: try c.decodeIfPresent(URL.self, forKey: .jiraSite),
             jiraEmail: try c.decodeIfPresent(String.self, forKey: .jiraEmail),
+            showsCreatedTickets: try c.decodeIfPresent(Bool.self, forKey: .showsCreatedTickets) ?? d.showsCreatedTickets,
+            createdTicketStatuses: try c.decodeIfPresent([String].self, forKey: .createdTicketStatuses)
+                ?? d.createdTicketStatuses,
             hotkey: try c.decodeIfPresent(Hotkey.self, forKey: .hotkey) ?? d.hotkey,
             launchAtLogin: try c.decodeIfPresent(Bool.self, forKey: .launchAtLogin) ?? d.launchAtLogin,
             appearance: try c.decodeIfPresent(AppAppearance.self, forKey: .appearance) ?? d.appearance)
@@ -199,10 +219,41 @@ public struct AppSettings: Codable, Sendable, Equatable {
     }
 
     /// Whether going from `old` to these settings changes what the sources fetch (a switched
-    /// source, team review requests, the Jira site or e-mail), so the shell refetches right away.
+    /// source, team review requests, the Jira site or e-mail, the created tickets' statuses), so
+    /// the shell refetches right away.
     public func requiresRefetch(comparedTo old: AppSettings) -> Bool {
         sourceEnabled != old.sourceEnabled || includeTeamReviewRequests != old.includeTeamReviewRequests
             || jiraSite != old.jiraSite || jiraEmail != old.jiraEmail
+            || watchedCreatedTicketStatuses != old.watchedCreatedTicketStatuses
+    }
+
+    /// The statuses whose tickets I created are fetched; empty when that view is off.
+    public var watchedCreatedTicketStatuses: [String] {
+        showsCreatedTickets ? createdTicketStatuses : []
+    }
+
+    // MARK: Created tickets' statuses
+
+    /// Each status is one more term of one JQL search; a short list is plenty.
+    public static let maxCreatedTicketStatuses = 10
+
+    /// The statuses in what was typed in Settings, e.g. `In Review, QA`: separated by commas
+    /// (a status name can have spaces), inner spaces collapsed, each once without regard to case.
+    public static func parseStatuses(_ text: String) -> [String] {
+        cleanStatuses(text.split(separator: ",").map(String.init))
+    }
+
+    /// The statuses as Settings shows them: `In Review, QA`.
+    public static func statusesText(_ statuses: [String]) -> String {
+        statuses.joined(separator: ", ")
+    }
+
+    private static func cleanStatuses(_ statuses: [String]) -> [String] {
+        var seen = Set<String>()
+        let cleaned = statuses
+            .map { $0.split(whereSeparator: \.isWhitespace).joined(separator: " ") }
+            .filter { !$0.isEmpty && seen.insert($0.lowercased()).inserted }
+        return Array(cleaned.prefix(maxCreatedTicketStatuses))
     }
 
     // MARK: Defaults pre-fill

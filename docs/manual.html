@@ -160,13 +160,14 @@ gh auth login</code></pre>
         <h2>Connecting Jira</h2>
         <p>DevPulse reads your open Jira Cloud tickets with an API token.</p>
         <figure class="fig" style="max-width:34rem">
-          <div class="view" style="--iw:1040;--ih:900">
-            <img src="assets/manual/devpulse-settings-jira.png" alt="The Jira tab of Settings with site, e-mail, a saved token, the Test Connection and Save buttons and the projects">
-            <span class="mark" style="--x:3.8;--y:28.5;--w:92.3;--h:24.4"><b>1</b></span>
-            <span class="mark" style="--x:5.3;--y:54.8;--w:37.5;--h:3.6"><b>2</b></span>
-            <span class="mark" style="--x:58.4;--y:70.4;--w:24.4;--h:6"><b>3</b></span>
-            <span class="mark" style="--x:83.6;--y:70.4;--w:10.9;--h:6"><b>4</b></span>
-            <span class="mark" style="--x:3.8;--y:80.4;--w:92.3;--h:8.4"><b>5</b></span>
+          <div class="view" style="--iw:1040;--ih:1276">
+            <img src="assets/manual/devpulse-settings-jira.png" alt="The Jira tab of Settings with site, e-mail, a saved token, the Test Connection and Save buttons, the projects and the tickets you created">
+            <span class="mark" style="--x:3.8;--y:20.1;--w:92.3;--h:17.2"><b>1</b></span>
+            <span class="mark" style="--x:5.3;--y:38.65;--w:37.5;--h:2.55"><b>2</b></span>
+            <span class="mark" style="--x:58.4;--y:49.65;--w:24.4;--h:4.25"><b>3</b></span>
+            <span class="mark" style="--x:83.6;--y:49.65;--w:10.9;--h:4.25"><b>4</b></span>
+            <span class="mark" style="--x:3.8;--y:56.7;--w:92.3;--h:5.9"><b>5</b></span>
+            <span class="mark" style="--x:3.8;--y:72.7;--w:92.3;--h:11.5"><b>6</b></span>
           </div>
           <figcaption>The Jira tab with a token saved in the Keychain.</figcaption>
         </figure>
@@ -197,6 +198,16 @@ gh auth login</code></pre>
           <code>jira &lt;number&gt;</code>; for <code>jira &lt;number&gt;</code>, the first one's row
           stays even when the ticket does not exist. Up to ten. Empty means the projects of
           your tickets, most tickets first; the field shows them in grey.</dd>
+          <dt><span class="n">6</span>Show tickets I created · In status</dt>
+          <dd>Tickets you reported that are in one of these statuses, whoever works on them:
+          for example those waiting for you to review or accept them. They get their own section
+          in the <a href="#popover">popover</a> and panel <span class="n">5</span> in the
+          <a href="#tui">terminal dashboard</a>. Type the status names as Jira shows them,
+          separated by commas (<code>In Review, QA</code>), up to ten; they apply when you press
+          Return or leave the field. On by default with <code>In Review</code>. A status Jira
+          does not know makes it refuse the search: the section then says <span class="ui">Jira
+          refused the search; check the statuses in Settings › Jira</span> and keeps the tickets
+          it had.</dd>
         </dl>
         <p>DevPulse lists the tickets assigned to you that are not done.</p>
       </section>
@@ -209,19 +220,21 @@ gh auth login</code></pre>
         <span class="ui">Jira</span> blue, <span class="ui">Claude</span> cyan), and its state on the
         right, as a shape and a word. The launcher uses the same marks.</p>
         <figure class="fig" style="max-width:32rem">
-          <div class="view" style="--iw:1040;--ih:1838">
-            <img src="assets/manual/devpulse-popover.png" alt="The DevPulse popover with pull requests, review requests, Jira tickets and three Claude Code sessions">
-            <span class="mark" style="--x:91.5;--y:1;--w:6.5;--h:4"><b>1</b></span>
-            <span class="mark" style="--x:86.5;--y:6.4;--w:11.5;--h:2.2"><b>2</b></span>
-            <span class="mark" style="--x:1;--y:9.6;--w:98;--h:4.4"><b>3</b></span>
-            <span class="mark" style="--x:1;--y:33.4;--w:98;--h:14.3"><b>4</b></span>
-            <span class="mark" style="--x:1;--y:52.2;--w:98;--h:4.4"><b>5</b></span>
-            <span class="mark" style="--x:0.3;--y:85.3;--w:99.4;--h:5"><b>6</b></span>
-            <span class="mark" style="--x:1;--y:96.2;--w:16;--h:3.3"><b>7</b></span>
-            <span class="mark" style="--x:78;--y:96.2;--w:21;--h:3.3"><b>8</b></span>
+          <div class="view" style="--iw:1040;--ih:2090">
+            <img src="assets/manual/devpulse-popover.png" alt="The DevPulse popover with pull requests, review requests, Jira tickets, two tickets you created that are in review and three Claude Code sessions">
+            <span class="mark" style="--x:91.5;--y:0.9;--w:6.5;--h:3.5"><b>1</b></span>
+            <span class="mark" style="--x:86.5;--y:5.6;--w:11.5;--h:1.95"><b>2</b></span>
+            <span class="mark" style="--x:1;--y:8.45;--w:98;--h:3.85"><b>3</b></span>
+            <span class="mark" style="--x:1;--y:29.35;--w:98;--h:12.6"><b>4</b></span>
+            <span class="mark" style="--x:1;--y:45.9;--w:98;--h:3.85"><b>5</b></span>
+            <span class="mark" style="--x:1;--y:67.9;--w:98;--h:11.9"><b>6</b></span>
+            <span class="mark" style="--x:0.3;--y:87.05;--w:99.4;--h:4.4"><b>7</b></span>
+            <span class="mark" style="--x:1;--y:96.65;--w:16;--h:2.9"><b>8</b></span>
+            <span class="mark" style="--x:78;--y:96.65;--w:21;--h:2.9"><b>9</b></span>
           </div>
           <figcaption>The popover has four sections: My pull requests, Review
-          requests, Jira and Claude Code. It scrolls when they are long.</figcaption>
+          requests, Jira and Claude Code, and a fifth for the tickets you created while that is
+          on. It scrolls when they are long.</figcaption>
         </figure>
         <dl class="controls">
           <dt><span class="n">1</span>Refresh</dt>
@@ -252,7 +265,14 @@ gh auth login</code></pre>
           below it, and the status on the right: an empty circle for to do, a half
           circle for in progress, a diamond for in review, a check for done. Click
           it to open the ticket in Jira.</dd>
-          <dt><span class="n">6</span>Claude Code session</dt>
+          <dt><span class="n">6</span>Created by me</dt>
+          <dd>The tickets you reported that are in one of the statuses set in
+          <a href="#jira">Settings › Jira</a>, whoever works on them; the heading names the
+          statuses (<span class="ui">Created by me · In Review</span>). Rows as in Jira; click one
+          to open the ticket. When its search fails, the heading says why and the tickets from
+          before stay. The section is not there while <span class="ui">Show tickets I
+          created</span> is off or Jira is not set up.</dd>
+          <dt><span class="n">7</span>Claude Code session</dt>
           <dd>A terminal icon and <span class="ui">Claude</span>, the folder's
           name, and below it the Jira key found in the folder name and what the
           session waits for. On the right: <span class="ui">Working</span>,
@@ -261,9 +281,9 @@ gh auth login</code></pre>
           when the window has tabs, DevPulse switches to the session's tab.
           The first time, macOS asks whether DevPulse may control Ghostty;
           without that permission DevPulse only activates Ghostty.</dd>
-          <dt><span class="n">7</span>Settings…</dt>
+          <dt><span class="n">8</span>Settings…</dt>
           <dd>Opens the Settings window.</dd>
-          <dt><span class="n">8</span>Quit DevPulse</dt>
+          <dt><span class="n">9</span>Quit DevPulse</dt>
           <dd>Quits the app. Notifications, the launcher and the terminal
           dashboard stop until it runs again.</dd>
         </dl>
@@ -287,17 +307,18 @@ gh auth login</code></pre>
         itself the moment the app has news, so you can keep it open all day.
         If the app is not running, <code>devpulse</code> starts it.</p>
         <figure class="fig">
-          <div class="view" style="--iw:1936;--ih:1168">
-            <img src="assets/manual/devpulse-tui.png" alt="The devpulse terminal dashboard with four numbered panels and the detail pane">
-            <span class="mark" style="--x:0.5;--y:8.6;--w:44;--h:36.6"><b>1</b></span>
-            <span class="mark" style="--x:0.5;--y:46.2;--w:44;--h:13.5"><b>2</b></span>
-            <span class="mark" style="--x:0.5;--y:61;--w:44;--h:19.2"><b>3</b></span>
-            <span class="mark" style="--x:0.5;--y:81.3;--w:44;--h:13.3"><b>4</b></span>
-            <span class="mark" style="--x:45.2;--y:8.6;--w:53.8;--h:86.2"><b>5</b></span>
-            <span class="mark" style="--x:9.8;--y:5.7;--w:33;--h:3.1"><b>6</b></span>
-            <span class="mark" style="--x:0.5;--y:95.7;--w:83.2;--h:3.4"><b>7</b></span>
-            <span class="mark" style="--x:93;--y:95.7;--w:5.8;--h:3.4"><b>8</b></span>
-            <span class="mark" style="--x:46.3;--y:41.2;--w:52.2;--h:8.6"><b>9</b></span>
+          <div class="view" style="--iw:1776;--ih:1304">
+            <img src="assets/manual/devpulse-tui.png" alt="The devpulse terminal dashboard with five numbered panels and the detail pane">
+            <span class="mark" style="--x:0.5;--y:8;--w:43.6;--h:32.6"><b>1</b></span>
+            <span class="mark" style="--x:0.5;--y:41.9;--w:43.6;--h:11.5"><b>2</b></span>
+            <span class="mark" style="--x:0.5;--y:54.8;--w:43.6;--h:16.8"><b>3</b></span>
+            <span class="mark" style="--x:0.5;--y:73.1;--w:43.6;--h:11.5"><b>4</b></span>
+            <span class="mark" style="--x:0.5;--y:86;--w:43.6;--h:9.1"><b>5</b></span>
+            <span class="mark" style="--x:44.8;--y:8;--w:54.3;--h:87.2"><b>6</b></span>
+            <span class="mark" style="--x:10.8;--y:5;--w:35;--h:2.9"><b>7</b></span>
+            <span class="mark" style="--x:0.5;--y:96.1;--w:83.2;--h:3.2"><b>8</b></span>
+            <span class="mark" style="--x:93;--y:96.1;--w:6.2;--h:3.2"><b>9</b></span>
+            <span class="mark" style="--x:45.7;--y:36.4;--w:52.4;--h:8.2"><b>10</b></span>
           </div>
           <figcaption><code>devpulse</code> in Ghostty. The colours follow your
           terminal's theme.</figcaption>
@@ -317,7 +338,12 @@ gh auth login</code></pre>
           <dd>Running sessions: <span class="ui">◐ busy</span>,
           <span class="ui">● waiting for input</span>, <span class="ui">○ idle</span>,
           with <span class="ui">→</span> and the linked Jira key.</dd>
-          <dt><span class="n">5</span>Detail</dt>
+          <dt><span class="n">5</span>Created by me</dt>
+          <dd>The tickets you reported in the statuses set in <a href="#jira">Settings ›
+          Jira</a>: key, status and summary. The panel is there only while <span class="ui">Show
+          tickets I created</span> is on; when its search fails, the header says <span
+          class="ui">created ✗</span> and why.</dd>
+          <dt><span class="n">6</span>Detail</dt>
           <dd>Everything about the selected item. For a pull request: the
           linked ticket and its status (also when the ticket is not assigned
           to you), branch, checks, reviews, comments, whether the review was
@@ -326,17 +352,17 @@ gh auth login</code></pre>
           status, priority, comments, the pull requests and sessions linked to
           it, and its related tickets. For a session: state (and what it waits for), folder, Jira key and
           process ID. The bottom lines name the keys that apply.</dd>
-          <dt><span class="n">6</span>Sources</dt>
+          <dt><span class="n">7</span>Sources</dt>
           <dd>Each source with its state and age: <span class="ui">✓ 2m</span>
           when fine, <span class="ui">✗</span> and the error with the age of
           the data shown, <span class="ui">fetching</span>, <span class="ui">off</span>
           or <span class="ui">not set up</span>.</dd>
-          <dt><span class="n">7</span>Key bar</dt>
+          <dt><span class="n">8</span>Key bar</dt>
           <dd>The keys you can press now; when the window is narrow, the less
           important ones are left out.</dd>
-          <dt><span class="n">8</span>Position</dt>
+          <dt><span class="n">9</span>Position</dt>
           <dd>The selected row and the length of the focused list.</dd>
-          <dt><span class="n">9</span>Related</dt>
+          <dt><span class="n">10</span>Related</dt>
           <dd>The Jira links of the ticket, here of the pull request's ticket;
           see <b>Related tickets</b> below.</dd>
         </dl>
@@ -347,7 +373,7 @@ gh auth login</code></pre>
             <thead><tr><th>Key</th><th>Action</th></tr></thead>
             <tbody>
               <tr><td><kbd>↑</kbd> <kbd>↓</kbd> or <kbd>j</kbd> <kbd>k</kbd></td><td>Move the selection.</td></tr>
-              <tr><td><kbd>1</kbd>–<kbd>4</kbd>, <kbd>Tab</kbd>, <kbd>Shift</kbd>-<kbd>Tab</kbd></td><td>Switch panel.</td></tr>
+              <tr><td><kbd>1</kbd>–<kbd>5</kbd>, <kbd>Tab</kbd>, <kbd>Shift</kbd>-<kbd>Tab</kbd></td><td>Switch panel; <kbd>5</kbd> only while the panel of tickets you created is there.</td></tr>
               <tr><td><kbd>Enter</kbd></td><td>Open: the browser for a pull request or ticket, the Ghostty window for a session.</td></tr>
               <tr><td><kbd>J</kbd></td><td>Open the Jira ticket linked to the selected pull request or Claude Code session.</td></tr>
               <tr><td><kbd>/</kbd></td><td>Filter. <kbd>Enter</kbd> keeps the filter, <kbd>Esc</kbd> clears it.</td></tr>
@@ -360,7 +386,7 @@ gh auth login</code></pre>
             </tbody>
           </table>
         </div>
-        <p><b>Filter.</b> Press <kbd>/</kbd> and type: all four panels show only
+        <p><b>Filter.</b> Press <kbd>/</kbd> and type: all panels show only
         the rows that contain the text. It matches a pull request's title,
         repository, branch, Jira key and number, a ticket's key, summary and
         status, and a session's name, folder and Jira key. Each panel's count
@@ -554,6 +580,7 @@ gh auth login</code></pre>
               <tr><th colspan="3">Jira</th></tr>
               <tr><td>New comment by a person</td><td>on</td><td>New comment on STORE-2290</td></tr>
               <tr><td>New comment by Jira automation or an app</td><td>off</td><td>New comment on STORE-2290</td></tr>
+              <tr><td>A ticket you created reached a watched status</td><td>on</td><td>STORE-2455 is In Review</td></tr>
               <tr><th colspan="3">Claude Code</th></tr>
               <tr><td>A session is waiting for your input</td><td>on</td><td>Claude is waiting</td></tr>
               <tr><td>A session finished its work</td><td>on</td><td>Claude finished</td></tr>

@@ -28,7 +28,14 @@ private final class FakeJira: JiraFetching {
     /// The answer to the linked-tickets search, and the keys of every such search.
     let linked = Mutex<Result<[Ticket], Error>>(.success([]))
     let linkedSearches = Mutex<[[String]]>([])
+    /// The answer to the created-tickets search, and the statuses of every such search.
+    let created = Mutex<Result<[Ticket], Error>>(.success([]))
+    let createdSearches = Mutex<[[String]]>([])
     func fetch() async throws -> JiraResult { try result.withLock { $0 }.get() }
+    func fetchCreatedTickets(statuses: [String]) async throws -> [Ticket] {
+        createdSearches.withLock { $0.append(statuses) }
+        return try created.withLock { $0 }.get()
+    }
     func fetchTickets(keys: [String]) async throws -> [Ticket] {
         linkedSearches.withLock { $0.append(keys) }
         return try linked.withLock { $0 }.get()
@@ -382,6 +389,69 @@ private final class FakeClock: Sendable {
         #expect(rig.jira.linkedSearches.withLock { $0 } == [["OTHER-1", "OTHER-2"]])
         #expect(rig.store.snapshot.linkedTickets.map(\.key) == ["OTHER-1", "OTHER-2"])
         #expect(rig.store.snapshot.tickets.map(\.key) == ["MINE-1"])
+    }
+
+    @Test func theTicketsICreatedComeFromTheirOwnSearchInTheWatchedStatuses() async {
+        var settings = AppSettings()
+        settings.createdTicketStatuses = ["In Review", "QA"]
+        let rig = Rig(settings: settings)
+        rig.jira.result.withLock { $0 = .success(JiraResult(myAccountId: "a", tickets: [makeTicket(key: "MINE-1")])) }
+        rig.jira.created.withLock { $0 = .success([makeTicket(key: "MADE-1"), makeTicket(key: "MADE-2")]) }
+        await rig.store.refresh([.github, .jira])
+        #expect(rig.jira.createdSearches.withLock { $0 } == [["In Review", "QA"]])
+        #expect(rig.store.snapshot.createdTickets.map(\.key) == ["MADE-1", "MADE-2"])
+        #expect(rig.store.snapshot.createdTicketStatuses == ["In Review", "QA"])
+        #expect(rig.store.snapshot.createdTicketsError == nil)
+        #expect(rig.store.snapshot.tickets.map(\.key) == ["MINE-1"])
+    }
+
+    @Test func switchingTheCreatedTicketsOffClearsThemWithoutASearch() async {
+        let rig = Rig()
+        rig.jira.created.withLock { $0 = .success([makeTicket(key: "MADE-1")]) }
+        await rig.store.refresh([.jira])
+        #expect(rig.store.snapshot.createdTickets.map(\.key) == ["MADE-1"])
+        rig.store.settings.showsCreatedTickets = false
+        await rig.store.refresh([.jira])
+        #expect(rig.jira.createdSearches.withLock { $0 }.count == 1)
+        #expect(rig.store.snapshot.createdTickets.isEmpty)
+        #expect(rig.store.snapshot.createdTicketStatuses.isEmpty)
+    }
+
+    @Test func aFailedCreatedSearchKeepsTheTicketsSaysWhyAndLeavesJiraOk() async {
+        let rig = Rig()
+        rig.jira.created.withLock { $0 = .success([makeTicket(key: "MADE-1")]) }
+        await rig.store.refresh([.jira])
+        // A status Jira does not know: it refuses the whole search.
+        rig.jira.created.withLock { $0 = .failure(JiraError.http(400)) }
+        await rig.store.refresh([.jira])
+        #expect(rig.store.snapshot.createdTickets.map(\.key) == ["MADE-1"])
+        #expect(rig.store.snapshot.createdTicketsError == "Jira refused the search; check the statuses in Settings › Jira")
+        #expect(rig.store.snapshot.sources.jira.state == .ok)
+        rig.jira.created.withLock { $0 = .failure(JiraError.http(503)) }
+        await rig.store.refresh([.jira])
+        #expect(rig.store.snapshot.createdTicketsError == "HTTP 503")
+        // Other statuses: the old list was for those before, it goes.
+        rig.store.settings.createdTicketStatuses = ["QA"]
+        await rig.store.refresh([.jira])
+        #expect(rig.store.snapshot.createdTickets.isEmpty)
+        rig.jira.created.withLock { $0 = .success([makeTicket(key: "MADE-2")]) }
+        await rig.store.refresh([.jira])
+        #expect(rig.store.snapshot.createdTicketsError == nil)
+        #expect(rig.store.snapshot.createdTickets.map(\.key) == ["MADE-2"])
+    }
+
+    @Test func aJiraThatIsOffOrFailsTakesTheCreatedTicketsAlong() async {
+        let rig = Rig()
+        rig.jira.created.withLock { $0 = .success([makeTicket(key: "MADE-1")]) }
+        await rig.store.refresh([.jira])
+        // My own search failing: nothing is asked, the list stays like my tickets.
+        rig.jira.result.withLock { $0 = .failure(JiraError.http(500)) }
+        await rig.store.refresh([.jira])
+        #expect(rig.jira.createdSearches.withLock { $0 }.count == 1)
+        #expect(rig.store.snapshot.createdTickets.map(\.key) == ["MADE-1"])
+        rig.store.settings.sourceEnabled[.jira] = false
+        await rig.store.refresh([.jira])
+        #expect(rig.store.snapshot.createdTickets.isEmpty)
     }
 
     @Test func noMissingKeysMeansNoSearch() async {

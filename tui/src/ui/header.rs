@@ -26,6 +26,12 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState, now: SystemTime) 
         {
             spans.push(Span::raw("   "));
             spans.extend(source(name, status, now));
+            if name == "Jira"
+                && let Some(error) = &s.created_tickets_error
+            {
+                spans.push(styled("  created ✗ ", theme::error()));
+                spans.push(styled(error.clone(), theme::error()));
+            }
         }
     }
     let right = upgrade(state);

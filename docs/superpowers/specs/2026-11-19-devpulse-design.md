@@ -222,6 +222,16 @@ state and sends notifications.
   my tickets go into one bulk fetch (`POST /rest/api/3/issue/bulkfetch`), capped at 50 keys, with
   the same fields but no comments. It is skipped when my own search failed; when it fails itself,
   the PR shows just the key and the error is logged.
+- **Tickets I created (since 0.17):** with Settings › Jira › "Show tickets I created" on (the
+  default), one more JQL search, `reporter = currentUser() AND status in ("In Review", …) ORDER
+  BY updated DESC`, for the statuses set there (default `In Review`, at most 10, commas between
+  them), with the bulk fetch's fields. It runs alongside the bulk fetch, only after my own search
+  came through. A failure keeps the list it had for the same statuses and says why in the
+  section (a status Jira does not know makes it answer 400: "Jira refused the search; check the
+  statuses in Settings › Jira"). The snapshot carries `createdTickets`, `createdTicketStatuses`
+  (empty while off) and `createdTicketsError`. A ticket entering a watched status notifies
+  (trigger "A ticket you created reached a watched status", on by default), keyed by ticket and
+  status; a new set of statuses, or the view just switched on, starts silently.
 - The current user's account ID is fetched once, to filter out my own comments.
 
 **Linking PRs to tickets:**
@@ -244,8 +254,9 @@ state and sends notifications.
 
 - **Icon:** a SwiftUI `MenuBarExtra` (window style) with `LSUIElement`, so there is no Dock icon.
   The icon shows no badge or count.
-- **Popover:** the same four sections as the TUI, as compact lists, plus each source's last fetch
-  time and any error. Rows open their page.
+- **Popover:** the same sections as the TUI (four, and "Created by me · <statuses>" while that
+  view is on), as compact lists, plus each source's last fetch time and any error. Rows open
+  their page.
 - **Settings window:**
   - Jira site, e-mail and token;
   - GitHub status (from `gh`);
@@ -261,7 +272,8 @@ state and sends notifications.
 ### 5.5 TUI (approved sketch)
 
 The layout and the keys follow lazygit:
-- numbered, bordered panels on the left (My pull requests, Review requests, Jira, Claude Code);
+- numbered, bordered panels on the left (My pull requests, Review requests, Jira, Claude Code,
+  and since 0.17 [5] Created by me while that view is on; `5` and Tab reach it only then);
 - a detail pane on the right;
 - a key hint bar at the bottom.
 

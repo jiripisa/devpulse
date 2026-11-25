@@ -147,6 +147,20 @@
       ]
     }
   ],
+  "createdTickets": [
+    {
+      "key": "STORE-2412",
+      "summary": "Show the VAT number on the invoice",
+      "status": "In Review",
+      "statusCategory": "inProgress",
+      "priority": "Medium",
+      "url": "https://example.atlassian.net/browse/STORE-2412",
+      "updatedAt": "2026-11-19T08:30:00Z",
+      "commentCount": 0,
+      "recentComments": []
+    }
+  ],
+  "createdTicketStatuses": ["In Review"],
   "sessions": [
     { "pid": 41001, "name": "devpulse", "cwd": "/Users/dev/devpulse", "status": "busy", "updatedAt": "2026-11-19T09:59:58Z" },
     { "pid": 41002, "name": "store", "cwd": "/Users/dev/store", "status": "waiting", "waitingFor": "permission prompt", "updatedAt": "2026-11-19T09:58:00Z" },

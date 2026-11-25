@@ -56,7 +56,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState, now: SystemTime) 
     let mut rows = match &state.snapshot {
         None => d.wrapped("Waiting for data from DevPulse…", theme::dim(), None),
         Some(s) => d.rows(state, s).unwrap_or_else(|| {
-            let what = panel_title(state.focus);
+            let what = panel_title(state, state.focus);
             d.wrapped(&format!("Nothing selected in {what}."), theme::dim(), None)
         }),
     };
@@ -99,6 +99,7 @@ impl Detail {
                 Some(self.pr(pr, s, state.focus == Panel::Reviews))
             }
             Panel::Jira => Some(self.ticket(s.tickets.iter().find(|t| t.key == id)?, s)),
+            Panel::Created => Some(self.ticket(s.created_tickets.iter().find(|t| t.key == id)?, s)),
             Panel::Claude => {
                 Some(self.session(s.sessions.iter().find(|c| c.pid.to_string() == id)?, s))
             }

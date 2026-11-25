@@ -34,7 +34,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
         lead.push(Span::raw("   "));
         vec![h("enter", "keep filter", 1), h("esc", "clear", 1)]
     } else {
-        let mut hints = vec![h("↑↓/jk", "move", 3), h("1-4", "panel", 3), h("enter", "open", 1)];
+        let mut hints = vec![h("↑↓/jk", "move", 3), h(if state.shown(Panel::Created) { "1-5" } else { "1-4" }, "panel", 3), h("enter", "open", 1)];
         if jira_hint(state) {
             hints.push(h("J", "jira", 3));
         }
@@ -77,7 +77,7 @@ fn jira_hint(state: &AppState) -> bool {
         Panel::Claude => {
             state.visible_sessions().iter().any(|c| c.pid.to_string() == id && c.jira_key.is_some())
         }
-        Panel::Jira => false,
+        Panel::Jira | Panel::Created => false,
     }
 }
 
