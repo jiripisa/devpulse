@@ -232,6 +232,28 @@ private func run(
         #expect(seen.createdTickets.isEmpty)
     }
 
+    @Test func anOldTicketPushedOntoAFullPageStaysQuiet() {
+        var seen = SeenState()
+        func page(_ numbers: ClosedRange<Int>, updated: Date = Date(timeIntervalSince1970: 100), at: Date) -> Snapshot {
+            created(numbers.map { n in
+                var t = made("OLD-\(n)", "Done")
+                t.updatedAt = updated
+                return t
+            }, statuses: ["Done"], at: at)
+        }
+        _ = run(nil, page(1...50, at: Date(timeIntervalSince1970: 10_000)), &seen)
+        // OLD-50 falls off the page, OLD-51 (edited long ago) comes onto it: no news.
+        #expect(run(nil, page(0...49, at: Date(timeIntervalSince1970: 11_000)), &seen).isEmpty)
+        // OLD-50 is back: still remembered, since a full page only adds.
+        #expect(run(nil, page(1...50, at: Date(timeIntervalSince1970: 12_000)), &seen).isEmpty)
+        // A ticket that really just got there notifies.
+        var fresh = made("NEW-1", "Done")
+        fresh.updatedAt = Date(timeIntervalSince1970: 12_500)
+        var next = page(1...49, at: Date(timeIntervalSince1970: 13_000))
+        next.createdTickets.insert(fresh, at: 0)
+        #expect(run(nil, next, &seen) == [.createdTicketReachedStatus(fresh)])
+    }
+
     @Test func aFailedCreatedSearchChangesNothing() {
         var seen = SeenState()
         _ = run(nil, created([made("MADE-1")]), &seen)
@@ -444,7 +466,9 @@ private func run(
         defer { try? FileManager.default.removeItem(at: dir) }
         let url = dir.appending(path: "nested/seen.json")
         #expect(SeenState.load(from: url) == SeenState())
-        let state = SeenState(baselined: [.github], reviewRequests: ["a"], comments: ["github:1"], ciNotified: ["k"])
+        let state = SeenState(
+            baselined: [.github], reviewRequests: ["a"], comments: ["github:1"], ciNotified: ["k"],
+            createdTickets: ["A-1:in review"], createdTicketStatuses: ["In Review"])
         try state.save(to: url)
         #expect(SeenState.load(from: url) == state)
         try Data("not json".utf8).write(to: url)

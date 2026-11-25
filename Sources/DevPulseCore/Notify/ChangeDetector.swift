@@ -171,7 +171,7 @@ public enum ChangeDetector {
             }
         }
         seen.comments = seen.comments.filter { !$0.hasPrefix("jira:") || commentKeys.contains($0) }
-        events += created(new, baseline: baseline, seen: &seen)
+        events += created(new, baseline: baseline, lastChecked: lastChecked, seen: &seen)
         seen.baselined.insert(.jira)
         seen.lastChecked[.jira] = new.sources.jira.lastSuccess ?? new.generatedAt
         return events
@@ -182,7 +182,14 @@ public enum ChangeDetector {
     /// notifies again. Silent while the statuses differ from those last seen (the view was just
     /// switched on, or other statuses chosen): what is already there is the baseline.
     /// A failed search changes nothing: its list is the last good one, or none.
-    private static func created(_ new: Snapshot, baseline: Bool, seen: inout SeenState) -> [NotificationEvent] {
+    ///
+    /// The search returns one page, the most recently updated first. A ticket must also have
+    /// changed since the last check, so an old one that an unrelated edit pushes onto a full
+    /// page stays quiet; and a full page only adds to what was seen, since the tickets it left
+    /// out may come back.
+    private static func created(
+        _ new: Snapshot, baseline: Bool, lastChecked: Date?, seen: inout SeenState
+    ) -> [NotificationEvent] {
         guard new.createdTicketsError == nil else { return [] }
         let statuses = new.createdTicketStatuses
         let quiet = baseline || seen.createdTicketStatuses != statuses
@@ -191,11 +198,13 @@ public enum ChangeDetector {
         for ticket in new.createdTickets {
             let key = "\(ticket.key):\(ticket.status.lowercased())"
             keys.insert(key)
-            if !seen.createdTickets.contains(key), !quiet {
+            let fresh = lastChecked.map { ticket.updatedAt > $0.addingTimeInterval(-slack) } ?? true
+            if !seen.createdTickets.contains(key), !quiet, fresh {
                 events.append(.createdTicketReachedStatus(ticket))
             }
         }
-        seen.createdTickets = keys
+        let fullPage = new.createdTickets.count >= JiraSource.maxResults
+        seen.createdTickets = fullPage && !quiet ? seen.createdTickets.union(keys) : keys
         seen.createdTicketStatuses = statuses.isEmpty ? nil : statuses
         return events
     }

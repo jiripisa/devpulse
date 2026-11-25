@@ -247,7 +247,8 @@ public final class SnapshotStore {
     private func applyCreated(
         _ result: Result<[Ticket], any Error>?, statuses: [String], jiraOn: Bool, to next: inout Snapshot
     ) {
-        let sameStatuses = next.createdTicketStatuses == statuses
+        let previousStatuses = next.createdTicketStatuses
+        let sameStatuses = previousStatuses == statuses
         next.createdTicketStatuses = jiraOn ? statuses : []
         guard jiraOn, !statuses.isEmpty else {
             next.createdTickets = []
@@ -263,9 +264,10 @@ public final class SnapshotStore {
             next.createdTicketsError = (error as? JiraError) == .http(400)
                 ? "Jira refused the search; check the statuses in Settings › Jira"
                 : SourceErrorMessage.text(for: error)
-        // Not asked: my own search failed or was cancelled; the list stays like my tickets.
+        // Not asked: my own search failed or was cancelled. The list stays like my tickets, and
+        // with it the statuses it is for: new ones count once a search for them came through.
         case nil:
-            if !sameStatuses { next.createdTickets = [] }
+            next.createdTicketStatuses = previousStatuses
         }
     }
 

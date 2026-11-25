@@ -449,9 +449,38 @@ private final class FakeClock: Sendable {
         await rig.store.refresh([.jira])
         #expect(rig.jira.createdSearches.withLock { $0 }.count == 1)
         #expect(rig.store.snapshot.createdTickets.map(\.key) == ["MADE-1"])
+        // Other statuses meanwhile: the list and the statuses it is for stay until a search
+        // for the new ones came through.
+        rig.store.settings.createdTicketStatuses = ["QA"]
+        await rig.store.refresh([.jira])
+        #expect(rig.store.snapshot.createdTicketStatuses == ["In Review"])
+        #expect(rig.store.snapshot.createdTickets.map(\.key) == ["MADE-1"])
         rig.store.settings.sourceEnabled[.jira] = false
         await rig.store.refresh([.jira])
         #expect(rig.store.snapshot.createdTickets.isEmpty)
+        #expect(rig.store.snapshot.createdTicketStatuses.isEmpty)
+    }
+
+    @Test func otherSourcesRefreshingLeaveTheCreatedTicketsAlone() async {
+        let rig = Rig()
+        rig.jira.created.withLock { $0 = .success([makeTicket(key: "MADE-1")]) }
+        await rig.store.refresh([.jira])
+        rig.jira.created.withLock { $0 = .failure(JiraError.http(503)) }
+        await rig.store.refresh([.jira])
+        await rig.store.refresh([.github])
+        await rig.store.refresh([.claude])
+        #expect(rig.jira.createdSearches.withLock { $0 }.count == 2)
+        #expect(rig.store.snapshot.createdTickets.map(\.key) == ["MADE-1"])
+        #expect(rig.store.snapshot.createdTicketStatuses == ["In Review"])
+        #expect(rig.store.snapshot.createdTicketsError == "HTTP 503")
+    }
+
+    @Test func jiraNotSetUpHasNoCreatedTickets() async {
+        let rig = Rig(credentials: nil)
+        await rig.store.refresh([.jira])
+        #expect(rig.jira.createdSearches.withLock { $0 }.isEmpty)
+        #expect(rig.store.snapshot.createdTickets.isEmpty)
+        #expect(rig.store.snapshot.createdTicketStatuses.isEmpty)
     }
 
     @Test func noMissingKeysMeansNoSearch() async {

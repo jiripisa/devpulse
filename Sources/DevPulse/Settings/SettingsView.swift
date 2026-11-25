@@ -277,13 +277,18 @@ private struct JiraSettingsView: View {
         hasStoredToken = model.storedJiraToken(for: model.settings.jiraEmail)
     }
 
+    /// An emptied field keeps the statuses; the switch turns the view off.
     private func applyStatuses() {
         let parsed = AppSettings.parseStatuses(statuses)
-        if parsed != model.settings.createdTicketStatuses { model.settings.createdTicketStatuses = parsed }
+        if !parsed.isEmpty, parsed != model.settings.createdTicketStatuses {
+            model.settings.createdTicketStatuses = parsed
+        }
         statuses = AppSettings.statusesText(model.settings.createdTicketStatuses)
     }
 
     private func save() {
+        // Save does not take the focus, so the field's own apply would not run before `load()`.
+        applyStatuses()
         do {
             try model.saveJira(site: site, email: email, token: token)
             token = ""
